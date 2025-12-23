@@ -3,6 +3,7 @@ var Zarvan = (function () {
   "use strict";
 
   // --------------------------- Utils ---------------------------
+
   function resolveElement(selOrEl) {
     if (!selOrEl) return null;
     if (typeof selOrEl === "string") return document.querySelector(selOrEl);
@@ -976,7 +977,7 @@ var Zarvan = (function () {
       });
     }
 
-    // --------------------------- UI helpers ---------------------------   
+    // --------------------------- UI helpers ---------------------------
 
     function fitMonthEvents(eventContainer, nodes, makeMoreBtn) {
       eventContainer.innerHTML = "";
@@ -1393,6 +1394,42 @@ var Zarvan = (function () {
     }
 
     // --------------------------- Excel Export ---------------------------
+
+    function evToGRange(ev) {
+      var s = parseJDateTime(ev.start);
+      var e = parseJDateTime(ev.end || ev.start);
+
+      var sG = toGDateFromJ(s.jy, s.jm, s.jd);
+      var eG = toGDateFromJ(e.jy, e.jm, e.jd);
+
+      var allDay = isAllDayEvent(ev);
+
+      if (allDay) {
+        return { start: gDateStart(sG), end: gDateStart(eG), allDay: true };
+      }
+
+      sG.setHours(s.hh || 0, s.mm || 0, 0, 0);
+      eG.setHours(e.hh || 0, e.mm || 0, 0, 0);
+
+      if (eG <= sG) eG = new Date(sG.getTime() + 15 * 60 * 1000);
+
+      return { start: sG, end: eG, allDay: false };
+    }
+
+    function eventInVisibleRange(ev, rangeStartG, rangeEndG) {
+      var r = evToGRange(ev);
+
+      var rs = gDateStart(rangeStartG).getTime();
+      var reExclusive = gDateStart(rangeEndG).getTime() + 24 * 60 * 60 * 1000;
+
+      if (r.allDay) {
+        var rEndExclusive = r.end.getTime() + 24 * 60 * 60 * 1000;
+        return r.start.getTime() < reExclusive && rEndExclusive > rs;
+      }
+
+      return r.start.getTime() < reExclusive && r.end.getTime() > rs;
+    }
+
     function toFaDigits(input) {
       var s = String(input == null ? "" : input);
       var map = {
@@ -1430,6 +1467,10 @@ var Zarvan = (function () {
         var rg = getVisibleRangeG();
         var expanded = expandRecurringForRange(baseEvents, rg.startG, rg.endG);
         var filtered = filterEventsForCurrentView(expanded);
+
+        filtered = filtered.filter(function (ev) {
+          return eventInVisibleRange(ev, rg.startG, rg.endG);
+        });
 
         filtered.sort(function (a, b) {
           return (
@@ -3023,7 +3064,7 @@ var Zarvan = (function () {
                 } else {
                   dots.appendChild(
                     // createEl("span", "zc-year-more", "+" + evs.length)
-                    createEl("span", "zc-year-more", "+" + '2')
+                    createEl("span", "zc-year-more", "+" + "2")
                   );
                 }
 
