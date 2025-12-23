@@ -227,6 +227,16 @@ var Zarvan = (function () {
     var currentWeekDate = new Date();
     var currentDayDate = new Date();
 
+    var validation = Object.assign(
+      {
+        enabled: true,
+        requireNumericId: false,
+        onInvalid: "drop", // "drop" | "keep"
+        autoFix: true, // end<start
+      },
+      options.validation || {}
+    );
+
     var baseEvents = normalizeEvents(options.events || []);
     var eventsByDay = {};
     var nowTick = null;
@@ -621,12 +631,169 @@ var Zarvan = (function () {
     }
 
     // --------------------------- Events / Data ---------------------------
-    function normalizeEvents(list) {
-      return (list || []).map(function (ev) {
-        ev = Object.assign({}, ev);
-        if (!ev.end) ev.end = ev.start;
+
+    function isValidJDateOnly(jy, jm, jd) {
+      if (!jy || jm < 1 || jm > 12) return false;
+      var ml;
+      try {
+        ml = jalaali.jalaaliMonthLength(jy, jm);
+      } catch (e) {
+        return false;
+      }
+      return jd >= 1 && jd <= ml;
+    }
+
+    function isValidTime(hh, mm) {
+      return hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59;
+    }
+
+    function isValidJDTString(str) {
+      // YYYY-M-D or YYYY-MM-DD or with time T09:30
+      str = String(str || "").trim();
+      if (!str) return { ok: false, reason: "empty" };
+
+      var parts = str.split("T");
+      var d = (parts[0] || "").split("-").map(Number);
+      var jy = d[0],
+        jm = d[1],
+        jd = d[2];
+
+      if (!isValidJDateOnly(jy, jm, jd))
+        return { ok: false, reason: "bad_date", jy: jy, jm: jm, jd: jd };
+
+      if (parts.length === 1) return { ok: true, allDay: true };
+
+      var t = (parts[1] || "").slice(0, 5).split(":").map(Number);
+      var hh = t[0],
+        mm = t[1];
+
+      if (!isValidTime(hh, mm))
+        return { ok: false, reason: "bad_time", hh: hh, mm: mm };
+
+      return { ok: true, allDay: false, hh: hh, mm: mm };
+    }
+
+    function ensureEndNotBeforeStart(ev) {
+      try {
+        var r = evToGRange(ev);
+        if (r.allDay) {
+          if (r.end.getTime() < r.start.getTime()) ev.end = ev.start;
+          return ev;
+        }
+        if (r.end.getTime() <= r.start.getTime()) {
+          var p = parseJDateTime(ev.start);
+          var g = toGDateFromJ(p.jy, p.jm, p.jd);
+          g.setHours(p.hh || 0, p.mm || 0, 0, 0);
+          var g2 = new Date(g.getTime() + 15 * 60 * 1000);
+
+          var j2 = jalaali.toJalaali(
+            g2.getFullYear(),
+            g2.getMonth() + 1,
+            g2.getDate()
+          );
+          ev.end = formatJDT(
+            j2.jy,
+            j2.jm,
+            j2.jd,
+            g2.getHours(),
+            g2.getMinutes(),
+            false
+          );
+        }
+      } catch (e) {}
+      return ev;
+    }
+
+    function coerceId(ev) {
+      if (!validation.requireNumericId) return ev;
+
+      var id = ev.id;
+      if (typeof id === "number" && isFinite(id)) return ev;
+
+      if (typeof id === "string" && /^\d+$/.test(id.trim())) {
+        ev.id = Number(id.trim());
         return ev;
-      });
+      }
+
+      var s = String(
+        id != null ? id : (ev.title || "") + "|" + (ev.start || "")
+      );
+      var h = 0;
+      for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      ev.id = h;
+      return ev;
+    }
+
+    function validateAndNormalizeEvent(ev, idx) {
+      ev = Object.assign({}, ev);
+
+      // start required
+      var vs = isValidJDTString(ev.start);
+      if (!vs.ok) {
+        zWarn("رویداد نامعتبر: start مشکل دارد.", {
+          index: idx,
+          ev: ev,
+          reason: vs.reason,
+        });
+        return { ok: false };
+      }
+
+      // end optional
+      if (!ev.end) ev.end = ev.start;
+      var ve = isValidJDTString(ev.end);
+      if (!ve.ok) {
+        if (validation.autoFix) {
+          zWarn("رویداد: end نامعتبر بود، end=start شد.", {
+            index: idx,
+            ev: ev,
+            reason: ve.reason,
+          });
+          ev.end = ev.start;
+        } else {
+          zWarn("رویداد نامعتبر: end مشکل دارد.", {
+            index: idx,
+            ev: ev,
+            reason: ve.reason,
+          });
+          return { ok: false };
+        }
+      }
+
+      if (vs.allDay && ev.allDay == null) ev.allDay = true;
+
+      // enforce end >= start
+      if (validation.autoFix) ensureEndNotBeforeStart(ev);
+
+      // id policy
+      coerceId(ev);
+
+      // title fallback
+      if (ev.title == null) ev.title = "";
+
+      return { ok: true, ev: ev };
+    }
+
+    // ---- Replace normalizeEvents with this
+    function normalizeEvents(list) {
+      list = Array.isArray(list) ? list : [];
+
+      return list
+        .map(function (ev, idx) {
+          if (!validation.enabled) {
+            ev = Object.assign({}, ev);
+            if (!ev.end) ev.end = ev.start;
+            return ev;
+          }
+
+          var res = validateAndNormalizeEvent(ev, idx);
+          if (!res.ok) return null;
+          return res.ev;
+        })
+        .filter(function (x) {
+          if (x) return true;
+          return validation.onInvalid !== "drop";
+        })
+        .filter(Boolean);
     }
 
     function isMultiDay(ev) {
@@ -683,7 +850,6 @@ var Zarvan = (function () {
         return true;
       });
     }
-
 
     function organizeEvents(events) {
       var map = {};
