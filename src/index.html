@@ -1,0 +1,214 @@
+<html lang="fa">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تقویم</title>
+  <link rel="stylesheet" href="css/zarvan.css" />
+  <style>
+    .cal-wrap {
+      margin: 30px auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="cal-wrap">
+    <div id="calendar1"></div>
+  </div>
+
+  <br>
+
+  <br>
+
+  <div class="cal-wrap" style="display: none;">
+    <div id="calendar2"></div>
+  </div>
+
+  <script src="libs/xlsx.full.min.js"></script>
+  <script src="libs/jalaali.js"></script>
+  <script src="js/zarvan.js"></script>
+
+  <script>
+    // --- helper برای ساخت تاریخ شمسیِ همین هفته ---
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function jOf(date) {
+      const j = jalaali.toJalaali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      return `${j.jy}-${pad2(j.jm)}-${pad2(j.jd)}`;
+    }
+
+    function addDays(base, n) {
+      const d = new Date(base);
+      d.setDate(d.getDate() + n);
+      return d;
+    }
+
+    // شروع هفته (شنبه) بر اساس امروز
+    const _today = new Date();
+    const _dow = (_today.getDay() + 1) % 7;     // شنبه=0 ... جمعه=6
+    const _weekStart = addDays(_today, -_dow);
+
+    // روزهای هفته به شمسی
+    const J_SAT = jOf(addDays(_weekStart, 0));
+    const J_SUN = jOf(addDays(_weekStart, 1));
+    const J_MON = jOf(addDays(_weekStart, 2));
+    const J_TUE = jOf(addDays(_weekStart, 3));
+    const J_WED = jOf(addDays(_weekStart, 4));
+    const J_THU = jOf(addDays(_weekStart, 5));
+    const J_FRI = jOf(addDays(_weekStart, 6));
+
+    // ===== events تقویم اول (همون رویدادهای خودت) =====
+    var events1 = [
+      { id: 100, title: "جلسه A (هم‌زمان 1)", start: `${J_SAT}T09:00`, end: `${J_SAT}T11:00`, type: "meeting" },
+      { id: 101, title: "جلسه B (هم‌زمان 2)", start: `${J_SAT}T09:30`, end: `${J_SAT}T10:30`, type: "meeting" },
+      { id: 102, title: "تسک C (هم‌زمان 3)", start: `${J_SAT}T10:00`, end: `${J_SAT}T12:00`, type: "task" },
+      { id: 103, title: "کال سریع داخلش", start: `${J_SAT}T10:15`, end: `${J_SAT}T10:45`, type: "meeting" },
+
+      { id: 110, title: "استندآپ تیم", start: `${J_SUN}T09:00`, end: `${J_SUN}T09:15`, type: "meeting" },
+      { id: 111, title: "کار عمیق (بلند)", start: `${J_SUN}T09:30`, end: `${J_SUN}T13:30`, type: "task" },
+      { id: 112, title: "ناهار", start: `${J_SUN}T13:30`, end: `${J_SUN}T14:00`, type: "meeting" },
+      { id: 113, title: "دیلی کوتاه", start: `${J_SUN}T14:00`, end: `${J_SUN}T14:10`, type: "meeting" },
+
+      { id: 120, title: "جلسه طراحی", start: `${J_MON}T11:00`, end: `${J_MON}T12:30`, type: "meeting" },
+      { id: 121, title: "جلسه محصول (هم‌زمان)", start: `${J_MON}T11:30`, end: `${J_MON}T13:00`, type: "meeting" },
+
+      { id: 130, title: "رفع باگ", start: `${J_TUE}T10:00`, end: `${J_TUE}T12:00`, type: "task" },
+      { id: 131, title: "گزارش هفتگی", start: `${J_TUE}T16:00`, end: `${J_TUE}T17:00`, type: "task" },
+
+      { id: 140, title: "جلسه با مشتری (بلند)", start: `${J_WED}T08:30`, end: `${J_WED}T11:30`, type: "meeting" },
+      { id: 141, title: "پیگیری قرارداد (overlap)", start: `${J_WED}T10:30`, end: `${J_WED}T12:00`, type: "meeting" },
+
+      { id: 150, title: "مرور تسک‌ها", start: `${J_THU}T15:00`, end: `${J_THU}T16:00`, type: "task" },
+      { id: 160, title: "برنامه‌ریزی هفته بعد", start: `${J_FRI}T10:00`, end: `${J_FRI}T11:00`, type: "meeting" },
+
+      {
+        id: 1, title: "پروژه آبان (چندروزه)",
+        start: "1404-08-29T09:00", end: "1404-09-02T17:00", type: "meeting"
+      },
+      { id: 2, title: "جلسه جمع‌بندی آبان", start: "1404-08-30T14:00", end: "1404-08-30T15:00", type: "meeting" },
+
+      { id: 3, title: "استندآپ تیم", start: "1404-09-05T09:00", end: "1404-09-05T09:30", type: "meeting" },
+      { id: 4, title: "تماس با مشتری", start: "1404-09-05T10:00", end: "1404-09-05T11:00", type: "meeting" },
+      { id: 5, title: "نوشتن مستندات", start: "1404-09-05T11:15", end: "1404-09-05T12:30", type: "task" },
+      { id: 6, title: "ناهار با تیم", start: "1404-09-05T13:00", end: "1404-09-05T14:00", type: "meeting" },
+      { id: 7, title: "کار روی UI", start: "1404-09-05T15:00", end: "1404-09-05T17:00", type: "task" },
+      { id: 8, title: "مرور تسک‌ها", start: "1404-09-05T18:00", end: "1404-09-05T19:00", type: "task" },
+
+      { id: 9, title: "اسپرینت هکاتون (چندروزه)", start: "1404-09-10T09:00", end: "1404-09-12T18:00", type: "meeting" },
+      { id: 10, title: "جلسه طراحی", start: "1404-09-10T10:00", end: "1404-09-10T11:30", type: "meeting" },
+      { id: 11, title: "رفع باگ‌ها", start: "1404-09-11T09:30", end: "1404-09-11T12:00", type: "task" },
+      { id: 12, title: "ارائه به مدیرعامل", start: "1404-09-12T16:00", end: "1404-09-12T17:30", type: "meeting" },
+
+      { id: 13, title: "پروژه دی/آذر (چندروزه)", start: "1404-09-29T08:00", end: "1404-10-03T18:00", type: "meeting" },
+      { id: 14, title: "جلسه شروع ماه دی", start: "1404-10-02T14:00", end: "1404-10-02T15:30", type: "meeting" },
+
+      {
+        title: "Daily Standup",
+        type: "meeting",
+        start: "1404-09-23T09:00",
+        end: "1404-09-23T09:15",
+        repeat: { freq: "daily", interval: 1 }
+      },
+      {
+        title: "ورزش",
+        type: "task",
+        allDay: true,
+        start: "1404-09-23",
+        end: "1404-09-23",
+        repeat: { freq: "daily" },
+      },
+      {
+        title: "کلاس",
+        type: "task",
+        start: "1404-09-23T18:00",
+        end: "1404-09-23T19:30",
+        repeat: { freq: "weekly", interval: 1, byWeekday: [0, 2], until: "1404-12-01" }
+      }
+    ];
+
+    // ===== events تقویم دوم (برای اینکه فرق داشته باشه، یه کپی با چند تغییر کوچک) =====
+    // اگر دوست داری دقیقاً یکی باشن، همین events1 رو بده.
+    var events2 = events1.map(function (e) { return Object.assign({}, e); });
+    events2.push({
+      id: 999,
+      title: "رویداد اختصاصی تقویم دوم",
+      start: `${J_TUE}T12:30`,
+      end: `${J_TUE}T13:15`,
+      type: "meeting"
+    });
+
+    const cal = Zarvan.create({
+      selector: "#calendar1",
+      events: events1,
+      view: "month",
+      // highlights: [
+      //   // تعطیلات (پنجشنبه+جمعه)
+      //   { views: ["month", "week", "day"], when: { weekday: [5, 6] }, day: { bg: "#fff3f3" } },
+
+      //   // ساعت کاری شنبه تا چهارشنبه، 09 تا 17 (فقط week/day)
+      //   {
+      //     views: ["week", "day"],
+      //     when: { weekday: [0, 1, 2, 3, 4] },
+      //     time: { start: "09:00", end: "17:00", bg: "rgba(52,168,83,0.10)" }
+      //   },
+
+      //   // یک تاریخ خاص (مثلاً هایلایت امروز/روز مهم)
+      //   { views: ["month", "week", "day"], when: { jDates: ["1404-09-23"] }, day: { bg: "#e8f0fe" } }
+      // ],
+      typeLabels: {
+        "task": "کار عمیق",
+        "meeting": "پیگیری",
+      },
+      typeStyles: {
+        meeting: { bg: "#1a73e8", color: "#fff" },
+        task: { bg: "#16a34a", color: "#fff" },
+        holiday: { bg: "#ef4444", color: "#fff" },
+      },
+      handlers: {
+        onInit: (_, ctx) => console.log("init", ctx.instanceId),
+
+        onFiltersChange: (p, ctx) =>
+          console.log("filters", p.source, { type: p.type, q: p.q }),
+
+        onDayNumberClick: (p, ctx) =>
+          console.log("day click", p.view, p.jdate),
+
+        onWeekHeaderDayClick: (p, ctx) =>
+          console.log("week header day", p.jdate),
+
+        onMoreEventsClick: (p, ctx) =>
+          console.log("more events", p.view, p.date.jdate, p.events.length),
+
+        onExportStart: (p) => console.log("export start", p.fileName),
+        onExportEnd: (p) => console.log("export end", p.count),
+        onExportError: (err) => console.error("export error", err),
+
+        onEventClick: (ev, meta, ctx) => {
+          debugger;
+          console.log("event click", ev.title, meta.view, meta.jdate, meta.isAllDay);
+        },
+
+        onWarn: (p) => console.warn("warn:", p.message, p.extra),
+        onError: (err) => console.error("error:", err),
+      },
+      features: {
+        views: { month: true, week: true, day: true, year: true, list: true },
+        nowLine: true,
+        moreEventsModal: true,
+        exportExcel: true,
+        timeGridLayout: "overlap", // "columns , overlap"
+        overlapFocus: true,      
+      },
+
+
+    });
+    const cal2 = Zarvan.create({ selector: "#calendar2", events: events2 });
+
+    // cal2.setView("week");
+  </script>
+
+</body>
+
+</html>
