@@ -3059,9 +3059,9 @@ var Zarvan = (function () {
 
       var monthLength = jalaali.jalaaliMonthLength(jy, jm);
 
-      for (var day = 1; day <= monthLength; day++) {
-        var key = jy + "-" + jm + "-" + day;
-        var dayEvents = (eventsByDay[key] || []).slice();
+      for (let day = 1; day <= monthLength; day++) {
+        let key = jy + "-" + jm + "-" + day;
+        let dayEvents = (eventsByDay[key] || []).slice();
         if (!dayEvents.length) continue;
 
         dayEvents.sort(function (a, b) {
@@ -3071,15 +3071,15 @@ var Zarvan = (function () {
           );
         });
 
-        var gdate = toGDateFromJ(jy, jm, day);
-        var jObj = { jy: jy, jm: jm, jd: day };
-        var dayName = WEEKDAY_NAMES[weekdayIndexFromGDate(gdate)];
-        var dateLabel = day + " " + formatTitle(jy, jm);
+        let gdate = toGDateFromJ(jy, jm, day);
+        let jObj = { jy: jy, jm: jm, jd: day };
+        let dayName = WEEKDAY_NAMES[weekdayIndexFromGDate(gdate)];
+        let dateLabel = day + " " + formatTitle(jy, jm);
 
-        var dayBlock = createEl("div", "zc-list-day");
+        let dayBlock = createEl("div", "zc-list-day");
         wrap.appendChild(dayBlock);
 
-        var head = createEl("div", "zc-list-day-header");
+        let head = createEl("div", "zc-list-day-header");
         head.appendChild(createEl("div", "zc-list-day-left", dayName));
         head.appendChild(createEl("div", "zc-list-day-right", dateLabel));
 
