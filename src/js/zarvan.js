@@ -674,6 +674,17 @@ var Zarvan = (function () {
       });
     }
 
+    function filterEventsForAutocomplete(events) {
+      var t = filterState.type;
+      return (events || []).filter(function (ev) {
+        if (t && t !== "__all__") {
+          if ((ev.type || "") !== t) return false;
+        }
+        return true;
+      });
+    }
+
+
     function organizeEvents(events) {
       var map = {};
       (events || []).forEach(function (ev) {
@@ -733,7 +744,7 @@ var Zarvan = (function () {
 
       (events || []).forEach(function (ev) {
         if (!ev.repeat) {
-          out.push(ev);
+          if (eventInVisibleRange(ev, rangeStartG, rangeEndG)) out.push(ev);
           return;
         }
 
@@ -2197,7 +2208,7 @@ var Zarvan = (function () {
         rg.startG,
         rg.endG
       );
-      updateAutocompleteTitles(expandedForAC);
+      updateAutocompleteTitles(filterEventsForAutocomplete(expandedForAC));
       refreshEvents();
 
       // filters UI (if sidebar)
