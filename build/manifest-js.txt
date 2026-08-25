@@ -1,0 +1,57 @@
+# Build order for src/js/zarvan.js
+#
+# Single source of truth for script order. Each module is a classic IIFE that registers itself on the
+# shared ZarvanInternal namespace, so order must follow the dependency graph: a module may only use
+# namespaces registered by files listed above it.
+#
+# Blank lines and lines starting with # are ignored. Paths are relative to src/js/.
+
+# --- locale: the registry, then Persian. Zarvan is a Persian calendar; there is one bundled
+#     locale, and `locale: { strings: {...} }` is how you override its wording. ---
+locale/index.js
+locale/fa.js
+
+# --- core: no DOM, no calendar knowledge, no state ---
+core/utils.js
+core/dom.js
+core/disposable.js
+core/scheduler.js
+core/registry.js
+core/hooks.js
+core/plugins.js
+core/shadow.js
+
+# --- calendar: jdate is pure string work; jalali is the ONLY file that touches the jalaali lib ---
+calendar/jdate.js
+calendar/gregorian.js
+calendar/jalali.js
+
+# --- layout: pure interval maths, columns depends on overlap for overlapsMin() ---
+layout/overlap.js
+layout/columns.js
+
+# --- data: events -> normalize/recurrence/organize/filter ---
+data/events.js
+data/normalize.js
+data/recurrence.js
+data/organize.js
+data/filter.js
+
+# --- views: shared rendering engines ---
+views/timegrid.js
+
+# --- ui: reusable widgets, no calendar knowledge ---
+ui/dropdown.js
+ui/autocomplete.js
+ui/modal.js
+
+# --- highlights ---
+highlights/rules.js
+
+# --- plugins: optional. Remove a line to remove the feature and its cost. ---
+plugins/highlights.js
+plugins/nowIndicator.js
+plugins/excelExport.js
+
+# --- shell / controller: must come last, it consumes everything above ---
+main.js

@@ -1,0 +1,50 @@
+# ============================================================================
+#  Zarvan Calendar — what does not belong in the repository
+# ============================================================================
+#
+#  NOTE: dist/ is deliberately NOT ignored. It is the product — the folder a
+#  consumer downloads and drops into their project. Commit it on every release.
+#  See README.md ▸ Install.
+#
+# ----------------------------------------------------------------------------
+
+# --- Generated intermediates -------------------------------------------------
+# Assembled from build/manifest-{js,css}.txt on the way to dist/. Nothing loads
+# them: every page in this repo points at dist/. They are byte-identical to
+# their dist/ counterparts (the CSS literally so), so committing them would
+# duplicate ~240 KB and produce a merge conflict on every PR that touches a
+# part. Run any of the three builders to regenerate.
+src/js/zarvan.js
+src/css/zarvan.css
+
+# --- Optional dev-only dependency --------------------------------------------
+# SheetJS is not a dependency of this library — the Excel export resolves it at
+# click time from options.deps.xlsx or window.XLSX, and warns if it is absent.
+# The demo pages load it from a CDN. Drop a copy here if you want it offline.
+src/libs/xlsx.full.min.js
+
+# --- Local tooling -----------------------------------------------------------
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Node --------------------------------------------------------------------
+# There are no runtime dependencies; this is only here for anyone who runs the
+# optional node build or the dev server.
+node_modules/
+npm-debug.log*
+yarn-error.log
+*.log
+
+# --- OS ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Scratch -----------------------------------------------------------------
+*.tmp
+*.bak
+*.orig
+*.rej

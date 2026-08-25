@@ -1,0 +1,76 @@
+/* ---- Mini calendar ---- */
+.zc-calendar .zc-mini {
+  border: 1px solid var(--zc-color-border-soft);
+  border-radius: var(--zc-radius-lg);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--zc-space-4);
+  background: var(--zc-color-surface-alt);
+  border-bottom: 1px solid var(--zc-color-border-soft);
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-title {
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-nav {
+  display: flex;
+  gap: var(--zc-space-2);
+}
+
+.zc-calendar .zc-mini-nav button {
+  width: 30px;
+  height: 28px;
+  border: 1px solid var(--zc-color-border);
+  border-radius: 7px;
+  background: var(--zc-color-surface);
+  cursor: pointer;
+}
+
+.zc-calendar .zc-mini-nav button:hover {
+  background: #f3f3f3;
+}
+
+.zc-calendar .zc-mini-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: var(--zc-space-2) var(--zc-space-3);
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-text-faint);
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-weekdays div {
+  text-align: center;
+}
+
+.zc-calendar .zc-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: var(--zc-space-3);
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-day {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--zc-radius-md);
+  font-size: var(--zc-font-size-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+.zc-calendar .zc-mini-day:hover {
+  background: var(--zc-color-accent-tint);
+}

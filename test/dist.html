@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zarvan — dist drop-in check</title>
+
+  <!-- ==========================================================================
+       This page loads NOTHING but the two files a consumer copies out of dist/.
+       No jalaali.js tag, no src/ paths, no build step. If this page passes, the
+       drop-in instructions in README.md are true.
+       ========================================================================== -->
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #f7f8fa;
+      color: #16202c;
+      font: 14px/1.6 ui-sans-serif, system-ui, sans-serif;
+    }
+
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    p.sub { margin: 0 0 20px; color: #5d6a7a; }
+
+    #verdict {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+    #verdict.pass { background: #dcf0e4; color: #205c3b; border: 1px solid #a8d5bd; }
+    #verdict.fail { background: #f8dedb; color: #8f2f24; border: 1px solid #e3aca5; }
+
+    #results { margin-bottom: 28px; }
+    .row { padding: 2px 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
+    .row.pass::before { content: "pass  "; color: #2f855a; }
+    .row.fail::before { content: "FAIL  "; color: #c0392b; font-weight: 700; }
+    .row.fail { color: #c0392b; }
+    .detail { color: #7a8697; }
+
+    .demo-wrap { background: #fff; border: 1px solid #dde2ea; border-radius: 8px; padding: 8px; }
+  </style>
+</head>
+
+<body>
+
+  <h1>dist/ drop-in check</h1>
+  <p class="sub">
+    Two files, two tags, nothing else. This is the integration a consumer actually performs.
+  </p>
+
+  <div id="verdict">running…</div>
+  <div id="results"></div>
+
+  <div class="demo-wrap">
+    <div id="calendar"></div>
+  </div>
+
+  <script src="../dist/zarvan.js"></script>
+
+  <script>
+    /* Deferred to window.load rather than run at parse time.
+       Half these checks measure real geometry, and a cold first load can execute a parse-time script
+       before the stylesheet has been applied — the sidebar check saw width 0 and reported that the
+       sidebar had not opened, then passed on every warm reload. By `load` every stylesheet is in. */
+    function runDistChecks() {
+      var results = document.getElementById("results");
+      var failures = 0;
+      var total = 0;
+
+      function check(label, fn) {
+        total++;
+        var row = document.createElement("div");
+        try {
+          var detail = fn();
+          row.className = "row pass";
+          row.innerHTML = label + (detail ? ' <span class="detail">' + detail + "</span>" : "");
+        } catch (e) {
+          failures++;
+          row.className = "row fail";
+          row.textContent = label + " — " + (e && e.message ? e.message : e);
+        }
+        results.appendChild(row);
+      }
+
+      function assert(cond, msg) {
+        if (!cond) throw new Error(msg || "assertion failed");
+      }
+
+      // ---- 1. the globals the one script tag is supposed to provide
+      check("one script tag defines Zarvan", function () {
+        assert(typeof Zarvan === "object" && Zarvan, "Zarvan is not defined");
+        return "v" + Zarvan.version;
+      });
+
+      check("jalaali is bundled in, not a second tag", function () {
+        assert(typeof jalaali === "object" && jalaali, "jalaali is not defined");
+        assert(typeof jalaali.toJalaali === "function", "jalaali.toJalaali missing");
+        var j = jalaali.toJalaali(2026, 8, 24);
+        assert(j.jy === 1405 && j.jm === 6, "wrong conversion: " + JSON.stringify(j));
+        return "1405-06-02 from 2026-08-24";
+      });
+
+      check("the version is stamped, not a placeholder", function () {
+        assert(/^\d+\.\d+\.\d+/.test(Zarvan.version), "got " + Zarvan.version);
+        return Zarvan.version;
+      });
+
+      check("internals are not left on the global", function () {
+        assert(typeof window.ZarvanInternal === "undefined", "ZarvanInternal is still exposed");
+      });
+
+      // ---- 2. it renders
+      var cal = null;
+      var today = jalaali.toJalaali(new Date());
+      var D = today.jy + "-" + today.jm + "-" + today.jd;
+
+      check("create() renders synchronously", function () {
+        cal = Zarvan.create({
+          selector: "#calendar",
+          view: "month",
+          events: [
+            { id: 1, title: "جلسه طراحی", start: D + "T09:00", end: D + "T10:30", type: "meeting" },
+            { id: 2, title: "تعطیل", start: D, allDay: true, type: "holiday" },
+          ],
+        });
+        var cells = document.querySelectorAll("#calendar .zc-day-cell");
+        assert(cells.length >= 28, "only " + cells.length + " day cells");
+        return cells.length + " day cells";
+      });
+
+      check("the stylesheet in dist/ is the one being applied", function () {
+        var header = document.querySelector("#calendar .zc-header");
+        assert(header, "no header rendered");
+        var display = getComputedStyle(header).display;
+        assert(display === "flex", "header display is " + display + " — is zarvan.css loaded?");
+        var grid = document.querySelector("#calendar .zc-month-grid");
+        assert(getComputedStyle(grid).display === "grid", "month grid is not a grid");
+        return "header flex, grid grid";
+      });
+
+      check("no runtime asset requests — no <img>, no url() fetches", function () {
+        var imgs = document.querySelectorAll("#calendar img");
+        assert(imgs.length === 0, imgs.length + " <img> element(s) found");
+        var svg = document.querySelector("#calendar .zc-prev svg");
+        assert(svg, "the nav chevron should be inline SVG");
+        return "chevron is inline SVG";
+      });
+
+      // ---- 3. Persian and right-to-left, always
+      check("it is Persian by default", function () {
+        var root = cal.getRoot();
+        assert(cal.getLocale() === "fa", "locale is " + cal.getLocale());
+        assert(root.getAttribute("lang") === "fa", "lang is " + root.getAttribute("lang"));
+        var todayBtn = document.querySelector("#calendar .zc-today");
+        assert(todayBtn.innerText.trim() === "امروز", "today button says " + todayBtn.innerText);
+        return "امروز";
+      });
+
+      check("it is right-to-left, always", function () {
+        var root = cal.getRoot();
+        assert(root.getAttribute("dir") === "rtl", "dir is " + root.getAttribute("dir"));
+        var grid = document.querySelector("#calendar .zc-month-grid");
+        assert(getComputedStyle(grid).direction === "rtl", "the month grid is not rtl");
+        return "dir=rtl";
+      });
+
+      check("the sidebar opens on the right", function () {
+        /* Regression: .zc-content used `row-reverse` with no direction of its own, so it only
+           produced a right-hand sidebar while the calendar sat in an LTR document. Adding dir="rtl"
+           to the container cancelled the two negations and the sidebar jumped to the left. */
+        var el = cal.getRoot();
+        var sb = el.querySelector(".zc-sidebar");
+        var body = el.querySelector(".zc-body");
+        sb.style.transition = "none";                    // measure the settled state, not the tween
+        el.classList.add("zc-sidebar-open", "zc-sidebar-ready");
+
+        var s = sb.getBoundingClientRect();
+        var b = body.getBoundingClientRect();
+        assert(s.width > 0, "the sidebar did not open");
+        assert((s.left + s.right) / 2 > (b.left + b.right) / 2,
+               "the sidebar is left of the body (" + Math.round(s.left) + " vs " + Math.round(b.left) + ")");
+
+        el.classList.remove("zc-sidebar-open", "zc-sidebar-ready");
+        sb.style.transition = "";
+        return "sidebar " + Math.round(s.left) + "px, body " + Math.round(b.left) + "px";
+      });
+
+      check("the sidebar stays right even in a left-to-right host document", function () {
+        // The layout must not depend on the host page's direction.
+        var prev = document.documentElement.getAttribute("dir");
+        document.documentElement.setAttribute("dir", "ltr");
+
+        var el = cal.getRoot();
+        var sb = el.querySelector(".zc-sidebar");
+        var body = el.querySelector(".zc-body");
+        sb.style.transition = "none";
+        el.classList.add("zc-sidebar-open", "zc-sidebar-ready");
+
+        var s = sb.getBoundingClientRect();
+        var b = body.getBoundingClientRect();
+        var right = (s.left + s.right) / 2 > (b.left + b.right) / 2;
+
+        el.classList.remove("zc-sidebar-open", "zc-sidebar-ready");
+        sb.style.transition = "";
+        if (prev === null) document.documentElement.removeAttribute("dir");
+        else document.documentElement.setAttribute("dir", prev);
+
+        assert(right, "an LTR host document flipped the sidebar to the left");
+      });
+
+      check("numbers render in Persian digits", function () {
+        var num = document.querySelector("#calendar .zc-day-num");
+        assert(/^[۰-۹]+$/.test(num.innerText.trim()), "day number is " + num.innerText);
+        return num.innerText.trim();
+      });
+
+      check("there is no English locale to fall into", function () {
+        assert(Zarvan.locales().indexOf("en") === -1, "en is still registered");
+        return Zarvan.locales().join(", ");
+      });
+
+      // ---- 4. the API surface a consumer uses on day one
+      check("the documented API is present", function () {
+        [
+          "getEvents", "getEventById", "setEvents", "addEvent", "updateEvent", "removeEvent",
+          "getView", "setView", "getViews", "getDate", "getJDate", "gotoDate", "getVisibleRange",
+          "next", "prev", "today", "setOption", "setTheme", "setTypeStyles",
+          "getHighlights", "setHighlights", "getLocale", "setLocale",
+          "on", "off", "emit", "getContainer", "getRoot", "getShadowRoot",
+          "refresh", "destroy", "plugins"
+        ].forEach(function (m) {
+          assert(typeof cal[m] === "function", "cal." + m + " is missing");
+        });
+        ["create", "use", "unuse", "plugins", "registerView", "unregisterView",
+         "registeredViews", "registerLocale", "locales"].forEach(function (m) {
+          assert(typeof Zarvan[m] === "function", "Zarvan." + m + " is missing");
+        });
+        return "32 instance + 9 static";
+      });
+
+      check("every view renders without throwing", function () {
+        var views = cal.getViews();
+        views.forEach(function (v) {
+          cal.setView(v);
+          cal.refresh();
+          assert(document.querySelector("#calendar .zc-body").children.length > 0, v + " rendered nothing");
+        });
+        cal.setView("month");
+        cal.refresh();
+        return views.join(", ");
+      });
+
+      check("event CRUD round-trips", function () {
+        var added = cal.addEvent({ id: 99, title: "افزوده شد", start: D + "T15:00", end: D + "T16:00" });
+        assert(added, "addEvent returned null");
+        assert(cal.getEventById(99), "not retrievable by id");
+        cal.updateEvent(99, { title: "ویرایش شد" });
+        assert(cal.getEventById(99).title === "ویرایش شد", "update did not apply");
+        assert(cal.removeEvent(99), "removeEvent returned null");
+        assert(cal.getEventById(99) === null, "still present after remove");
+        return "add → update → remove";
+      });
+
+      check("the bundled plugins are installed", function () {
+        var names = cal.plugins();
+        ["highlights", "now-indicator", "excel-export"].forEach(function (n) {
+          assert(names.indexOf(n) !== -1, n + " is missing");
+        });
+        assert(typeof cal.exportToExcel === "function", "exportToExcel was not added to the API");
+        return names.join(", ");
+      });
+
+      check("a consumer plugin can attach and be torn down", function () {
+        var seen = 0;
+        Zarvan.use({
+          name: "dist-check-plugin",
+          install: function (c) {
+            var off = c.hooks.on("dayElement", function () { seen++; });
+            c.api.distCheck = function () { return "ok"; };
+            return function () { off(); delete c.api.distCheck; };
+          },
+        });
+
+        var host = document.createElement("div");
+        document.body.appendChild(host);
+        var c2 = Zarvan.create({ selector: host, events: [], renderMode: "sync" });
+        assert(c2.plugins().indexOf("dist-check-plugin") !== -1, "plugin not installed");
+        assert(typeof c2.distCheck === "function", "the plugin did not extend the API");
+        assert(seen > 0, "the dayElement hook never fired");
+        c2.destroy();
+        host.remove();
+        Zarvan.unuse("dist-check-plugin");
+        return seen + " dayElement calls";
+      });
+
+      check("destroy() hands the element back clean", function () {
+        var host = document.createElement("div");
+        document.body.appendChild(host);
+        var c2 = Zarvan.create({ selector: host, events: [] });
+        c2.destroy();
+        assert(host.className === "", "class left behind: " + host.className);
+        assert(!host.getAttribute("dir"), "dir left behind");
+        assert(host.childNodes.length === 0, "children left behind");
+        host.remove();
+        return "no class, no dir, no children";
+      });
+
+      // ---- verdict
+      var verdict = document.getElementById("verdict");
+      if (failures === 0) {
+        verdict.className = "pass";
+        verdict.textContent = "PASS — the dist/ drop-in works from two files (" + total + " checks)";
+      } else {
+        verdict.className = "fail";
+        verdict.textContent = "FAIL — " + failures + " of " + total + " checks failed";
+      }
+    }
+
+    if (document.readyState === "complete") runDistChecks();
+    else window.addEventListener("load", runDistChecks);
+  </script>
+
+</body>
+
+</html>

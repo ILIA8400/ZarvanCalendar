@@ -1,0 +1,2912 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zarvan — unit tests</title>
+  <style>
+    :root { color-scheme: light dark; }
+
+    body {
+      font: 14px/1.6 system-ui, sans-serif;
+      max-width: 1000px;
+      margin: 24px auto;
+      padding: 0 16px;
+      background: #fff;
+      color: #0f172a;
+    }
+
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #64748b; margin: 0 0 16px; font-size: 13px; }
+
+    #verdict {
+      font: 700 16px/1.6 system-ui, sans-serif;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .ok   { background: #dcfce7; color: #14532d; }
+    .bad  { background: #fee2e2; color: #7f1d1d; }
+
+    .suite { margin: 0 0 4px; font-weight: 700; margin-top: 14px; }
+    .case  { font: 13px/1.7 ui-monospace, Consolas, monospace; padding-left: 16px; }
+    .pass  { color: #15803d; }
+    .fail  { color: #b91c1c; font-weight: 700; }
+    .detail{ color: #b91c1c; padding-left: 40px; white-space: pre-wrap; }
+    .skip  { color: #64748b; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e2e8f0; }
+      .ok  { background: #14532d; color: #dcfce7; }
+      .bad { background: #7f1d1d; color: #fee2e2; }
+      .sub, .skip { color: #94a3b8; }
+      .pass { color: #4ade80; }
+      .fail, .detail { color: #fca5a5; }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Zarvan — unit tests</h1>
+  <p class="sub">
+    Pure layers only: <code>core/</code>, <code>calendar/</code>, <code>data/</code>,
+    <code>layout/</code>, <code>highlights/</code>. Open this file in a browser — no server, no build,
+    nothing to install.
+  </p>
+
+  <div id="verdict">running…</div>
+  <div id="out"></div>
+
+  <!-- a detached host for the one test that has to construct a real calendar -->
+  <div id="sandbox" style="position:absolute;left:-9999px;top:0;width:900px"></div>
+
+  <!-- The library stylesheet, so DOM assertions run against real geometry. Without it a day cell has
+       no height limit, nothing can overflow, and the "+N more" path is untestable.
+
+       dist/ on purpose: the suite should exercise the artefact consumers receive, not the
+       intermediate it is built from. jalaali is inside dist/zarvan.js, so there is no second tag.
+       Run a build first if dist/ is missing. -->
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+
+  <script src="../dist/zarvan.js"></script>
+
+  <script>
+    /* ==================================================================
+       A ~40-line test runner. Deliberately dependency-free: contributors
+       need a browser and nothing else.
+       ================================================================== */
+    var results = [], current = null, passed = 0, failed = 0;
+
+    function suite(name, fn) {
+      current = { name: name, cases: [] };
+      results.push(current);
+      try { fn(); }
+      catch (e) { current.cases.push({ name: "suite threw", ok: false, detail: String(e && e.stack || e) }); failed++; }
+    }
+
+    function test(name, fn) {
+      try { fn(); current.cases.push({ name: name, ok: true }); passed++; }
+      catch (e) { current.cases.push({ name: name, ok: false, detail: String(e && e.message || e) }); failed++; }
+    }
+
+    function fail(msg) { throw new Error(msg); }
+
+    function eq(actual, expected, msg) {
+      var a = JSON.stringify(actual), b = JSON.stringify(expected);
+      if (a !== b) fail((msg ? msg + ": " : "") + "expected " + b + ", got " + a);
+    }
+
+    function ok(v, msg) { if (!v) fail(msg || "expected truthy, got " + JSON.stringify(v)); }
+    function notOk(v, msg) { if (v) fail(msg || "expected falsy, got " + JSON.stringify(v)); }
+
+    function throws(fn, msg) {
+      try { fn(); } catch (e) { return; }
+      fail(msg || "expected a throw, but none happened");
+    }
+
+    function doesNotThrow(fn, msg) {
+      try { fn(); } catch (e) { fail((msg || "unexpected throw") + ": " + (e && e.message || e)); }
+    }
+
+    /* ================================================================== */
+
+    var Z = Zarvan._internal;
+    var U = Z.utils, JD = Z.jdate, G = Z.gregorian, JAL = Z.jalali;
+    var EV = Z.dataEvents, NORM = Z.dataNormalize, REC = Z.dataRecurrence;
+    var ORG = Z.dataOrganize, FIL = Z.dataFilter;
+    var OVL = Z.layoutOverlap, COL = Z.layoutColumns, HL = Z.highlightRules;
+    var DISP = Z.disposable;
+    var SCHED = Z.scheduler;
+    var DD = Z.uiDropdown, AC = Z.uiAutocomplete, MODAL = Z.uiModal;
+    var REG = Z.registry, TG = Z.viewsTimeGrid;
+    var LOC = Z.locale;
+    var HOOKS = Z.hooks, PLUG = Z.plugins;
+
+    // ---------------------------------------------------------------- core
+    suite("core/utils", function () {
+      test("mergeDeep merges nested objects without mutating the source", function () {
+        var a = { views: { month: true, week: true }, x: 1 };
+        var b = { views: { week: false }, y: 2 };
+        eq(U.mergeDeep(a, b), { views: { month: true, week: false }, x: 1, y: 2 });
+        eq(a.views.week, true, "source untouched");
+      });
+
+      test("mergeDeep replaces arrays rather than merging them", function () {
+        eq(U.mergeDeep({ a: [1, 2, 3] }, { a: [9] }), { a: [9] });
+      });
+
+      test("typeClass strips everything outside [A-Za-z0-9_-]", function () {
+        eq(U.typeClass("meeting"), "zc-type-meeting");
+        eq(U.typeClass("my type"), "zc-type-mytype");
+        eq(U.typeClass('evil} .zc-body { display:none } .x{"'), "zc-type-evilzc-bodydisplaynonex");
+      });
+
+      test("typeClass returns empty for empty/nullish input", function () {
+        eq(U.typeClass(""), "");
+        eq(U.typeClass(null), "");
+        eq(U.typeClass(undefined), "");
+        eq(U.typeClass("   "), "");
+      });
+
+      test("clamp / pad2 / norm", function () {
+        eq(U.clamp(5, 0, 3), 3);
+        eq(U.clamp(-5, 0, 3), 0);
+        eq(U.pad2(7), "07");
+        eq(U.pad2(11), "11");
+        eq(U.norm("  MiXeD  "), "mixed");
+        eq(U.norm(null), "");
+      });
+
+      test("hashStr is stable and unsigned", function () {
+        eq(U.hashStr("abc"), U.hashStr("abc"));
+        ok(U.hashStr("abc") !== U.hashStr("abd"));
+        ok(U.hashStr("anything") >= 0);
+      });
+    });
+
+    // ------------------------------------------------------------ calendar
+    suite("calendar/jdate", function () {
+      test("parseJDateTime handles date-only and date+time", function () {
+        eq(JD.parseJDateTime("1404-09-20"), { jy: 1404, jm: 9, jd: 20, hh: 0, mm: 0 });
+        eq(JD.parseJDateTime("1404-09-20T09:30"), { jy: 1404, jm: 9, jd: 20, hh: 9, mm: 30 });
+      });
+
+      test("formatJDT round-trips through parseJDateTime", function () {
+        eq(JD.formatJDT(1404, 9, 20, 9, 5, false), "1404-9-20T09:05");
+        eq(JD.formatJDT(1404, 9, 20, 0, 0, true), "1404-9-20");
+        eq(JD.parseJDateTime(JD.formatJDT(1404, 9, 20, 9, 5, false)).mm, 5);
+      });
+
+      test("cmpJ orders by year, then month, then day", function () {
+        ok(JD.cmpJ({ jy: 1404, jm: 1, jd: 1 }, { jy: 1405, jm: 1, jd: 1 }) < 0);
+        ok(JD.cmpJ({ jy: 1404, jm: 9, jd: 1 }, { jy: 1404, jm: 8, jd: 30 }) > 0);
+        eq(JD.cmpJ({ jy: 1404, jm: 9, jd: 5 }, { jy: 1404, jm: 9, jd: 5 }), 0);
+      });
+
+      test("jdtSortKey sorts chronologically with no field carry", function () {
+        var keys = ["1404-09-20T09:00", "1404-09-20T10:00", "1404-09-21T08:00", "1405-01-01T00:00"]
+          .map(JD.jdtSortKey);
+        for (var i = 1; i < keys.length; i++) ok(keys[i] > keys[i - 1], "index " + i);
+        // a 59-minute gap must not overflow into the day field
+        ok(JD.jdtSortKey("1404-09-20T23:59") < JD.jdtSortKey("1404-09-21T00:00"));
+      });
+
+      test("dayPart / toMin / makeDayKey", function () {
+        eq(JD.dayPart("1404-09-20T09:30"), "1404-09-20");
+        eq(JD.dayPart(null), "");
+        eq(JD.toMin("09:30"), 570);
+        eq(JD.toMin(""), 0);
+        eq(JD.makeDayKey({ jy: 1404, jm: 9, jd: 5 }), "1404-9-5");
+      });
+    });
+
+    suite("calendar/jalali", function () {
+      test("month lengths: first six months are 31 days, Esfand varies", function () {
+        for (var m = 1; m <= 6; m++) eq(JAL.monthLength(1404, m), 31, "month " + m);
+        for (var m2 = 7; m2 <= 11; m2++) eq(JAL.monthLength(1404, m2), 30, "month " + m2);
+        var esfand = JAL.monthLength(1404, 12);
+        ok(esfand === 29 || esfand === 30, "Esfand is 29 or 30, got " + esfand);
+      });
+
+      test("toGDate / fromGDate round-trip", function () {
+        var probes = [[1404, 1, 1], [1404, 6, 31], [1404, 12, 29], [1405, 7, 15]];
+        probes.forEach(function (p) {
+          var back = JAL.fromGDate(JAL.toGDate(p[0], p[1], p[2]));
+          eq([back.jy, back.jm, back.jd], p);
+        });
+      });
+
+      test("isValidJDTString accepts valid dates and times", function () {
+        eq(JAL.isValidJDTString("1404-09-20").ok, true);
+        eq(JAL.isValidJDTString("1404-09-20").allDay, true);
+        eq(JAL.isValidJDTString("1404-09-20T23:59").ok, true);
+        eq(JAL.isValidJDTString("1404-09-20T23:59").allDay, false);
+      });
+
+      test("isValidJDTString rejects bad input with a reason", function () {
+        eq(JAL.isValidJDTString("").reason, "empty");
+        eq(JAL.isValidJDTString(null).reason, "empty");
+        eq(JAL.isValidJDTString("1404-13-01").reason, "bad_date");
+        eq(JAL.isValidJDTString("1404-07-31").reason, "bad_date", "Mehr has 30 days");
+        eq(JAL.isValidJDTString("1404-09-20T24:00").reason, "bad_time");
+        eq(JAL.isValidJDTString("1404-09-20T09:60").reason, "bad_time");
+      });
+    });
+
+    // ---------------------------------------------------------------- data
+    suite("data/events", function () {
+      test("isAllDayEvent: explicit flag, date-only start, multi-day span", function () {
+        ok(EV.isAllDayEvent({ start: "1404-09-20T09:00", allDay: true }), "explicit flag");
+        ok(EV.isAllDayEvent({ start: "1404-09-20" }), "date-only");
+        ok(EV.isAllDayEvent({ start: "1404-09-20T09:00", end: "1404-09-22T17:00" }), "multi-day");
+        notOk(EV.isAllDayEvent({ start: "1404-09-20T09:00", end: "1404-09-20T10:00" }), "same-day timed");
+      });
+
+      test("forceTimed opts a multi-day event out of all-day treatment", function () {
+        notOk(EV.isAllDayEvent({ start: "1404-09-20T09:00", end: "1404-09-22T17:00", forceTimed: true }));
+      });
+
+      test("evToGRange gives a zero-length timed event a 15 minute floor", function () {
+        var r = EV.evToGRange({ start: "1404-09-20T09:00", end: "1404-09-20T09:00" });
+        eq((r.end - r.start) / 60000, 15);
+      });
+
+      test("eventInVisibleRange is inclusive of the range's last day", function () {
+        var start = JAL.toGDate(1404, 9, 20);
+        var end = JAL.toGDate(1404, 9, 22);
+        ok(EV.eventInVisibleRange({ start: "1404-09-22T09:00", end: "1404-09-22T10:00" }, start, end), "last day");
+        ok(EV.eventInVisibleRange({ start: "1404-09-20T09:00", end: "1404-09-20T10:00" }, start, end), "first day");
+        notOk(EV.eventInVisibleRange({ start: "1404-09-23T09:00", end: "1404-09-23T10:00" }, start, end), "day after");
+        notOk(EV.eventInVisibleRange({ start: "1404-09-19T09:00", end: "1404-09-19T10:00" }, start, end), "day before");
+      });
+
+      test("getTimedIntervalForDay clips a multi-day event at midnight", function () {
+        var ev = { start: "1404-09-20T22:00", end: "1404-09-22T03:00" };
+        eq(EV.getTimedIntervalForDay(ev, { jy: 1404, jm: 9, jd: 20 }), { startMin: 1320, endMin: 1440 }, "first day");
+        eq(EV.getTimedIntervalForDay(ev, { jy: 1404, jm: 9, jd: 21 }), { startMin: 0, endMin: 1440 }, "middle day");
+        eq(EV.getTimedIntervalForDay(ev, { jy: 1404, jm: 9, jd: 22 }), { startMin: 0, endMin: 180 }, "last day");
+      });
+    });
+
+    suite("data/normalize", function () {
+      function collect() {
+        var warns = [];
+        return { warns: warns, fn: function (m, x) { warns.push({ message: m, extra: x }); } };
+      }
+
+      test("valid events pass through, end defaults to start", function () {
+        var out = NORM.normalizeEvents([{ title: "a", start: "1404-09-20T09:00" }], {}, null);
+        eq(out.length, 1);
+        eq(out[0].end, "1404-09-20T09:00");
+      });
+
+      test("onInvalid 'drop' (default) removes invalid events", function () {
+        var w = collect();
+        var out = NORM.normalizeEvents(
+          [{ title: "good", start: "1404-09-20" }, { title: "bad", start: "1404-13-99" }],
+          { onInvalid: "drop" }, w.fn);
+        eq(out.length, 1);
+        eq(out[0].title, "good");
+        eq(w.warns.length, 1, "one warning emitted");
+      });
+
+      test("onInvalid 'keep' actually keeps the invalid event", function () {
+        // Regression: the old implementation filtered nulls twice, so "keep" silently behaved
+        // exactly like "drop" and this option had no effect at all.
+        var out = NORM.normalizeEvents(
+          [{ title: "good", start: "1404-09-20" }, { title: "bad", start: "1404-13-99" }],
+          { onInvalid: "keep" }, null);
+        eq(out.length, 2, "both events retained");
+        eq(out[1].title, "bad");
+        ok(out[1]._invalid, "the kept event is flagged");
+      });
+
+      test("validation.enabled=false bypasses validation entirely", function () {
+        var out = NORM.normalizeEvents([{ start: "total nonsense" }], { enabled: false }, null);
+        eq(out.length, 1);
+        eq(out[0].end, "total nonsense");
+      });
+
+      test("end == start is preserved: a point-in-time event is not malformed", function () {
+        var out = NORM.normalizeEvents(
+          [{ start: "1404-09-20T09:00", end: "1404-09-20T09:00" }], { autoFix: true }, null);
+        eq(out[0].end, "1404-09-20T09:00");
+      });
+
+      test("autoFix repairs end < start by adding 15 minutes", function () {
+        var out = NORM.normalizeEvents(
+          [{ start: "1404-09-20T10:00", end: "1404-09-20T09:00" }], { autoFix: true }, null);
+        eq(out[0].end, "1404-9-20T10:15");
+      });
+
+      test("autoFix=false rejects an invalid end instead of repairing it", function () {
+        var out = NORM.normalizeEvents(
+          [{ start: "1404-09-20T10:00", end: "1404-99-99" }],
+          { autoFix: false, onInvalid: "drop" }, null);
+        eq(out.length, 0);
+      });
+
+      test("requireNumericId coerces ids and is stable for the same input", function () {
+        var mk = function () { return [{ id: "42", start: "1404-09-20" }, { id: "abc", start: "1404-09-20" }]; };
+        var a = NORM.normalizeEvents(mk(), { requireNumericId: true }, null);
+        var b = NORM.normalizeEvents(mk(), { requireNumericId: true }, null);
+        eq(a[0].id, 42, "numeric string becomes a number");
+        eq(typeof a[1].id, "number", "non-numeric id is hashed");
+        eq(a[1].id, b[1].id, "hash is stable across calls");
+      });
+
+      test("normalizeEvents does not mutate the caller's objects", function () {
+        var input = [{ start: "1404-09-20T10:00", end: "1404-09-20T09:00" }];
+        NORM.normalizeEvents(input, { autoFix: true }, null);
+        eq(input[0].end, "1404-09-20T09:00", "original untouched");
+      });
+
+      test("non-array input yields an empty list", function () {
+        eq(NORM.normalizeEvents(null, {}, null), []);
+        eq(NORM.normalizeEvents(undefined, {}, null), []);
+      });
+    });
+
+    suite("data/recurrence", function () {
+      var from = JAL.toGDate(1404, 9, 20);
+      var to = JAL.toGDate(1404, 9, 26); // 7 days inclusive
+
+      test("non-repeating events pass through when they intersect the range", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-22T09:00", end: "1404-09-22T10:00" }], from, to);
+        eq(out.length, 1);
+      });
+
+      test("non-repeating events outside the range are dropped", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-10-15T09:00", end: "1404-10-15T10:00" }], from, to);
+        eq(out.length, 0);
+      });
+
+      test("daily recurrence fills the range", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-20T09:00", end: "1404-09-20T09:30", repeat: { freq: "daily" } }], from, to);
+        eq(out.length, 7);
+        eq(out[0].start, "1404-9-20T09:00");
+        eq(out[6].start, "1404-9-26T09:00");
+      });
+
+      test("daily interval 2 halves the occurrences", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-20T09:00", end: "1404-09-20T09:30", repeat: { freq: "daily", interval: 2 } }], from, to);
+        eq(out.length, 4, "20, 22, 24, 26");
+      });
+
+      test("`count` caps the number of occurrences produced", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-20T09:00", end: "1404-09-20T09:30", repeat: { freq: "daily", count: 3 } }], from, to);
+        eq(out.length, 3);
+      });
+
+      test("`until` stops the series, inclusive of the until date", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-20T09:00", end: "1404-09-20T09:30", repeat: { freq: "daily", until: "1404-09-22" } }], from, to);
+        eq(out.length, 3, "20, 21, 22");
+      });
+
+      test("recurrence never starts before the event's own start date", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-24T09:00", end: "1404-09-24T09:30", repeat: { freq: "daily" } }], from, to);
+        eq(out.length, 3, "24, 25, 26 only");
+      });
+
+      test("weekly byWeekday selects the requested days", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-20T09:00", end: "1404-09-20T09:30", repeat: { freq: "weekly", byWeekday: [0, 2] } }], from, to);
+        out.forEach(function (o) {
+          var g = JAL.toGDate.apply(null, [JD.parseJDateTime(o.start).jy, JD.parseJDateTime(o.start).jm, JD.parseJDateTime(o.start).jd]);
+          var wd = G.weekdayIndexFromGDate(g);
+          ok(wd === 0 || wd === 2, "weekday " + wd + " should be 0 or 2");
+        });
+        ok(out.length >= 1, "at least one occurrence in a 7-day window");
+      });
+
+      test("monthly recurrence keeps the day-of-month", function () {
+        var mFrom = JAL.toGDate(1404, 9, 1);
+        var mTo = JAL.toGDate(1404, 12, 1);
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-05T09:00", end: "1404-09-05T10:00", repeat: { freq: "monthly" } }], mFrom, mTo);
+        eq(out.length, 3, "Azar, Dey, Bahman");
+        out.forEach(function (o) { eq(JD.parseJDateTime(o.start).jd, 5); });
+      });
+
+      test("all-day recurrence produces date-only occurrences", function () {
+        var out = REC.expandRecurringForRange(
+          [{ start: "1404-09-20", end: "1404-09-20", allDay: true, repeat: { freq: "daily" } }], from, to);
+        eq(out.length, 7);
+        eq(out[0].start.indexOf("T"), -1, "no time component");
+        eq(out[0].allDay, true);
+      });
+
+      test("occurrences are marked and the source event is not mutated", function () {
+        var src = { start: "1404-09-20T09:00", end: "1404-09-20T09:30", repeat: { freq: "daily" } };
+        var out = REC.expandRecurringForRange([src], from, to);
+        ok(out[0]._occurrence);
+        eq(src.start, "1404-09-20T09:00", "source untouched");
+      });
+    });
+
+    suite("data/organize", function () {
+      test("a single-day event lands under exactly one key", function () {
+        var map = ORG.organizeEvents([{ start: "1404-09-20T09:00", end: "1404-09-20T10:00" }]);
+        eq(Object.keys(map), ["1404-9-20"]);
+        eq(map["1404-9-20"].length, 1);
+      });
+
+      test("a multi-day event appears under every day it spans", function () {
+        var map = ORG.organizeEvents([{ start: "1404-09-20T09:00", end: "1404-09-23T17:00" }]);
+        eq(Object.keys(map).sort(), ["1404-9-20", "1404-9-21", "1404-9-22", "1404-9-23"].sort());
+      });
+
+      test("spanning a month boundary produces keys in both months", function () {
+        var map = ORG.organizeEvents([{ start: "1404-09-29T09:00", end: "1404-10-02T17:00" }]);
+        var keys = Object.keys(map).sort();
+        ok(keys.indexOf("1404-9-30") !== -1, "last day of Azar");
+        ok(keys.indexOf("1404-10-1") !== -1, "first day of Dey");
+        eq(keys.length, 4);
+      });
+    });
+
+    suite("data/filter", function () {
+      var evs = [
+        { title: "Standup", type: "meeting" },
+        { title: "Deep work", type: "task" },
+        { title: "Design review", type: "meeting" },
+      ];
+
+      test("__all__ and empty type return everything", function () {
+        eq(FIL.filterEvents(evs, { type: "__all__" }).length, 3);
+        eq(FIL.filterEvents(evs, {}).length, 3);
+      });
+
+      test("type filter narrows to one type", function () {
+        eq(FIL.filterEvents(evs, { type: "meeting" }).length, 2);
+      });
+
+      test("query matching is case-insensitive and substring-based", function () {
+        eq(FIL.filterEvents(evs, { q: "DESIGN" }).length, 1);
+        eq(FIL.filterEvents(evs, { q: "work" }).length, 1);
+        eq(FIL.filterEvents(evs, { q: "zzz" }).length, 0);
+      });
+
+      test("type and query combine", function () {
+        eq(FIL.filterEvents(evs, { type: "meeting", q: "design" }).length, 1);
+        eq(FIL.filterEvents(evs, { type: "task", q: "design" }).length, 0);
+      });
+
+      test("filterEventsByTypeOnly ignores the query", function () {
+        eq(FIL.filterEventsByTypeOnly(evs, { type: "meeting", q: "zzz" }).length, 2);
+      });
+    });
+
+    // -------------------------------------------------------------- layout
+    suite("layout/overlap", function () {
+      test("non-overlapping events all sit in stack 0 at full width", function () {
+        var out = OVL.layoutDayEventsOverlap([
+          { startMin: 60, endMin: 120 },
+          { startMin: 180, endMin: 240 },
+        ]);
+        out.forEach(function (o) { eq(o.stackIndex, 0); eq(o.offsetPct, 0); eq(o.widthPct, 100); });
+      });
+
+      test("overlapping events cascade into increasing stacks", function () {
+        var out = OVL.layoutDayEventsOverlap([
+          { startMin: 60, endMin: 180 },
+          { startMin: 90, endMin: 200 },
+          { startMin: 100, endMin: 210 },
+        ]);
+        eq(out.map(function (o) { return o.stackIndex; }), [0, 1, 2]);
+        eq(out[1].offsetPct, 14);
+        eq(out[2].offsetPct, 28);
+      });
+
+      test("width never drops below the minimum", function () {
+        var many = [];
+        for (var i = 0; i < 12; i++) many.push({ startMin: 60 + i, endMin: 600 });
+        OVL.layoutDayEventsOverlap(many).forEach(function (o) { ok(o.widthPct >= 42, "got " + o.widthPct); });
+      });
+
+      test("a freed stack slot is reused", function () {
+        var out = OVL.layoutDayEventsOverlap([
+          { startMin: 60, endMin: 120 },
+          { startMin: 70, endMin: 130 },
+          { startMin: 200, endMin: 260 },
+        ]);
+        eq(out[2].stackIndex, 0, "third event reuses stack 0");
+      });
+
+      test("overlapsMin is exclusive at the touching boundary", function () {
+        notOk(OVL.overlapsMin({ startMin: 0, endMin: 60 }, { startMin: 60, endMin: 120 }), "back-to-back");
+        ok(OVL.overlapsMin({ startMin: 0, endMin: 61 }, { startMin: 60, endMin: 120 }), "1 minute overlap");
+      });
+
+      test("buildOverlapGraph links only genuine conflicts", function () {
+        var items = OVL.buildOverlapGraph([
+          { startMin: 60, endMin: 180 },
+          { startMin: 90, endMin: 200 },
+          { startMin: 600, endMin: 660 },
+        ], "inst:1404-9-20");
+        ok(items[0]._ovHas, "0 conflicts");
+        ok(items[1]._ovHas, "1 conflicts");
+        notOk(items[2]._ovHas, "2 is alone");
+        eq(items[0]._ovWith, [items[1]._ovId]);
+        ok(items[0]._ovId.indexOf("inst:1404-9-20") === 0, "ids are scoped by prefix");
+      });
+    });
+
+    suite("layout/columns", function () {
+      test("non-overlapping events each take the full width", function () {
+        var out = COL.layoutDayEventsColumns([
+          { startMin: 60, endMin: 120 },
+          { startMin: 180, endMin: 240 },
+        ]);
+        out.forEach(function (o) { eq(o.colCount, 1); eq(o.colIndex, 0); eq(o.colSpan, 1); });
+      });
+
+      test("two overlapping events split into two columns", function () {
+        var out = COL.layoutDayEventsColumns([
+          { startMin: 60, endMin: 180 },
+          { startMin: 90, endMin: 200 },
+        ]);
+        eq(out.map(function (o) { return o.colIndex; }), [0, 1]);
+        out.forEach(function (o) { eq(o.colCount, 2); });
+      });
+
+      test("separate clusters are counted independently", function () {
+        var out = COL.layoutDayEventsColumns([
+          { startMin: 60, endMin: 180 },
+          { startMin: 90, endMin: 200 },
+          { startMin: 600, endMin: 660 },
+        ]);
+        eq(out[2].colCount, 1, "the lone late event is its own cluster");
+      });
+
+      test("an event widens across free adjacent columns", function () {
+        // A occupies col 0 all morning; B and C are short and sequential in col 1.
+        // The gap after C leaves no conflict, so C can span.
+        var out = COL.layoutDayEventsColumns([
+          { startMin: 0, endMin: 300, id: "A" },
+          { startMin: 10, endMin: 60, id: "B" },
+        ]);
+        var b = out.filter(function (o) { return o.id === "B"; })[0];
+        eq(b.colIndex, 1);
+        eq(b.colSpan, 1, "nothing to the right to expand into");
+      });
+    });
+
+    // ---------------------------------------------------------- highlights
+    suite("highlights/rules", function () {
+      var g = JAL.toGDate(1404, 9, 20);
+      var j = { jy: 1404, jm: 9, jd: 20 };
+      var weekday = G.weekdayIndexFromGDate(g);
+
+      test("a rule with no conditions matches every day", function () {
+        ok(HL.dayMatchesRule({ day: { bg: "#eee" } }, g, j, "month"));
+      });
+
+      test("views restricts the rule to the listed views", function () {
+        ok(HL.dayMatchesRule({ views: ["month"], when: {} }, g, j, "month"));
+        notOk(HL.dayMatchesRule({ views: ["month"], when: {} }, g, j, "week"));
+      });
+
+      test("weekday matching, accepted at top level or under `when`", function () {
+        ok(HL.dayMatchesRule({ when: { weekday: [weekday] } }, g, j, "month"));
+        notOk(HL.dayMatchesRule({ when: { weekday: [(weekday + 1) % 7] } }, g, j, "month"));
+        ok(HL.dayMatchesRule({ weekday: [weekday] }, g, j, "month"), "top-level shorthand");
+      });
+
+      test("jDates matching tolerates unpadded month/day", function () {
+        ok(HL.dayMatchesRule({ when: { jDates: ["1404-09-20"] } }, g, j, "month"));
+        ok(HL.dayMatchesRule({ when: { jDates: ["1404-9-20"] } }, g, j, "month"), "unpadded");
+        notOk(HL.dayMatchesRule({ when: { jDates: ["1404-09-21"] } }, g, j, "month"));
+      });
+
+      test("jRange is inclusive, and open-ended on either side", function () {
+        ok(HL.dayMatchesRule({ when: { jRange: { start: "1404-09-20", end: "1404-09-25" } } }, g, j, "month"), "on the start");
+        ok(HL.dayMatchesRule({ when: { jRange: { start: "1404-09-15", end: "1404-09-20" } } }, g, j, "month"), "on the end");
+        ok(HL.dayMatchesRule({ when: { jRange: { start: "1404-09-01" } } }, g, j, "month"), "open end");
+        ok(HL.dayMatchesRule({ when: { jRange: { end: "1404-12-01" } } }, g, j, "month"), "open start");
+        notOk(HL.dayMatchesRule({ when: { jRange: { start: "1404-10-01" } } }, g, j, "month"));
+      });
+    });
+
+
+    suite("core/disposable", function () {
+      test("dispose runs every registered callback", function () {
+        var st = DISP.createDisposableStore("t");
+        var hits = [];
+        st.add(function () { hits.push("a"); });
+        st.add(function () { hits.push("b"); });
+        eq(st.size, 2);
+        st.dispose();
+        eq(hits, ["b", "a"], "reverse registration order");
+        eq(st.size, 0);
+        eq(st.disposed, true);
+      });
+
+      test("a callback registered after disposal runs immediately", function () {
+        var st = DISP.createDisposableStore("t");
+        st.dispose();
+        var ran = false;
+        st.add(function () { ran = true; });
+        eq(ran, true, "cannot outlive the store");
+        eq(st.size, 0);
+      });
+
+      test("the returned handle disposes just that one entry", function () {
+        var st = DISP.createDisposableStore("t");
+        var hits = [];
+        st.add(function () { hits.push("keep"); });
+        var off = st.add(function () { hits.push("early"); });
+        off();
+        eq(hits, ["early"]);
+        eq(st.size, 1);
+        off();
+        eq(hits, ["early"], "calling the handle twice is a no-op");
+        st.dispose();
+        eq(hits, ["early", "keep"]);
+      });
+
+      test("addListener detaches on dispose", function () {
+        var st = DISP.createDisposableStore("t");
+        var target = document.createElement("div");
+        var count = 0;
+        st.addListener(target, "clicky", function () { count++; });
+        target.dispatchEvent(new Event("clicky"));
+        eq(count, 1);
+        st.dispose();
+        target.dispatchEvent(new Event("clicky"));
+        eq(count, 1, "no longer listening");
+      });
+
+      test("addNode detaches the node on dispose", function () {
+        var st = DISP.createDisposableStore("t");
+        var host = document.createElement("div");
+        var child = document.createElement("span");
+        host.appendChild(child);
+        st.addNode(child);
+        eq(host.children.length, 1);
+        st.dispose();
+        eq(host.children.length, 0);
+      });
+
+      test("addNode tolerates a node that was already detached", function () {
+        var st = DISP.createDisposableStore("t");
+        var orphan = document.createElement("div");
+        st.addNode(orphan);
+        doesNotThrow(function () { st.dispose(); });
+      });
+
+      test("reset empties the store but leaves it usable", function () {
+        var st = DISP.createDisposableStore("t");
+        var hits = 0;
+        st.add(function () { hits++; });
+        st.reset();
+        eq(hits, 1);
+        eq(st.disposed, false, "still usable");
+        st.add(function () { hits++; });
+        eq(st.size, 1, "accepts new registrations");
+        st.dispose();
+        eq(hits, 2);
+      });
+
+      test("one failing callback does not strand the others", function () {
+        var st = DISP.createDisposableStore("t");
+        var ran = [];
+        var realError = console.error;
+        console.error = function () {};
+        st.add(function () { ran.push("first"); });
+        st.add(function () { throw new Error("boom"); });
+        st.add(function () { ran.push("last"); });
+        doesNotThrow(function () { st.dispose(); });
+        console.error = realError;
+        eq(ran, ["last", "first"], "both survivors ran");
+      });
+
+      test("intervals and timeouts are cleared on dispose", function () {
+        var st = DISP.createDisposableStore("t");
+        var cleared = [];
+        var realCI = window.clearInterval, realCT = window.clearTimeout;
+        window.clearInterval = function (id) { cleared.push("i"); return realCI(id); };
+        window.clearTimeout = function (id) { cleared.push("t"); return realCT(id); };
+        st.addInterval(function () {}, 10000);
+        st.addTimeout(function () {}, 10000);
+        st.dispose();
+        window.clearInterval = realCI;
+        window.clearTimeout = realCT;
+        eq(cleared.sort(), ["i", "t"]);
+      });
+    });
+
+
+    suite("core/scheduler", function () {
+      test("sync mode runs immediately", function () {
+        var runs = 0;
+        var sc = SCHED.createScheduler(function () { runs++; }, { sync: true });
+        sc.schedule();
+        sc.schedule();
+        eq(runs, 2, "no coalescing in sync mode");
+        eq(sc.pending, false);
+      });
+
+      test("batched mode defers and coalesces", function () {
+        var runs = 0;
+        var sc = SCHED.createScheduler(function () { runs++; });
+        sc.schedule();
+        sc.schedule();
+        sc.schedule();
+        eq(runs, 0, "nothing ran synchronously");
+        eq(sc.pending, true);
+        sc.flush();
+        eq(runs, 1, "three requests collapsed into one run");
+        eq(sc.pending, false);
+      });
+
+      test("flush with nothing pending still runs once", function () {
+        var runs = 0;
+        var sc = SCHED.createScheduler(function () { runs++; });
+        sc.flush();
+        eq(runs, 1);
+      });
+
+      test("cancel drops pending work", function () {
+        var runs = 0;
+        var sc = SCHED.createScheduler(function () { runs++; });
+        sc.schedule();
+        sc.cancel();
+        eq(sc.pending, false);
+        eq(runs, 0);
+      });
+
+      test("a render that requests another render does not recurse", function () {
+        var runs = 0;
+        var sc = SCHED.createScheduler(function () {
+          runs++;
+          if (runs === 1) sc.schedule();   // re-entrant request from inside the run
+        }, { sync: true });
+        sc.schedule();
+        eq(runs, 2, "folded into a follow-up pass, not nested");
+      });
+
+      test("re-entrant requests terminate rather than looping forever", function () {
+        var runs = 0;
+        var sc = SCHED.createScheduler(function () {
+          runs++;
+          if (runs < 3) sc.schedule();
+        }, { sync: true });
+        sc.schedule();
+        eq(runs, 3);
+      });
+    });
+
+
+    suite("ui/dropdown", function () {
+      function mk(over) {
+        var store = DISP.createDisposableStore("t");
+        var picked = [];
+        var opened = 0;
+        var closed = [];
+        var dd = DD.createDropdown(Object.assign({
+          prefix: "zc-dd",
+          label: "Type",
+          value: "All",
+          store: store,
+          items: function () {
+            return [
+              { value: "__all__", label: "All" },
+              { value: "meeting", label: "Meeting", active: true },
+            ];
+          },
+          onSelect: function (v) { picked.push(v); },
+          onOpen: function () { opened++; },
+          onClose: function (i) { closed.push(i.reason); },
+        }, over || {}));
+        document.getElementById("sandbox").appendChild(dd.el);
+        return { dd: dd, store: store, picked: picked, closed: closed, opened: function () { return opened; } };
+      }
+      function down(el) { el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true })); }
+
+      test("renders label, value and caret with the given prefix", function () {
+        var h = mk();
+        eq(h.dd.el.className, "zc-dd");
+        eq(h.dd.el.querySelector(".zc-dd-label").innerText, "Type");
+        eq(h.dd.el.querySelector(".zc-dd-value").innerText, "All");
+        ok(h.dd.el.querySelector(".zc-dd-caret"), "caret present");
+        h.store.dispose();
+      });
+
+      test("the same component renders the view-switcher prefix too", function () {
+        var h = mk({ prefix: "zc-view-dd" });
+        eq(h.dd.el.className, "zc-view-dd");
+        ok(h.dd.el.querySelector(".zc-view-dd-menu"), "menu uses the prefix");
+        h.store.dispose();
+      });
+
+      test("menu items are built lazily, on open", function () {
+        var built = 0;
+        var store = DISP.createDisposableStore("t");
+        var dd = DD.createDropdown({
+          prefix: "zc-dd", store: store,
+          items: function () { built++; return [{ value: "a", label: "A" }]; },
+        });
+        eq(built, 0, "not built at construction");
+        dd.open();
+        eq(built, 1);
+        dd.close();
+        dd.open();
+        eq(built, 2, "rebuilt on each open");
+        store.dispose();
+      });
+
+      test("open/close toggles the state class and reports once", function () {
+        var h = mk();
+        notOk(h.dd.isOpen());
+        h.dd.open();
+        ok(h.dd.isOpen());
+        ok(h.dd.el.classList.contains("zc-is-open"));
+        eq(h.opened(), 1);
+        h.dd.open();
+        eq(h.opened(), 1, "opening twice reports once");
+        h.dd.close("outside");
+        eq(h.closed, ["outside"]);
+        h.dd.close("outside");
+        eq(h.closed, ["outside"], "closing twice reports once");
+        h.store.dispose();
+      });
+
+      test("the active flag marks the current item", function () {
+        var h = mk();
+        h.dd.open();
+        var active = h.dd.el.querySelectorAll(".zc-is-active");
+        eq(active.length, 1);
+        eq(active[0].dataset.value, "meeting");
+        h.store.dispose();
+      });
+
+      test("selecting an item closes and reports its value", function () {
+        var h = mk();
+        down(h.dd.el.querySelector(".zc-dd-selected"));
+        ok(h.dd.isOpen());
+        down(h.dd.el.querySelectorAll(".zc-dd-item")[1]);
+        eq(h.picked, ["meeting"]);
+        notOk(h.dd.isOpen(), "closed on select");
+        eq(h.closed, ["select"]);
+        h.store.dispose();
+      });
+
+      test("a pointerdown on the menu background selects nothing", function () {
+        var h = mk();
+        h.dd.open();
+        down(h.dd.el.querySelector(".zc-dd-menu"));
+        eq(h.picked, [], "no selection");
+        h.store.dispose();
+      });
+
+      test("an outside pointerdown closes it", function () {
+        var h = mk();
+        h.dd.open();
+        down(document.body);
+        notOk(h.dd.isOpen());
+        eq(h.closed, ["outside"]);
+        h.store.dispose();
+      });
+
+      test("a pointerdown inside the menu does not trigger the outside-close", function () {
+        var h = mk();
+        h.dd.open();
+        down(h.dd.el.querySelector(".zc-dd-menu"));
+        ok(h.dd.isOpen(), "still open");
+        h.store.dispose();
+      });
+
+      test("a pointerdown on the selected box toggles it shut", function () {
+        var h = mk();
+        h.dd.open();
+        down(h.dd.el.querySelector(".zc-dd-label"));
+        notOk(h.dd.isOpen(), "clicking the header while open closes it");
+        eq(h.closed, ["toggle"]);
+        h.store.dispose();
+      });
+
+      test("dispose detaches the element and stops responding to outside clicks", function () {
+        var h = mk();
+        h.dd.open();
+        h.dd.dispose();
+        notOk(h.dd.el.parentNode, "detached");
+        h.closed.length = 0;
+        down(document.body);
+        eq(h.closed, [], "listener gone");
+        h.store.dispose();
+      });
+
+      test("setValue / getValue drive the displayed text", function () {
+        var h = mk();
+        h.dd.setValue("Week");
+        eq(h.dd.getValue(), "Week");
+        h.dd.setValue(null);
+        eq(h.dd.getValue(), "");
+        h.store.dispose();
+      });
+    });
+
+    suite("ui/dropdown keyboard", function () {
+      function mk(over) {
+        var store = DISP.createDisposableStore("t");
+        var picked = [];
+        var dd = DD.createDropdown(Object.assign({
+          prefix: "zc-view-dd",
+          label: "View",
+          items: function () {
+            return [
+              { value: "month", label: "Month", active: true },
+              { value: "week", label: "Week" },
+              { value: "year", label: "Year" },
+            ];
+          },
+          store: store,
+          onSelect: function (v) { picked.push(v); },
+        }, over || {}));
+        document.body.appendChild(dd.el);
+        return { dd: dd, store: store, picked: picked };
+      }
+
+      function key(el, k) {
+        var e = new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true });
+        el.dispatchEvent(e);
+        return e;
+      }
+
+      test("the box announces itself as an expandable listbox trigger", function () {
+        var h = mk();
+        var box = h.dd.el.querySelector(".zc-view-dd-selected");
+        eq(box.getAttribute("role"), "button");
+        eq(box.getAttribute("aria-haspopup"), "listbox");
+        eq(box.getAttribute("aria-expanded"), "false");
+        eq(h.dd.el.querySelector(".zc-view-dd-menu").getAttribute("role"), "listbox");
+        h.dd.dispose(); h.store.dispose();
+      });
+
+      test("aria-expanded tracks the open state", function () {
+        var h = mk();
+        var box = h.dd.el.querySelector(".zc-view-dd-selected");
+        h.dd.open();
+        eq(box.getAttribute("aria-expanded"), "true");
+        h.dd.close("t");
+        eq(box.getAttribute("aria-expanded"), "false");
+        h.dd.dispose(); h.store.dispose();
+      });
+
+      test("Enter opens it and lands on the active item", function () {
+        // It was a tab stop with no key handling at all: focusable, and completely inert.
+        var h = mk();
+        var box = h.dd.el.querySelector(".zc-view-dd-selected");
+        key(box, "Enter");
+        ok(h.dd.isOpen(), "opened");
+        eq(document.activeElement.dataset.value, "month", "starts at the current selection");
+        h.dd.dispose(); h.store.dispose();
+      });
+
+      test("ArrowDown opens a closed control and then walks the list", function () {
+        var h = mk();
+        var box = h.dd.el.querySelector(".zc-view-dd-selected");
+        key(box, "ArrowDown");
+        ok(h.dd.isOpen());
+        key(h.dd.el.querySelector(".zc-view-dd-menu"), "ArrowDown");
+        eq(document.activeElement.dataset.value, "week");
+        h.dd.dispose(); h.store.dispose();
+      });
+
+      test("the list wraps at both ends", function () {
+        var h = mk();
+        h.dd.open();
+        var menu = h.dd.el.querySelector(".zc-view-dd-menu");
+        menu.querySelectorAll(".zc-view-dd-item")[2].focus();
+        key(menu, "ArrowDown");
+        eq(document.activeElement.dataset.value, "month", "past the end comes back to the top");
+        key(menu, "ArrowUp");
+        eq(document.activeElement.dataset.value, "year");
+        h.dd.dispose(); h.store.dispose();
+      });
+
+      test("Enter on an item selects it and returns focus to the box", function () {
+        var h = mk();
+        h.dd.open();
+        var item = h.dd.el.querySelectorAll(".zc-view-dd-item")[1];
+        item.focus();
+        key(item, "Enter");
+        eq(h.picked, ["week"]);
+        notOk(h.dd.isOpen(), "closed");
+        eq(document.activeElement, h.dd.el.querySelector(".zc-view-dd-selected"));
+        h.dd.dispose(); h.store.dispose();
+      });
+
+      test("Escape closes without selecting", function () {
+        var h = mk();
+        h.dd.open();
+        key(h.dd.el.querySelector(".zc-view-dd-menu"), "Escape");
+        notOk(h.dd.isOpen());
+        eq(h.picked, []);
+        h.dd.dispose(); h.store.dispose();
+      });
+
+      test("Space is swallowed so the page does not scroll", function () {
+        var h = mk();
+        var e = key(h.dd.el.querySelector(".zc-view-dd-selected"), " ");
+        ok(e.defaultPrevented);
+        ok(h.dd.isOpen());
+        h.dd.dispose(); h.store.dispose();
+      });
+    });
+
+    suite("ui/autocomplete", function () {
+      function mk() {
+        var store = DISP.createDisposableStore("t");
+        var picked = [];
+        var ac = AC.createAutocomplete({ store: store, onSelect: function (v) { picked.push(v); } });
+        document.getElementById("sandbox").appendChild(ac.el);
+        return { ac: ac, store: store, picked: picked };
+      }
+      function down(el) { el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true })); }
+
+      test("starts hidden", function () {
+        var h = mk();
+        notOk(h.ac.isOpen());
+        ok(h.ac.el.classList.contains("zc-hidden"));
+        h.store.dispose();
+      });
+
+      test("show renders one item per suggestion", function () {
+        var h = mk();
+        h.ac.show(["alpha", "beta"]);
+        ok(h.ac.isOpen());
+        eq(h.ac.el.querySelectorAll(".zc-ac-item").length, 2);
+        h.store.dispose();
+      });
+
+      test("an empty list hides rather than showing an empty popup", function () {
+        var h = mk();
+        h.ac.show(["alpha"]);
+        h.ac.show([]);
+        notOk(h.ac.isOpen());
+        h.store.dispose();
+      });
+
+      test("the list is capped", function () {
+        var store = DISP.createDisposableStore("t");
+        var ac = AC.createAutocomplete({ store: store, max: 3 });
+        document.getElementById("sandbox").appendChild(ac.el);
+        ac.show(["a", "b", "c", "d", "e"]);
+        eq(ac.el.querySelectorAll(".zc-ac-item").length, 3);
+        store.dispose();
+      });
+
+      test("selecting an item reports its value and hides", function () {
+        var h = mk();
+        h.ac.show(["alpha", "beta"]);
+        down(h.ac.el.querySelectorAll(".zc-ac-item")[1]);
+        eq(h.picked, ["beta"]);
+        notOk(h.ac.isOpen());
+        h.store.dispose();
+      });
+
+      test("the input drives the list rather than the list taking focus", function () {
+        var input = document.createElement("input");
+        var store = DISP.createDisposableStore("t");
+        var picked = [];
+        var ac = AC.createAutocomplete({ store: store, input: input, onSelect: function (v) { picked.push(v); } });
+        document.body.appendChild(ac.el);
+
+        eq(input.getAttribute("role"), "combobox");
+        eq(input.getAttribute("aria-controls"), ac.el.id);
+        eq(input.getAttribute("aria-expanded"), "false");
+        eq(ac.el.getAttribute("role"), "listbox");
+
+        ac.show(["alpha", "beta"]);
+        eq(input.getAttribute("aria-expanded"), "true");
+
+        // Was mouse-only: there was no way in from the keyboard and no way to pick anything.
+        ok(ac.move(1), "handled");
+        eq(input.getAttribute("aria-activedescendant"), ac.el.children[0].id);
+        eq(ac.el.querySelectorAll(".zc-is-active").length, 1);
+
+        ac.move(1);
+        eq(input.getAttribute("aria-activedescendant"), ac.el.children[1].id);
+
+        ok(ac.confirm(), "Enter takes the highlighted one");
+        eq(picked, ["beta"]);
+        notOk(ac.isOpen());
+        notOk(input.hasAttribute("aria-activedescendant"), "cleared on hide");
+
+        ac.dispose(); store.dispose(); input.remove();
+      });
+
+      test("stepping past the end returns to the typed text", function () {
+        var store = DISP.createDisposableStore("t");
+        var ac = AC.createAutocomplete({ store: store });
+        document.body.appendChild(ac.el);
+        ac.show(["one", "two"]);
+        ac.move(1); ac.move(1); ac.move(1);
+        eq(ac.el.querySelectorAll(".zc-is-active").length, 0, "nothing highlighted");
+        notOk(ac.confirm(), "Enter with nothing highlighted is not handled");
+        ac.dispose(); store.dispose();
+      });
+
+      test("an outside pointerdown hides it", function () {
+        var h = mk();
+        h.ac.show(["alpha"]);
+        down(document.body);
+        notOk(h.ac.isOpen());
+        h.store.dispose();
+      });
+    });
+
+    suite("ui/modal", function () {
+      function mk(over) {
+        var store = DISP.createDisposableStore("t");
+        var closed = [];
+        var m = MODAL.createModal(Object.assign({
+          instanceId: "test-instance",
+          store: store,
+          onClose: function (i) { closed.push(i.reason); },
+        }, over || {}));
+        return { m: m, store: store, closed: closed };
+      }
+
+      test("mounts on <body>, stamped with the instance id, hidden", function () {
+        var h = mk();
+        eq(h.m.el.parentNode, document.body, "escapes the calendar container");
+        eq(h.m.el.dataset.zcId, "test-instance");
+        notOk(h.m.isOpen());
+        h.store.dispose();
+      });
+
+      test("show sets the title and appends the given nodes", function () {
+        var h = mk();
+        var a = document.createElement("div");
+        var b = document.createElement("div");
+        h.m.show("Events for today", [a, b]);
+        ok(h.m.isOpen());
+        eq(h.m.el.querySelector(".zc-modal-title").innerText, "Events for today");
+        eq(h.m.body.children.length, 2);
+        h.store.dispose();
+      });
+
+      test("showing again replaces the previous content", function () {
+        var h = mk();
+        h.m.show("first", [document.createElement("div")]);
+        h.m.show("second", [document.createElement("div"), document.createElement("div")]);
+        eq(h.m.el.querySelector(".zc-modal-title").innerText, "second");
+        eq(h.m.body.children.length, 2);
+        h.store.dispose();
+      });
+
+      test("the close button and the backdrop both close it", function () {
+        var h = mk();
+        h.m.show("x", []);
+        h.m.el.querySelector(".zc-modal-close").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        notOk(h.m.isOpen());
+        eq(h.closed, ["button"]);
+
+        h.m.show("x", []);
+        h.m.el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        eq(h.closed, ["button", "backdrop"]);
+        h.store.dispose();
+      });
+
+      test("a click on the dialog itself does not close it", function () {
+        var h = mk();
+        h.m.show("x", []);
+        h.m.el.querySelector(".zc-modal").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        ok(h.m.isOpen(), "still open");
+        h.store.dispose();
+      });
+
+      test("it is a dialog, not just an overlay that looks like one", function () {
+        // It had no role, no aria-modal and no label, so assistive tech walked straight past it.
+        var h = mk();
+        var dlg = h.m.el.querySelector(".zc-modal");
+        eq(dlg.getAttribute("role"), "dialog");
+        eq(dlg.getAttribute("aria-modal"), "true");
+        eq(dlg.getAttribute("aria-labelledby"), h.m.el.querySelector(".zc-modal-title").id);
+        ok(h.m.el.querySelector(".zc-modal-title").id.indexOf("test-instance") !== -1,
+           "the label target is per-instance");
+        h.store.dispose();
+      });
+
+      test("Escape closes it", function () {
+        var h = mk();
+        h.m.show("x", []);
+        h.m.el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        notOk(h.m.isOpen());
+        eq(h.closed, ["escape"]);
+        h.store.dispose();
+      });
+
+      test("focus moves in on open and back to the opener on close", function () {
+        var opener = document.createElement("button");
+        document.body.appendChild(opener);
+        opener.focus();
+
+        var h = mk();
+        h.m.show("x", []);
+        ok(h.m.el.querySelector(".zc-modal").contains(document.activeElement),
+           "focus is inside the dialog, got " + document.activeElement.className);
+
+        h.m.hide("test");
+        eq(document.activeElement, opener, "focus went back to whatever opened it");
+
+        h.store.dispose();
+        opener.remove();
+      });
+
+      test("Tab cycles inside the dialog instead of escaping it", function () {
+        var h = mk();
+        var row = document.createElement("div");
+        row.tabIndex = 0;
+        h.m.show("x", [row]);
+
+        var closeBtn = h.m.el.querySelector(".zc-modal-close");
+        var e = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+        row.focus();
+        h.m.el.dispatchEvent(e);
+        // The row is last in DOM order, so forward-Tab wraps to the close button.
+        ok(e.defaultPrevented, "the wrap was handled rather than left to the browser");
+        eq(document.activeElement, closeBtn);
+        h.store.dispose();
+      });
+
+      test("closing something that was never open reports nothing", function () {
+        // Regression: hide() used to emit unconditionally, so listeners saw a close for a modal that
+        // had never been shown - including one from every destroy().
+        var h = mk();
+        h.m.hide();
+        h.m.hide();
+        eq(h.closed, []);
+        h.store.dispose();
+      });
+
+      test("dispose removes the overlay from the document", function () {
+        var h = mk();
+        h.store.dispose();
+        notOk(h.m.el.parentNode, "detached from body");
+      });
+    });
+
+
+    suite("core/registry", function () {
+      test("register / get / has / remove", function () {
+        var r = REG.createRegistry("thing");
+        eq(r.size, 0);
+        r.register("a", { label: "A" });
+        ok(r.has("a"));
+        eq(r.get("a").label, "A");
+        eq(r.get("a").key, "a", "the key is attached to the definition");
+        eq(r.size, 1);
+        ok(r.remove("a"));
+        notOk(r.has("a"));
+        notOk(r.remove("a"), "removing twice reports false");
+        eq(r.get("missing"), null);
+      });
+
+      test("values are ordered by the order field, not registration order", function () {
+        var r = REG.createRegistry("thing");
+        r.register("last", { order: 90 });
+        r.register("first", { order: 10 });
+        r.register("middle", { order: 50 });
+        eq(r.keys(), ["first", "middle", "last"]);
+      });
+
+      test("entries without an order sort after explicit low orders", function () {
+        var r = REG.createRegistry("thing");
+        r.register("noorder", {});
+        r.register("early", { order: 5 });
+        eq(r.keys()[0], "early");
+      });
+
+      test("ties break on key so ordering is stable", function () {
+        var r = REG.createRegistry("thing");
+        r.register("b", { order: 1 });
+        r.register("a", { order: 1 });
+        eq(r.keys(), ["a", "b"]);
+      });
+
+      test("registering the same key twice replaces it", function () {
+        var r = REG.createRegistry("thing");
+        r.register("a", { label: "one" });
+        r.register("a", { label: "two" });
+        eq(r.size, 1);
+        eq(r.get("a").label, "two");
+      });
+
+      test("a key is required", function () {
+        var r = REG.createRegistry("thing");
+        throws(function () { r.register("", {}); });
+      });
+    });
+
+    suite("views/timegrid", function () {
+      test("toIntervals clips a multi-day event to the given day", function () {
+        // Week view used to skip this entirely and draw raw start/end times on every day it touched.
+        var ev = { start: "1404-09-20T22:00", end: "1404-09-22T03:00" };
+        var mid = TG.toIntervals([ev], { jy: 1404, jm: 9, jd: 21 })[0];
+        eq([mid.startMin, mid.endMin], [0, 1440], "interior day is full height");
+        var first = TG.toIntervals([ev], { jy: 1404, jm: 9, jd: 20 })[0];
+        eq([first.startMin, first.endMin], [1320, 1440]);
+      });
+
+      test("layoutIntervals attaches the conflict graph in overlap mode", function () {
+        var items = [
+          { startMin: 60, endMin: 180 },
+          { startMin: 90, endMin: 200 },
+          { startMin: 600, endMin: 660 },
+        ];
+        var laid = TG.layoutIntervals(items, "overlap", "inst:day");
+        ok(laid[0]._ovHas && laid[1]._ovHas, "the pair conflicts");
+        notOk(laid[2]._ovHas, "the outlier does not");
+      });
+
+      test("layoutIntervals in columns mode assigns columns and no graph", function () {
+        var laid = TG.layoutIntervals([
+          { startMin: 60, endMin: 180 },
+          { startMin: 90, endMin: 200 },
+        ], "columns", "inst:day");
+        eq(laid.map(function (i) { return i.colIndex; }), [0, 1]);
+        notOk(laid[0]._ovHas, "no conflict graph in columns mode");
+      });
+
+      test("placeEvent applies the cascade in overlap mode", function () {
+        // This is the fix: week view discarded offsetPct/widthPct for conflicting events, so they
+        // stacked on top of each other instead of fanning out.
+        var div = document.createElement("div");
+        TG.placeEvent(div, { startMin: 60, endMin: 120, widthPct: 86, offsetPct: 14, stackIndex: 1 }, "overlap");
+        eq(div.style.top, "60px");
+        eq(div.style.height, "60px");
+        ok(div.style.width.indexOf("86%") !== -1, "width from widthPct, got " + div.style.width);
+        ok(div.style.right.indexOf("14%") !== -1, "offset from offsetPct, got " + div.style.right);
+        eq(div.style.zIndex, "11", "stacked above the one below it");
+      });
+
+      test("placeEvent uses column geometry in columns mode", function () {
+        var div = document.createElement("div");
+        TG.placeEvent(div, { startMin: 0, endMin: 60, colCount: 2, colSpan: 1, colIndex: 1 }, "columns");
+        ok(div.style.width.indexOf("50%") !== -1, div.style.width);
+        ok(div.style.right.indexOf("50%") !== -1, div.style.right);
+      });
+
+      test("a very short event still gets a minimum height", function () {
+        var div = document.createElement("div");
+        TG.placeEvent(div, { startMin: 0, endMin: 5, widthPct: 100, offsetPct: 0 }, "overlap");
+        eq(div.style.height, TG.MIN_HEIGHT + "px");
+      });
+
+      test("buildHourGutter renders 24 labels an hour apart", function () {
+        var g = TG.buildHourGutter("zc-week-gutter", TG.metrics(null));
+        eq(g.className, "zc-week-gutter");
+        eq(g.children.length, 24);
+        eq(g.style.height, 24 * TG.HOUR_HEIGHT + "px");
+        eq(g.children[0].innerText, "0:00");
+        eq(g.children[23].innerText, "23:00");
+        eq(g.children[23].style.top, 23 * TG.HOUR_HEIGHT + "px");
+        eq(g.children[5].className, "zc-hour-label", "inset comes from the stylesheet now");
+      });
+
+      test("the hour label is the locale's to format", function () {
+        // It was a bare `h + ":00"` - unpadded, and the one number the Persian digits never reached.
+        var g = TG.buildHourGutter("zc-day-gutter", TG.metrics(null), function (h) {
+          return "[" + h + "]";
+        });
+        eq(g.children[9].innerText, "[9]");
+      });
+
+      test("buildHourLines adds one line per hour", function () {
+        var col = document.createElement("div");
+        TG.buildHourLines(col, TG.metrics(null));
+        eq(col.querySelectorAll(".zc-hour-line").length, 24);
+        eq(col.children[12].style.top, 12 * TG.HOUR_HEIGHT + "px");
+      });
+
+      test("--zc-hour-height drives the vertical scale", function () {
+        /* The token fed exactly one CSS rule and nothing in JS, so setting it to anything but 60px
+           left the hour lines, the events, the bands and the now line on four different scales. */
+        var host = document.createElement("div");
+        host.style.setProperty("--zc-hour-height", "90px");
+        document.body.appendChild(host);
+
+        var m = TG.metrics(host);
+        eq(m.hourHeight, 90);
+        eq(m.pxPerMin, 1.5);
+        eq(m.dayHeight, 2160);
+
+        var div = document.createElement("div");
+        TG.placeEvent(div, { startMin: 60, endMin: 120, widthPct: 100, offsetPct: 0 }, "overlap", m);
+        eq(div.style.top, "90px", "one hour in equals one hour-height down");
+        eq(div.style.height, "90px");
+
+        var lines = document.createElement("div");
+        TG.buildHourLines(lines, m);
+        eq(lines.children[2].style.top, "180px");
+
+        document.body.removeChild(host);
+      });
+
+      test("metrics falls back to 60px when the token is absent", function () {
+        var m = TG.metrics(document.createElement("div"));
+        eq(m.hourHeight, TG.HOUR_HEIGHT);
+        eq(m.pxPerMin, 1);
+      });
+    });
+
+
+    suite("locale", function () {
+      /* A consumer-registered locale, which is what the registry exists for now that Persian is the
+         only bundled one. Registered once, here, and reused by the tests below. */
+      var TEST_CODE = "test-xx";
+      LOC.register({
+        code: TEST_CODE,
+        weekdays: ["a", "b", "c", "d", "e", "f", "g"],
+        weekdaysShort: ["a", "b", "c", "d", "e", "f", "g"],
+        months: ["1","2","3","4","5","6","7","8","9","10","11","12"],
+        digits: null,
+        strings: { today: "Today", menu: "Menu" },
+      });
+
+      test("Persian is bundled and is the default", function () {
+        ok(LOC.has("fa"), "fa is registered");
+        eq(LOC.resolve(null).code, "fa", "no locale means Persian");
+        eq(LOC.resolve("nope").code, "fa", "an unknown code falls back to Persian");
+      });
+
+      test("English is not bundled", function () {
+        // Zarvan is a Persian calendar. The en locale was removed in 3.0.0.
+        notOk(LOC.has("en"), "no en locale");
+      });
+
+      test("a consumer can register their own locale", function () {
+        ok(LOC.has(TEST_CODE));
+        ok(LOC.codes().indexOf(TEST_CODE) !== -1);
+        eq(LOC.resolve(TEST_CODE).code, TEST_CODE);
+      });
+
+      test("resolve accepts a code, an object, or a partial override", function () {
+        eq(LOC.resolve(TEST_CODE).code, TEST_CODE);
+        eq(LOC.resolve(null).code, "fa");
+
+        var partial = LOC.resolve({ code: "fa", strings: { today: "امروز!" } });
+        eq(partial.strings.today, "امروز!", "override applied");
+        eq(partial.strings.menu, "منو", "everything else inherited");
+        eq(partial.months.length, 12, "arrays inherited too");
+      });
+
+      test("an unknown key falls through to itself rather than rendering blank", function () {
+        var tr = LOC.createTranslator(LOC.resolve("fa"));
+        eq(tr.t("no.such.key"), "no.such.key");
+      });
+
+      test("a locale missing a string falls back to the default locale", function () {
+        var sparse = LOC.createTranslator(LOC.resolve({ code: "sparse", strings: { today: "X" } }));
+        eq(sparse.t("today"), "X");
+        eq(sparse.t("menu"), "منو", "fell back to fa");
+      });
+
+      test("interpolation replaces named placeholders", function () {
+        eq(LOC.interpolate("+{count} more", { count: 3 }), "+3 more");
+        eq(LOC.interpolate("{a} and {b}", { a: "x", b: "y" }), "x and y");
+        eq(LOC.interpolate("{missing}", {}), "{missing}", "unknown placeholder is left visible");
+        eq(LOC.interpolate("no params", null), "no params");
+      });
+
+      test("num() shapes digits only where the locale asks for it", function () {
+        var fa = LOC.createTranslator(LOC.resolve("fa"));
+        var plain = LOC.createTranslator(LOC.resolve(TEST_CODE));
+        eq(fa.num(1405), "۱۴۰۵");
+        eq(fa.num("12:30"), "۱۲:۳۰", "separators untouched");
+        eq(plain.num(1405), "1405", "digits:null leaves numerals alone");
+        eq(fa.num(null), "");
+      });
+
+      test("digits:null opts a Persian calendar out of Persian numerals", function () {
+        // The documented escape hatch for a product that wants Persian text and Latin digits.
+        var latin = LOC.createTranslator(LOC.resolve({ code: "fa", digits: null }));
+        eq(latin.num(1405), "1405");
+        eq(latin.t("today"), "امروز", "still Persian text");
+      });
+
+      test("the bundled locale exposes 7 weekdays, 7 short names and 12 months", function () {
+        var tr = LOC.createTranslator(LOC.resolve("fa"));
+        eq(tr.weekdays.length, 7, "weekdays");
+        eq(tr.weekdaysShort.length, 7, "short weekdays");
+        eq(tr.months.length, 12, "months");
+      });
+
+      test("the locale carries no direction", function () {
+        // RTL is a property of the stylesheet, not a per-locale choice, and is not configurable.
+        var tr = LOC.createTranslator(LOC.resolve("fa"));
+        eq(tr.direction, undefined, "no direction on the translator");
+        notOk("direction" in LOC.get("fa"), "none on the locale either");
+      });
+    });
+
+
+    suite("core/hooks", function () {
+      test("handlers run in registration order and receive the payload", function () {
+        var h = HOOKS.createHooks();
+        var seen = [];
+        h.on("thing", function (p) { seen.push("a:" + p.v); });
+        h.on("thing", function (p) { seen.push("b:" + p.v); });
+        h.run("thing", { v: 1 });
+        eq(seen, ["a:1", "b:1"]);
+      });
+
+      test("running a hook nobody listens to is harmless", function () {
+        var h = HOOKS.createHooks();
+        eq(h.count("nope"), 0);
+        doesNotThrow(function () { h.run("nope", {}); });
+      });
+
+      test("the returned handle detaches just that handler", function () {
+        var h = HOOKS.createHooks();
+        var n = 0;
+        var off = h.on("x", function () { n++; });
+        h.on("x", function () { n += 10; });
+        h.run("x", {});
+        eq(n, 11);
+        off();
+        h.run("x", {});
+        eq(n, 21, "only the second still runs");
+        eq(h.count("x"), 1);
+      });
+
+      test("a throwing handler is reported and the rest still run", function () {
+        var h = HOOKS.createHooks();
+        var ran = [];
+        var realError = console.error;
+        console.error = function () {};
+        h.on("x", function () { throw new Error("boom"); });
+        h.on("x", function () { ran.push("survivor"); });
+        doesNotThrow(function () { h.run("x", {}); });
+        console.error = realError;
+        eq(ran, ["survivor"]);
+      });
+
+      test("a handler that detaches itself mid-run does not corrupt the iteration", function () {
+        var h = HOOKS.createHooks();
+        var ran = [];
+        var off = h.on("x", function () { ran.push("first"); off(); });
+        h.on("x", function () { ran.push("second"); });
+        h.run("x", {});
+        eq(ran, ["first", "second"]);
+      });
+
+      test("clear removes everything", function () {
+        var h = HOOKS.createHooks();
+        h.on("x", function () {});
+        h.clear();
+        eq(h.count("x"), 0);
+      });
+    });
+
+    suite("core/plugins", function () {
+      test("the three bundled plugins register themselves", function () {
+        var names = PLUG.names();
+        ["highlights", "now-indicator", "excel-export"].forEach(function (n) {
+          ok(names.indexOf(n) !== -1, n + " registered");
+        });
+      });
+
+      test("use() rejects a malformed plugin", function () {
+        throws(function () { PLUG.use({ name: "x" }); }, "no install");
+        throws(function () { PLUG.use({ install: function () {} }); }, "no name");
+        throws(function () { PLUG.use(null); });
+      });
+
+      test("installAll returns a teardown that runs in reverse", function () {
+        var order = [];
+        var teardown = PLUG.installAll([
+          { name: "a", install: function () { order.push("install a"); return function () { order.push("off a"); }; } },
+          { name: "b", install: function () { order.push("install b"); return function () { order.push("off b"); }; } },
+        ], {});
+        eq(order, ["install a", "install b"]);
+        teardown();
+        eq(order, ["install a", "install b", "off b", "off a"]);
+      });
+
+      test("a plugin that throws on install is skipped, not fatal", function () {
+        var realError = console.error;
+        console.error = function () {};
+        var ok2 = false;
+        doesNotThrow(function () {
+          PLUG.installAll([
+            { name: "bad", install: function () { throw new Error("boom"); } },
+            { name: "good", install: function () { ok2 = true; } },
+          ], {});
+        });
+        console.error = realError;
+        ok(ok2, "the following plugin still installed");
+      });
+
+      test("a plugin need not return a teardown", function () {
+        doesNotThrow(function () {
+          PLUG.installAll([{ name: "n", install: function () {} }], {})();
+        });
+      });
+    });
+
+    // ------------------------------------------------------ integration
+    suite("integration (constructs a real calendar)", function () {
+      var made = [];
+      /* "qa" exists so the localisation assertions below can read Latin text without an English
+         locale being a shipped feature. It declares only what the tests assert on - the rest falls
+         back to Persian, which is exactly what a partial consumer locale does. */
+      LOC.register({
+        code: "qa",
+        weekdays: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"],
+        weekdaysShort: ["Sa", "Su", "Mo", "Tu", "We", "Th", "Fr"],
+        months: ["M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12"],
+        digits: null,
+        strings: {
+          today: "Today",
+          "view.month": "Month",
+          moreEvents: "+{count} more",
+          allTypes: "All",
+          "warn.invalidStart": "QA: malformed start.",
+          "export.sheet": "QA-Events",
+          "export.row": "#",
+          "export.title": "Title",
+        },
+      });
+
+      function make(opts) {
+        var host = document.createElement("div");
+        document.getElementById("sandbox").appendChild(host);
+        var c = Zarvan.create(Object.assign({ selector: host }, opts));
+        made.push(c);
+        return c;
+      }
+
+      test("constructing with an invalid event warns instead of throwing", function () {
+        // Regression: normalizeEvents() reports through zWarn -> emit, which reads the listener map.
+        // That map was declared *after* the initial normalize call, so a single invalid event threw
+        // a TypeError out of Zarvan.create().
+        var warned = [];
+        doesNotThrow(function () {
+          make({
+            events: [{ title: "bad", start: "1404-13-99" }, { title: "ok", start: "1404-09-20" }],
+            handlers: { onWarn: function (p) { warned.push(p); } },
+          });
+        });
+        eq(warned.length, 1, "the warning reached the handler");
+      });
+
+      test("a malicious event type cannot escape into the injected stylesheet", function () {
+        var c = make({ events: [{ title: "x", start: "1404-09-20", type: 'evil} body { display:none } .y{"' }] });
+        var tag = document.querySelector('style[data-zc-type-style="' + c.getContainer().dataset.zcId + '"]');
+        ok(tag, "a style tag was injected");
+        eq(tag.textContent.indexOf("display:none"), -1, "payload did not survive");
+        eq(tag.textContent.indexOf("body {"), -1, "no injected selector");
+      });
+
+      test("two instances get distinct ids and independent style tags", function () {
+        var a = make({ events: [] }), b = make({ events: [] });
+        var ia = a.getContainer().dataset.zcId, ib = b.getContainer().dataset.zcId;
+        ok(ia && ib && ia !== ib, "ids differ");
+      });
+
+      test("destroy() removes the container content and the injected style tag", function () {
+        var c = make({ events: [{ title: "x", start: "1404-09-20", type: "meeting" }] });
+        var id = c.getContainer().dataset.zcId;
+        ok(document.querySelector('style[data-zc-type-style="' + id + '"]'), "style tag exists first");
+        c.destroy();
+        eq(c.getContainer().innerHTML, "", "container emptied");
+        notOk(document.querySelector('style[data-zc-type-style="' + id + '"]'), "style tag removed");
+        made.splice(made.indexOf(c), 1);
+      });
+
+
+      test("the week view releases every now-indicator interval it creates", function () {
+        // Regression: the week view sets up one interval per day column, but the old code stored the
+        // id in a single `nowTick` variable inside the 7-iteration loop, so six of the seven were
+        // unreachable and leaked on every re-render. They belong to the render store now.
+        var live = 0;
+        var realSI = window.setInterval, realCI = window.clearInterval;
+        window.setInterval = function (fn, ms) { live++; return realSI(fn, ms); };
+        window.clearInterval = function (id) { live--; return realCI(id); };
+
+        var c = make({
+          view: "week",
+          events: [{ title: "x", start: "1404-09-20T09:00", end: "1404-09-20T10:00" }],
+          features: { nowLine: true },
+        });
+        var afterWeek = live;
+        c.setView("month");
+        c.refresh();                 // renders are batched; force the pending one
+        var afterMonth = live;
+        c.destroy();
+        var afterDestroy = live;
+
+        window.setInterval = realSI;
+        window.clearInterval = realCI;
+        made.splice(made.indexOf(c), 1);
+
+        eq(afterMonth, 0, "week -> month released all week intervals (had " + afterWeek + ")");
+        eq(afterDestroy, 0, "nothing left after destroy");
+      });
+
+      test("repeated re-renders do not accumulate intervals", function () {
+        var live = 0;
+        var realSI = window.setInterval, realCI = window.clearInterval;
+        window.setInterval = function (fn, ms) { live++; return realSI(fn, ms); };
+        window.clearInterval = function (id) { live--; return realCI(id); };
+
+        var c = make({ view: "week", events: [], features: { nowLine: true } });
+        var peak = 0;
+        for (var i = 0; i < 5; i++) { c.goNext(); c.refresh(); if (live > peak) peak = live; }
+        c.destroy();
+        var after = live;
+
+        window.setInterval = realSI;
+        window.clearInterval = realCI;
+        made.splice(made.indexOf(c), 1);
+
+        ok(peak <= 7, "at most one week's worth alive at a time, saw " + peak);
+        eq(after, 0, "all released on destroy");
+      });
+
+      test("destroy() detaches the document-level outside-click listeners", function () {
+        var added = [], removed = [];
+        var realAdd = document.addEventListener, realRemove = document.removeEventListener;
+        document.addEventListener = function (t, h, o) { if (t === "pointerdown") added.push(h); return realAdd.call(document, t, h, o); };
+        document.removeEventListener = function (t, h, o) { if (t === "pointerdown") removed.push(h); return realRemove.call(document, t, h, o); };
+
+        var c = make({ events: [] });
+        c.destroy();
+
+        document.addEventListener = realAdd;
+        document.removeEventListener = realRemove;
+        made.splice(made.indexOf(c), 1);
+
+        ok(added.length > 0, "the calendar did bind at least one");
+        added.forEach(function (h, i) {
+          ok(removed.indexOf(h) !== -1, "handler " + i + " was detached");
+        });
+      });
+
+      test("the view dropdown's outside-click closes the current element, not a stale one", function () {
+        // Regression: the handler captured the dropdown node from the first render. renderHeader()
+        // rebuilds it, after which the closure was testing a detached node.
+        var c = make({ events: [], view: "month" });
+        var root = c.getContainer();
+        var sel = root.querySelector(".zc-view-dd-selected");
+        sel.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        ok(root.querySelector(".zc-view-dd").classList.contains("zc-is-open"), "opened");
+        document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        notOk(root.querySelector(".zc-view-dd").classList.contains("zc-is-open"), "closed by outside click");
+      });
+
+
+      test("several changes in one tick produce a single render", function () {
+        var renders = 0;
+        var c = make({
+          events: [],
+          handlers: { onRenderStart: function () { renders++; } },
+        });
+        eq(renders, 1, "create() renders once, synchronously");
+
+        renders = 0;
+        c.setEvents([{ title: "a", start: "1404-09-20T09:00" }]);
+        c.setView("week");
+        c.setView("month");
+        eq(renders, 0, "nothing rendered synchronously");
+        c.refresh();
+        eq(renders, 1, "three changes collapsed into one render");
+      });
+
+      test("renderMode:'sync' opts out of batching", function () {
+        var renders = 0;
+        var c = make({
+          events: [],
+          renderMode: "sync",
+          handlers: { onRenderStart: function () { renders++; } },
+        });
+        renders = 0;
+        c.setView("week");
+        eq(renders, 1, "rendered immediately");
+        c.setView("month");
+        eq(renders, 2);
+      });
+
+      test("create() returns a calendar that is already in the DOM", function () {
+        var c = make({ events: [{ title: "a", start: "1404-09-20T09:00" }], view: "week" });
+        // no refresh, no waiting - this must be true the instant create() returns
+        ok(c.getContainer().querySelector(".zc-week-grid"), "week grid present");
+        ok(c.getContainer().querySelector(".zc-header"), "header present");
+      });
+
+      test("refresh() is idempotent when nothing is pending", function () {
+        var renders = 0;
+        var c = make({ events: [], handlers: { onRenderStart: function () { renders++; } } });
+        renders = 0;
+        c.refresh();
+        c.refresh();
+        eq(renders, 2, "an explicit refresh always renders");
+      });
+
+      test("destroy() cancels a render that was still pending", function () {
+        var renders = 0;
+        var c = make({ events: [], handlers: { onRenderStart: function () { renders++; } } });
+        renders = 0;
+        c.setView("week");        // scheduled, not yet run
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+        eq(renders, 0, "the pending frame was cancelled");
+      });
+
+      test("sidebar + mini calendar render for every view", function () {
+        // The state consolidation initially missed a reference inside syncMiniToActiveDate, and the
+        // suite did not notice because nothing here opened the sidebar. It does now.
+        ["month", "week", "day", "year", "list"].forEach(function (v) {
+          var c = make({ view: v, events: [{ title: "x", start: "1404-09-20T09:00" }], renderMode: "sync" });
+          var root = c.getContainer();
+          root.querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          doesNotThrow(function () { c.refresh(); }, "refresh with the sidebar open (" + v + ")");
+          ok(root.querySelector(".zc-mini-grid"), v + ": mini calendar rendered");
+          ok(root.querySelector(".zc-filters"), v + ": filters rendered");
+          c.destroy();
+          made.splice(made.indexOf(c), 1);
+        });
+      });
+
+      test("navigation works in every view with the sidebar open", function () {
+        ["month", "week", "day", "year", "list"].forEach(function (v) {
+          var c = make({ view: v, events: [], renderMode: "sync" });
+          c.getContainer().querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          doesNotThrow(function () { c.goNext(); c.goPrev(); c.goToday(); }, v);
+          c.destroy();
+          made.splice(made.indexOf(c), 1);
+        });
+      });
+
+
+      test("both dropdowns are the same component, wired differently", function () {
+        var c = make({ events: [{ title: "a", start: "1404-09-20T09:00", type: "meeting" }], renderMode: "sync" });
+        var root = c.getContainer();
+        root.querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        var viewDd = root.querySelector(".zc-view-dd");
+        var typeDd = root.querySelector(".zc-dd");
+        ok(viewDd && typeDd, "both present");
+
+        [[viewDd, "zc-view-dd"], [typeDd, "zc-dd"]].forEach(function (pair) {
+          var el = pair[0], p = pair[1];
+          el.querySelector("." + p + "-selected")
+            .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+          ok(el.classList.contains("zc-is-open"), p + " opened");
+          ok(el.querySelectorAll("." + p + "-item").length > 0, p + " has items");
+          document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+          notOk(el.classList.contains("zc-is-open"), p + " closed on outside click");
+        });
+
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("choosing a view from the dropdown switches the view", function () {
+        var c = make({ events: [], view: "month", renderMode: "sync" });
+        var root = c.getContainer();
+        var dd = root.querySelector(".zc-view-dd");
+        dd.querySelector(".zc-view-dd-selected")
+          .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        var weekItem = [].slice.call(dd.querySelectorAll(".zc-view-dd-item"))
+          .filter(function (n) { return n.dataset.value === "week"; })[0];
+        ok(weekItem, "week item present");
+        weekItem.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        ok(root.querySelector(".zc-week-grid"), "switched to the week view");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("the view dropdown shows the active view and updates on change", function () {
+        var c = make({ events: [], view: "month", renderMode: "sync" });
+        var root = c.getContainer();
+        eq(root.querySelector(".zc-view-dd-value").innerText, "ماه");
+        c.setView("week");
+        eq(root.querySelector(".zc-view-dd-value").innerText, "هفته");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("the '+N more' modal opens with one row per event and closes", function () {
+        var evs = [];
+        for (var i = 0; i < 8; i++) {
+          evs.push({ title: "e" + i, start: "1404-09-20T0" + (i % 9) + ":00", end: "1404-09-20T0" + (i % 9) + ":30", type: "meeting" });
+        }
+        var c = make({ events: evs, view: "day", renderMode: "sync" });
+        var opened = 0, closed = 0;
+        c.on("onModalOpen", function () { opened++; });
+        c.on("onModalClose", function () { closed++; });
+
+        var overlay = document.querySelector('.zc-modal-overlay[data-zc-id="' + c.getContainer().dataset.zcId + '"]');
+        ok(overlay, "modal overlay created for this instance");
+
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+        eq(closed, 0, "destroy does not report a close for a modal that was never opened");
+      });
+
+
+      test("week and day render overlapping events the same way", function () {
+        // Regression: week discarded the cascade offsets that day applied.
+        // dated today, because a fresh calendar opens on the current date
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var evs = [
+          { title: "A", start: D + "T09:00", end: D + "T11:00", type: "meeting" },
+          { title: "B", start: D + "T09:30", end: D + "T10:30", type: "meeting" },
+          { title: "C", start: D + "T10:00", end: D + "T12:00", type: "task" },
+        ];
+        function offsetsFor(view, colSel) {
+          var c = make({ view: view, events: evs, renderMode: "sync",
+                         features: { timeGridLayout: "overlap" } });
+          var offsets = [].slice.call(c.getContainer().querySelectorAll(colSel + " .zc-event"))
+            .map(function (e) { return e.style.right; })
+            .filter(function (r) { return !!r; });
+          c.destroy();
+          made.splice(made.indexOf(c), 1);
+          return offsets;
+        }
+        var weekOffsets = offsetsFor("week", ".zc-week-col");
+        var dayOffsets = offsetsFor("day", ".zc-day-col");
+        ok(weekOffsets.length > 0, "week produced positioned events");
+        ok(dayOffsets.length > 0, "day produced positioned events");
+        ok(weekOffsets.every(function (o) { return o.indexOf("calc(") === 0; }),
+           "every week event carries a computed offset: " + JSON.stringify(weekOffsets));
+      });
+
+      test("a registered view appears everywhere without touching core", function () {
+        var rendered = 0;
+        Zarvan.registerView("agenda", {
+          label: "دستور کار",
+          order: 60,
+          range: function () { return { startG: new Date(), endG: new Date() }; },
+          anchor: function () { return new Date(); },
+          step: function () {},
+          title: function () { return "AGENDA"; },
+          render: function (ctx) {
+            rendered++;
+            ok(ctx && ctx.state && ctx.features, "the view receives a context");
+          },
+        });
+
+        var c = make({ events: [], view: "agenda", renderMode: "sync" });
+        var root = c.getContainer();
+
+        eq(rendered, 1, "the custom renderer ran");
+        eq(root.querySelector(".zc-title").innerText, "AGENDA", "its title was used");
+
+        // it participates in the switcher
+        root.querySelector(".zc-view-dd-selected")
+          .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        var keys = [].slice.call(root.querySelectorAll(".zc-view-dd-item"))
+          .map(function (n) { return n.dataset.value; });
+        eq(keys, ["day", "week", "month", "year", "list", "agenda"], "listed last, per its order");
+        eq(root.querySelector(".zc-view-dd-value").innerText, "دستور کار", "label used in the switcher");
+
+        // and in navigation
+        doesNotThrow(function () { c.goNext(); c.goPrev(); c.goToday(); });
+        ok(rendered > 1, "navigation re-rendered it");
+
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+        Zarvan.unregisterView("agenda");
+        eq(Zarvan.registeredViews().indexOf("agenda"), -1, "unregistered");
+      });
+
+      test("registerView rejects a definition with no render function", function () {
+        throws(function () { Zarvan.registerView("bad", { label: "x" }); });
+        throws(function () { Zarvan.registerView("", { render: function () {} }); });
+      });
+
+      test("the mini calendar follows navigation in every view", function () {
+        // Regression: syncMiniToActiveDate only special-cased "month"; year and list fell through to
+        // currentWeekDate, so the mini calendar ignored navigation in those views entirely.
+        ["month", "week", "day", "year", "list"].forEach(function (v) {
+          var c = make({ view: v, events: [], renderMode: "sync" });
+          var root = c.getContainer();
+          root.querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+          var before = root.querySelector(".zc-mini-title").innerText;
+          c.goNext();
+          c.goNext();
+          var after = root.querySelector(".zc-mini-title").innerText;
+
+          if (v === "day" || v === "week") {
+            ok(true, v + ": stepping days/weeks may stay in the same month");
+          } else {
+            ok(before !== after, v + ": mini calendar moved (" + before + " -> " + after + ")");
+          }
+          c.destroy();
+          made.splice(made.indexOf(c), 1);
+        });
+      });
+
+      test("every view sets a header title", function () {
+        ["month", "week", "day", "year", "list"].forEach(function (v) {
+          var c = make({ view: v, events: [], renderMode: "sync" });
+          var t = c.getContainer().querySelector(".zc-title").innerText.trim();
+          ok(t.length > 0, v + " has a title, got " + JSON.stringify(t));
+          c.destroy();
+          made.splice(made.indexOf(c), 1);
+        });
+      });
+
+      test("views render fully and synchronously, without waiting for a frame", function () {
+        // Regression: month deferred its fit-to-cell measurement to requestAnimationFrame, and
+        // week/day deferred their density classes the same way. rAF does not run while the document
+        // is hidden, so in a background tab those views rendered their skeleton and never filled in a
+        // single event. Layout still computes when hidden, so the measurement is synchronous now.
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var evs = [
+          { title: "a", start: D + "T09:00", end: D + "T10:00", type: "meeting" },
+          { title: "b", start: D + "T11:00", end: D + "T11:05", type: "task" },
+        ];
+
+        var m = make({ view: "month", events: evs, renderMode: "sync" });
+        // no await, no rAF tick - the events must be present the moment create() returns
+        ok(m.getContainer().querySelectorAll(".zc-month-timed").length > 0,
+           "month filled its cells synchronously");
+        m.destroy(); made.splice(made.indexOf(m), 1);
+
+        var w = make({ view: "week", events: evs, renderMode: "sync" });
+        var shortOnes = w.getContainer().querySelectorAll(".zc-week-col .zc-short, .zc-week-col .zc-tiny");
+        ok(shortOnes.length > 0, "week applied density classes synchronously to the 5-minute event");
+        w.destroy(); made.splice(made.indexOf(w), 1);
+      });
+
+
+      test("a calendar renders in the locale it was given", function () {
+        var c = make({ events: [], locale: "qa", view: "month", renderMode: "sync" });
+        var root = c.getContainer();
+        eq(c.getLocale(), "qa");
+        eq(root.querySelector(".zc-today").innerText, "Today");
+        eq(root.querySelector(".zc-view-dd-value").innerText, "Month");
+        ok(/^M(1[0-2]|[1-9]) \d{4}$/.test(root.querySelector(".zc-title").innerText),
+           "month name from the locale, got " + root.querySelector(".zc-title").innerText);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("a Persian calendar is what you get by default", function () {
+        var c = make({ events: [], view: "month", renderMode: "sync" });
+        var root = c.getContainer();
+        eq(c.getLocale(), "fa");
+        eq(root.querySelector(".zc-today").innerText, "امروز");
+        eq(root.getAttribute("dir"), "rtl", "always right-to-left");
+        eq(root.getAttribute("lang"), "fa");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("the layout is right-to-left whatever the locale", function () {
+        // RTL is a property of the stylesheet, not a per-locale choice.
+        var c = make({ events: [], locale: "qa", renderMode: "sync" });
+        eq(c.getContainer().getAttribute("dir"), "rtl");
+        eq(c.getContainer().getAttribute("lang"), "qa", "lang still follows the locale");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("weekday headers come from the locale", function () {
+        var c = make({ events: [], locale: "qa", view: "month", renderMode: "sync" });
+        var names = [].slice.call(c.getContainer().querySelectorAll(".zc-month-weekday"))
+          .map(function (n) { return n.innerText; });
+        eq(names, ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"]);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("the mini calendar uses short weekday names, not sliced full ones", function () {
+        // "یک‌شنبه" starts with a zero-width-joined character, so taking charAt(0) produced the wrong
+        // glyph and the old code special-cased that one name. The locale lists them explicitly now.
+        var c = make({ events: [], locale: "fa", renderMode: "sync" });
+        var root = c.getContainer();
+        root.querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        var shorts = [].slice.call(root.querySelectorAll(".zc-mini-weekdays div"))
+          .map(function (n) { return n.innerText; });
+        eq(shorts, ["ش", "ی", "د", "س", "چ", "پ", "ج"]);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("setLocale() switches a live calendar", function () {
+        var c = make({ events: [], locale: "fa", view: "month", renderMode: "sync" });
+        var root = c.getContainer();
+        eq(root.querySelector(".zc-today").innerText, "امروز");
+
+        var changed = null;
+        c.on("onLocaleChange", function (p) { changed = p.code; });
+        c.setLocale("qa");
+
+        eq(c.getLocale(), "qa");
+        eq(changed, "qa", "onLocaleChange fired");
+        eq(root.querySelector(".zc-today").innerText, "Today", "the header was rebuilt");
+        eq(root.querySelector(".zc-view-dd-value").innerText, "Month");
+        eq(root.getAttribute("dir"), "rtl", "still right-to-left");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("two calendars on one page can run different locales", function () {
+        var a = make({ events: [], locale: "fa", renderMode: "sync" });
+        var b = make({ events: [], locale: "qa", renderMode: "sync" });
+        eq(a.getContainer().querySelector(".zc-today").innerText, "امروز");
+        eq(b.getContainer().querySelector(".zc-today").innerText, "Today");
+        [a, b].forEach(function (c) { c.destroy(); made.splice(made.indexOf(c), 1); });
+      });
+
+      test("a partial locale overrides one string and inherits the rest", function () {
+        var c = make({
+          events: [],
+          locale: { code: "fa", strings: { today: "همین حالا" } },
+          renderMode: "sync",
+        });
+        var root = c.getContainer();
+        eq(root.querySelector(".zc-today").innerText, "همین حالا", "override");
+        eq(root.querySelector(".zc-view-dd-label").innerText, "نمایش", "inherited");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("warnings carry a stable code plus a localised message", function () {
+        // The code is what a consumer should switch on; the message follows the locale.
+        function warnFor(loc) {
+          var got = null;
+          var c = make({
+            locale: loc,
+            renderMode: "sync",
+            events: [{ title: "bad", start: "1404-13-99" }],
+            handlers: { onWarn: function (p) { got = p; } },
+          });
+          c.destroy();
+          made.splice(made.indexOf(c), 1);
+          return got;
+        }
+        var fa = warnFor("fa");
+        var qa = warnFor("qa");
+        eq(fa.code, "warn.invalidStart", "stable code");
+        eq(qa.code, "warn.invalidStart", "same code in both locales");
+        ok(fa.message !== qa.message, "message follows the locale");
+        eq(qa.message, "QA: malformed start.");
+        ok(fa.extra && fa.extra.reason === "bad_date", "details preserved");
+      });
+
+      test("the '+N more' label is localised and uses the locale's numerals", function () {
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        // Enough that the day cell must overflow whatever height it ends up with.
+        var evs = [];
+        for (var i = 0; i < 40; i++) {
+          var hh = String(Math.floor(i / 2)).padStart(2, "0");
+          var mm = i % 2 ? "30" : "00";
+          evs.push({ title: "e" + i, start: D + "T" + hh + ":" + mm, end: D + "T" + hh + ":" + mm, type: "meeting" });
+        }
+        var c = make({ events: evs, locale: "qa", view: "month", renderMode: "sync" });
+        var more = c.getContainer().querySelector(".zc-more-btn");
+        ok(more, "a more button was rendered");
+        ok(/^\+\d+ more$/.test(more.innerText), "label from the locale, got " + more.innerText);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("every view renders events without throwing, in every locale", function () {
+        // The view-level tests all used empty or out-of-range event lists, so the code paths that
+        // format an event never ran. That is how three `t` shadows shipped: locals named `t` in
+        // renderList, the modal row builder and typeToFa hid the translator, and `var` hoisting made
+        // them throw rather than merely shadow.
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var evs = [
+          { title: "timed", start: D + "T09:00", end: D + "T10:30", type: "meeting" },
+          { title: "allday", start: D, end: D, allDay: true, type: "task" },
+          { title: "untyped", start: D + "T14:00", end: D + "T15:00" },
+        ];
+
+        ["fa", "qa"].forEach(function (loc) {
+          ["month", "week", "day", "year", "list"].forEach(function (v) {
+            var c = null;
+            doesNotThrow(function () {
+              c = make({ view: v, locale: loc, events: evs, renderMode: "sync" });
+            }, loc + "/" + v + " construction");
+
+            var root = c.getContainer();
+            doesNotThrow(function () {
+              root.querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+              c.refresh();
+            }, loc + "/" + v + " with the sidebar open");
+
+            var painted = root.querySelectorAll(
+              ".zc-event, .zc-month-timed, .zc-list-item, .zc-year-dot, .zc-year-more"
+            ).length;
+            ok(painted > 0, loc + "/" + v + " painted something, got " + painted);
+
+            c.destroy();
+            made.splice(made.indexOf(c), 1);
+          });
+        });
+      });
+
+      test("an untyped event gets the localised fallback label", function () {
+        // typeToFa took a parameter named t, which shadowed the translator it now calls.
+        var c = make({ events: [{ title: "x", start: "1404-09-20" }], locale: "qa", renderMode: "sync" });
+        var root = c.getContainer();
+        root.querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        root.querySelector(".zc-dd-selected")
+          .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        eq(root.querySelector(".zc-dd-value").innerText, "All");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("the year view shows the real event count, not a hardcoded one", function () {
+        // Regression: the badge was built as "+" + "2" and reported 2 for every busy day.
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var evs = [];
+        for (var i = 0; i < 5; i++) {
+          evs.push({ title: "e" + i, start: D + "T0" + i + ":00", end: D + "T0" + i + ":30", type: "meeting" });
+        }
+        var c = make({ view: "year", locale: "qa", events: evs, renderMode: "sync" });
+        var badge = c.getContainer().querySelector(".zc-year-more");
+        ok(badge, "a count badge was rendered");
+        eq(badge.innerText, "+5", "reports the real count");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+
+      test("the bundled plugins are installed into every instance", function () {
+        var c = make({ events: [] });
+        eq(c.plugins(), ["highlights", "now-indicator", "excel-export"]);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("options.plugins installs a specific set instead", function () {
+        var c = make({ events: [], plugins: [] });
+        eq(c.plugins(), [], "none installed");
+        eq(typeof c.exportToExcel, "undefined", "the export API is not there either");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("with no plugins, the features they provide are simply absent", function () {
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var c = make({
+          view: "week",
+          renderMode: "sync",
+          plugins: [],
+          events: [{ title: "x", start: D + "T09:00", end: D + "T10:00" }],
+          highlights: [{ when: {}, day: { bg: "#eee" } }],
+          features: { nowLine: true },
+        });
+        var root = c.getContainer();
+        eq(root.querySelectorAll(".zc-now-line").length, 0, "no now indicator");
+        eq(root.querySelectorAll(".zc-has-day-hl").length, 0, "no highlighting");
+        eq(root.querySelectorAll(".zc-export-btn").length, 0, "no export button");
+        // and the calendar itself still works
+        ok(root.querySelectorAll(".zc-week-col .zc-event").length > 0, "events still render");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("a custom plugin can decorate days and add an API method", function () {
+        var decorated = 0;
+        Zarvan.use({
+          name: "test-badge",
+          install: function (cal) {
+            var off = cal.hooks.on("dayElement", function (e) {
+              decorated++;
+              e.el.classList.add("test-badged");
+            });
+            cal.api.badgeCount = function () { return decorated; };
+            return function () { off(); delete cal.api.badgeCount; };
+          },
+        });
+
+        var c = make({ events: [], view: "month", renderMode: "sync" });
+        ok(decorated > 0, "the hook fired while rendering");
+        ok(c.getContainer().querySelectorAll(".test-badged").length > 0, "days were decorated");
+        eq(typeof c.badgeCount, "function", "the API method was added");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+        Zarvan.unuse("test-badge");
+        eq(Zarvan.plugins().indexOf("test-badge"), -1, "unregistered");
+      });
+
+      test("registering a name that exists replaces it", function () {
+        var which = null;
+        Zarvan.use({ name: "dupe", install: function () { which = "first"; } });
+        Zarvan.use({ name: "dupe", install: function () { which = "second"; } });
+        var before = Zarvan.plugins().filter(function (n) { return n === "dupe"; }).length;
+        eq(before, 1, "listed once");
+        var c = make({ events: [] });
+        eq(which, "second", "the replacement ran");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+        Zarvan.unuse("dupe");
+      });
+
+      test("plugin teardown runs on destroy", function () {
+        var torn = 0;
+        Zarvan.use({ name: "teardown-probe", install: function () { return function () { torn++; }; } });
+        var c = make({ events: [] });
+        eq(torn, 0);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+        eq(torn, 1, "uninstalled on destroy");
+        Zarvan.unuse("teardown-probe");
+      });
+
+      test("highlights paint days and time bands, and clear on setHighlights([])", function () {
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var c = make({
+          view: "month",
+          renderMode: "sync",
+          events: [],
+          highlights: [{ views: ["month"], when: { jDates: [D] }, day: { bg: "#ffeeee" } }],
+        });
+        var root = c.getContainer();
+        var painted = root.querySelectorAll(".zc-has-day-hl");
+        eq(painted.length, 1, "exactly the named day");
+        eq(painted[0].style.getPropertyValue("--zc-hl-bg"), "#ffeeee");
+
+        c.setHighlights([]);
+        c.refresh();
+        eq(root.querySelectorAll(".zc-has-day-hl").length, 0, "cleared");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("time bands land on the timed columns only", function () {
+        var c = make({
+          view: "week",
+          renderMode: "sync",
+          events: [],
+          highlights: [{ views: ["week"], when: {}, time: { start: "09:00", end: "17:00", bg: "#efe" } }],
+        });
+        var root = c.getContainer();
+        eq(root.querySelectorAll(".zc-time-highlight").length, 7, "one band per day column");
+        var band = root.querySelector(".zc-time-highlight");
+        eq(band.style.top, "540px", "09:00");
+        eq(band.style.height, "480px", "eight hours");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("features.dayHighlights=false suppresses painting without removing the plugin", function () {
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var c = make({
+          view: "month",
+          renderMode: "sync",
+          events: [],
+          features: { dayHighlights: false },
+          highlights: [{ when: { jDates: [D] }, day: { bg: "#eee" } }],
+        });
+        eq(c.getContainer().querySelectorAll(".zc-has-day-hl").length, 0);
+        eq(c.plugins().indexOf("highlights") !== -1, true, "still installed");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("the now indicator appears once, on today's column", function () {
+        var c = make({ view: "week", renderMode: "sync", events: [], features: { nowLine: true } });
+        eq(c.getContainer().querySelectorAll(".zc-now-line").length, 1);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("Excel export takes its dependency by injection", function () {
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var written = null;
+
+        // A stand-in for SheetJS: the plugin must never reach for a global when given this.
+        var fakeXlsx = {
+          utils: {
+            aoa_to_sheet: function (aoa) { return { aoa: aoa }; },
+            book_new: function () { return {}; },
+            book_append_sheet: function (book, sheet, name) { book.sheet = sheet; book.name = name; },
+          },
+          writeFile: function (book, fileName) { written = { book: book, fileName: fileName }; },
+        };
+
+        var started = null, ended = null;
+        var c = make({
+          renderMode: "sync",
+          locale: "qa",
+          view: "month",
+          deps: { xlsx: fakeXlsx },
+          events: [
+            { title: "beta", start: D + "T10:00", end: D + "T11:00", type: "meeting" },
+            { title: "alpha", start: D + "T09:00", end: D + "T09:30", type: "task" },
+          ],
+          handlers: {
+            onExportStart: function (p) { started = p; },
+            onExportEnd: function (p) { ended = p; },
+          },
+        });
+
+        eq(typeof c.exportToExcel, "function", "the API method exists");
+        c.exportToExcel();
+
+        ok(written, "the workbook was written");
+        ok(/\.xlsx$/.test(written.fileName), "named .xlsx, got " + written.fileName);
+        eq(written.book.name, "QA-Events", "sheet name localised");
+        eq(written.book.Workbook.Views[0].RTL, true, "the workbook is always right-to-left");
+
+        var rows = written.book.sheet.aoa;
+        eq(rows[0][0], "#", "header localised");
+        eq(rows[0][1], "Title");
+        eq(rows.length, 3, "header + two events");
+        eq(rows[1][1], "alpha", "sorted chronologically, not by input order");
+        eq(rows[2][1], "beta");
+
+        ok(started && ended, "start and end both reported");
+        eq(ended.count, 2);
+
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("Excel export warns instead of throwing when SheetJS is absent", function () {
+        var realXLSX = window.XLSX;
+        try { delete window.XLSX; } catch (e) { window.XLSX = undefined; }
+
+        var warned = null, errored = null;
+        var c = make({
+          renderMode: "sync",
+          events: [],
+          handlers: {
+            onWarn: function (p) { warned = p; },
+            onExportError: function (e) { errored = e; },
+          },
+        });
+
+        doesNotThrow(function () { c.exportToExcel(); });
+        eq(warned && warned.code, "warn.xlsxMissing");
+        ok(errored, "onExportError reported too");
+
+        window.XLSX = realXLSX;
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("features.exportExcel=false makes the export a no-op that warns", function () {
+        var warned = null;
+        var c = make({
+          renderMode: "sync",
+          events: [],
+          features: { exportExcel: false },
+          deps: { xlsx: { utils: {}, writeFile: function () { fail("must not write"); } } },
+          handlers: { onWarn: function (p) { warned = p; } },
+        });
+        c.getContainer().querySelector(".zc-menu-btn").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        eq(c.getContainer().querySelectorAll(".zc-export-btn").length, 0, "no button");
+        c.exportToExcel();
+        eq(warned && warned.code, "warn.exportDisabled");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+
+      // ---------------------------------------------------------- public API
+      function todayKey() {
+        var tj = JAL.fromGDate(new Date());
+        return tj.jy + "-" + tj.jm + "-" + tj.jd;
+      }
+
+      test("getEvents returns a copy, not the live list", function () {
+        var c = make({ events: [{ id: 1, title: "a", start: "1404-09-20" }], renderMode: "sync" });
+        var list = c.getEvents();
+        eq(list.length, 1);
+        list.push({ id: 99 });
+        eq(c.getEvents().length, 1, "the calendar's list was not affected");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("addEvent normalises, stores and reports", function () {
+        var changes = [];
+        var c = make({ events: [], renderMode: "sync" });
+        c.on("onEventsChange", function (p) { changes.push(p.type); });
+
+        var added = c.addEvent({ id: 7, title: "new", start: "1404-09-20T09:00" });
+        ok(added, "returned the stored event");
+        eq(added.end, "1404-09-20T09:00", "end defaulted");
+        eq(c.getEvents().length, 1);
+        eq(c.getEventById(7).title, "new");
+        eq(changes, ["add"]);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("addEvent rejects an invalid event the same way setEvents does", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        eq(c.addEvent({ id: 1, title: "bad", start: "1404-13-99" }), null);
+        eq(c.getEvents().length, 0);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("updateEvent merges a patch and re-validates", function () {
+        var c = make({ events: [{ id: 3, title: "old", start: "1404-09-20T09:00" }], renderMode: "sync" });
+        var updated = c.updateEvent(3, { title: "new" });
+        eq(updated.title, "new");
+        eq(updated.start, "1404-09-20T09:00", "untouched fields survive");
+        eq(c.getEventById(3).title, "new");
+
+        eq(c.updateEvent(3, { start: "nonsense" }), null, "an invalid patch is rejected");
+        eq(c.getEventById(3).start, "1404-09-20T09:00", "and the event is left alone");
+        eq(c.updateEvent(999, { title: "x" }), null, "unknown id");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("removeEvent drops one and returns it", function () {
+        var c = make({
+          renderMode: "sync",
+          events: [
+            { id: 1, title: "a", start: "1404-09-20" },
+            { id: 2, title: "b", start: "1404-09-21" },
+          ],
+        });
+        var gone = c.removeEvent(1);
+        eq(gone.title, "a");
+        eq(c.getEvents().length, 1);
+        eq(c.getEventById(1), null);
+        eq(c.removeEvent(1), null, "removing twice is a no-op");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("mutations repaint and re-derive type colours", function () {
+        var c = make({ view: "month", renderMode: "sync", events: [] });
+        var D = todayKey();
+        c.addEvent({ id: 1, title: "x", start: D + "T09:00", end: D + "T10:00", type: "brandnew" });
+        ok(c.getRoot().querySelectorAll(".zc-type-brandnew").length > 0, "rendered with its type class");
+        var tag = c.getShadowRoot()
+          ? c.getShadowRoot().querySelector("style[data-zc-type-style]")
+          : document.querySelector('style[data-zc-type-style="' + c.getRoot().dataset.zcId + '"]');
+        ok(tag && tag.textContent.indexOf("zc-type-brandnew") !== -1, "a colour rule was injected");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("getView / getViews / getDate / getVisibleRange", function () {
+        var c = make({ view: "month", renderMode: "sync", events: [] });
+        eq(c.getView(), "month");
+        eq(c.getViews(), ["day", "week", "month", "year", "list"]);
+        ok(c.getDate() instanceof Date);
+        var r = c.getVisibleRange();
+        ok(r.startG instanceof Date && r.endG instanceof Date);
+        ok(r.startG <= r.endG, "range is ordered");
+        r.startG.setFullYear(1900);
+        ok(c.getVisibleRange().startG.getFullYear() !== 1900, "returns copies");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("features.views restricts getViews", function () {
+        var c = make({ renderMode: "sync", events: [], features: { views: { year: false, list: false } } });
+        eq(c.getViews(), ["day", "week", "month"]);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("gotoDate moves every view, not just the active one", function () {
+        var c = make({ view: "month", renderMode: "sync", events: [] });
+        var target = JAL.toGDate(1404, 9, 20);
+        c.gotoDate(target);
+
+        var j = c.getJDate();
+        eq([j.jy, j.jm], [1404, 9], "month view moved");
+
+        c.setView("day");
+        eq(c.getJDate().jd, 20, "day view landed on the same date");
+        c.setView("week");
+        var w = c.getJDate();
+        ok(w.jy === 1404 && w.jm === 9, "week view too");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("gotoDate accepts a Jalali object and reports a date change", function () {
+        var moved = null;
+        var c = make({ view: "month", renderMode: "sync", events: [] });
+        c.on("onDateChange", function (p) { moved = p; });
+        c.gotoDate({ jy: 1405, jm: 3, jd: 15 });
+        eq(c.getJDate().jm, 3);
+        ok(moved && moved.source === "gotoDate");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("next / prev / today are the same operations as goNext / goPrev / goToday", function () {
+        var c = make({ view: "month", renderMode: "sync", events: [] });
+        var start = c.getJDate().jm;
+        c.next();
+        var after = c.getJDate().jm;
+        ok(after !== start, "moved");
+        c.prev();
+        eq(c.getJDate().jm, start, "and back");
+        c.gotoDate(JAL.toGDate(1400, 1, 1));
+        c.today();
+        eq(c.getJDate().jy, JAL.fromGDate(new Date()).jy, "today returns to now");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("setTheme writes tokens, namespacing bare names", function () {
+        var c = make({ renderMode: "sync", events: [] });
+        var root = c.getRoot();
+        c.setTheme({ "color-accent": "#e11d48" });
+        eq(root.style.getPropertyValue("--zc-color-accent"), "#e11d48");
+        c.setTheme({ "--zc-radius-lg": "2px" });
+        eq(root.style.getPropertyValue("--zc-radius-lg"), "2px");
+        c.setTheme({ "color-accent": null });
+        eq(root.style.getPropertyValue("--zc-color-accent"), "", "null clears the override");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("setOption toggles feature flags and re-renders", function () {
+        var c = make({ view: "week", renderMode: "sync", events: [], features: { nowLine: true } });
+        var root = c.getRoot();
+        eq(root.querySelectorAll(".zc-now-line").length, 1);
+        c.setOption("features.nowLine", false);
+        eq(root.querySelectorAll(".zc-now-line").length, 0, "the flag took effect");
+        c.setOption("features", { nowLine: true });
+        eq(root.querySelectorAll(".zc-now-line").length, 1, "and back");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("setOption handles the hot top-level options and warns about the rest", function () {
+        var warned = null;
+        var c = make({ view: "month", renderMode: "sync", events: [], handlers: { onWarn: function (p) { warned = p; } } });
+        c.setOption("view", "week");
+        eq(c.getView(), "week");
+        c.setOption("locale", "qa");
+        eq(c.getLocale(), "qa");
+        c.setOption("selector", "#nope");
+        eq(warned && warned.code, "warn.optionNotHot");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      // ------------------------------------------------------------- shadow
+      test("shadow mode renders inside a shadow root", function () {
+        if (!Z.shadow.supported()) { ok(true, "no Shadow DOM here; skipped"); return; }
+
+        var styles = [].slice.call(document.styleSheets).filter(function (sh) {
+          return (sh.href || "").indexOf("zarvan.css") !== -1;
+        }).length;
+        ok(styles > 0, "the page has the library stylesheet for shadow mode to copy");
+
+        var D = todayKey();
+        var c = make({
+          shadow: true,
+          view: "month",
+          renderMode: "sync",
+          events: [{ id: 1, title: "x", start: D + "T09:00", end: D + "T10:00", type: "meeting" }],
+        });
+
+        var root = c.getShadowRoot();
+        ok(root, "a shadow root was attached");
+        eq(c.getContainer().shadowRoot, root, "attached to the host");
+        ok(c.getRoot() !== c.getContainer(), "renders into a child, not the host itself");
+        ok(root.querySelector(".zc-calendar"), "the calendar is inside the shadow tree");
+        eq(c.getContainer().querySelector(".zc-calendar"), null, "and not in the light DOM");
+        ok(root.querySelectorAll(".zc-month-timed, .zc-month-grid .zc-event").length > 0, "events rendered");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("shadow mode adopts a stylesheet, so layout is real", function () {
+        if (!Z.shadow.supported()) { ok(true, "skipped"); return; }
+        var c = make({ shadow: true, view: "month", renderMode: "sync", events: [] });
+        var cell = c.getShadowRoot().querySelector(".zc-day-cell");
+        ok(cell, "a day cell exists");
+        eq(getComputedStyle(cell).display, "flex", "the stylesheet reached inside the shadow root");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("theme tokens still cross the shadow boundary", function () {
+        // The reason the whole theming surface is custom properties: they inherit through a shadow
+        // boundary, so a consumer can still retheme what they can no longer restyle.
+        if (!Z.shadow.supported()) { ok(true, "skipped"); return; }
+        var c = make({ shadow: true, renderMode: "sync", events: [] });
+        c.setTheme({ "color-accent": "rgb(1, 2, 3)" });
+        var el = c.getShadowRoot().querySelector(".zc-today");
+        ok(el, "found an element that uses the token");
+        eq(getComputedStyle(el).getPropertyValue("--zc-color-accent").trim(), "rgb(1, 2, 3)");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("in shadow mode the modal and style tag live inside the shadow tree", function () {
+        if (!Z.shadow.supported()) { ok(true, "skipped"); return; }
+        var before = document.querySelectorAll(".zc-modal-overlay").length;
+        var c = make({
+          shadow: true,
+          renderMode: "sync",
+          events: [{ id: 1, title: "x", start: "1404-09-20", type: "meeting" }],
+        });
+        var root = c.getShadowRoot();
+        ok(root.querySelector(".zc-modal-overlay"), "modal is in the shadow tree");
+        eq(document.querySelectorAll(".zc-modal-overlay").length, before, "nothing added to <body>");
+        ok(root.querySelector("style[data-zc-type-style]"), "type styles injected into the shadow tree");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("outside-click still closes the dropdown across the shadow boundary", function () {
+        // e.target is retargeted to the host when an event leaves a shadow tree, so a handler testing
+        // el.contains(e.target) sees a click inside the calendar as an outside click. The library
+        // tests composedPath() instead.
+        if (!Z.shadow.supported()) { ok(true, "skipped"); return; }
+        var c = make({ shadow: true, renderMode: "sync", events: [], view: "month" });
+        var root = c.getShadowRoot();
+        var dd = root.querySelector(".zc-view-dd");
+
+        root.querySelector(".zc-view-dd-selected")
+          .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, composed: true, cancelable: true }));
+        ok(dd.classList.contains("zc-is-open"), "opened");
+
+        // a click inside the dropdown must NOT close it, even though it retargets to the host
+        root.querySelector(".zc-view-dd-menu")
+          .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, composed: true, cancelable: true }));
+        ok(dd.classList.contains("zc-is-open"), "a click inside kept it open");
+
+        document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        notOk(dd.classList.contains("zc-is-open"), "a genuine outside click closed it");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("destroy() removes the rendering root from the shadow tree", function () {
+        if (!Z.shadow.supported()) { ok(true, "skipped"); return; }
+        var c = make({ shadow: true, renderMode: "sync", events: [] });
+        var root = c.getShadowRoot();
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+        eq(root.querySelectorAll(".zc-calendar").length, 0, "rendering root detached");
+        eq(root.querySelectorAll(".zc-modal-overlay").length, 0, "modal gone too");
+      });
+
+      test("explicit styles can be passed instead of copying the page's", function () {
+        if (!Z.shadow.supported()) { ok(true, "skipped"); return; }
+        var c = make({
+          shadow: true,
+          renderMode: "sync",
+          events: [],
+          styles: ".zc-calendar { outline: 3px solid rgb(9, 9, 9); }",
+        });
+        eq(getComputedStyle(c.getRoot()).outlineColor, "rgb(9, 9, 9)", "the supplied CSS was adopted");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("every callback gets (payload, meta, ctx) regardless of how many it declares", function () {
+        // v1 picked the arguments by inspecting fn.length, so a two-argument listener received
+        // (payload, ctx) rather than (payload, meta) - and any function using default parameters or
+        // rest args reports length 0 and got the wrong shape entirely.
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var c = make({
+          view: "week",
+          renderMode: "sync",
+          events: [{ id: 1, title: "x", start: D + "T09:00", end: D + "T10:00", type: "meeting" }],
+        });
+
+        var two = null, three = null, rest = null;
+        c.on("onEventClick", function (ev, meta) { two = { ev: ev, meta: meta }; });
+        c.on("onEventClick", function (ev, meta, ctx) { three = { ev: ev, meta: meta, ctx: ctx }; });
+        c.on("onEventClick", function () { rest = arguments; });
+
+        c.getRoot().querySelector(".zc-week-col .zc-event")
+          .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        ok(two && two.meta, "a two-arg listener received meta, not ctx");
+        eq(two.meta.view, "week");
+        ok(two.meta.jdate && two.meta.jdate.jd === tj.jd, "and the date is there");
+        ok(three && three.ctx && three.ctx.instanceId, "a three-arg listener still gets ctx third");
+        eq(rest.length, 3, "always three arguments");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("meta is null rather than absent for callbacks that have none", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        var got;
+        c.on("onToday", function (payload, meta, ctx) { got = { meta: meta, ctx: ctx }; });
+        c.today();
+        eq(got.meta, null, "null, so destructuring is safe");
+        ok(got.ctx && got.ctx.instanceId, "ctx is still third");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("events opened from the +N more modal carry their date", function () {
+        // The modal built its rows without a gdate/jdate, so onEventClick fired with jdate === null
+        // for exactly the events a user reaches by clicking "+N more".
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var evs = [];
+        for (var i = 0; i < 40; i++) {
+          var hh = String(Math.floor(i / 2)).padStart(2, "0");
+          evs.push({ id: i, title: "e" + i, start: D + "T" + hh + ":" + (i % 2 ? "30" : "00"), type: "meeting" });
+        }
+        var c = make({ view: "month", renderMode: "sync", events: evs });
+        var root = c.getRoot();
+
+        var more = root.querySelector(".zc-more-btn");
+        ok(more, "the affordance rendered");
+        more.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        var overlay = document.querySelector('.zc-modal-overlay[data-zc-id="' + root.dataset.zcId + '"]');
+        var row = overlay.querySelector(".zc-modal-event-item");
+        ok(row, "the modal has rows");
+
+        var meta = null;
+        c.on("onEventClick", function (ev, m) { meta = m; });
+        row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        ok(meta && meta.jdate, "the row knows which day it belongs to");
+        eq(meta.jdate.jd, tj.jd);
+        ok(meta.gdate instanceof Date, "and the Gregorian date too");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      // tear down whatever the suite created
+      made.slice().forEach(function (c) { try { c.destroy(); } catch (e) { } });
+      document.getElementById("sandbox").innerHTML = "";
+    });
+
+    /* ================================================================== */
+
+    (function render() {
+      var out = document.getElementById("out");
+      var html = "";
+      results.forEach(function (s) {
+        html += '<div class="suite">' + s.name + "</div>";
+        s.cases.forEach(function (c) {
+          html += '<div class="case ' + (c.ok ? "pass" : "fail") + '">' +
+            (c.ok ? "pass" : "FAIL") + "  " + c.name + "</div>";
+          if (!c.ok) html += '<div class="detail">' + String(c.detail).replace(/[&<>]/g, function (m) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m];
+          }) + "</div>";
+        });
+      });
+      out.innerHTML = html;
+
+      var v = document.getElementById("verdict");
+      v.className = failed === 0 ? "ok" : "bad";
+      v.textContent = failed === 0
+        ? "PASS — " + passed + " assertions across " + results.length + " suites"
+        : "FAIL — " + failed + " failed, " + passed + " passed";
+    })();
+  </script>
+</body>
+
+</html>

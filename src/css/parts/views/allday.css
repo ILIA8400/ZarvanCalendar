@@ -1,0 +1,108 @@
+/* ------------------------------------------------------ All-day row, week */
+.zc-calendar .zc-allday-row {
+  display: flex;
+  flex-direction: row-reverse;
+  background: var(--zc-color-surface);
+  border-bottom: 1px solid var(--zc-color-border);
+  direction: ltr;
+}
+
+.zc-calendar .zc-allday-time {
+  flex: 0 0 var(--zc-week-gutter-width);
+  width: var(--zc-week-gutter-width);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--zc-space-2) 0;
+  background: var(--zc-color-surface-gutter);
+  border-right: 1px solid var(--zc-color-border);
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-allday-cell {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  gap: var(--zc-space-1);
+  padding: var(--zc-space-1);
+  border-left: 1px solid var(--zc-color-border);
+  direction: rtl;
+}
+
+/* ------------------------------------------------------- All-day bar, day */
+.zc-calendar .zc-day-allday {
+  display: flex;
+  flex-direction: row-reverse;
+  background: var(--zc-color-surface);
+}
+
+.zc-calendar .zc-day-allday-label {
+  flex: 0 0 var(--zc-day-gutter-width);
+  width: var(--zc-day-gutter-width);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--zc-space-2) 0;
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-day-allday-list {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--zc-space-2);
+  padding: var(--zc-space-2) var(--zc-space-3);
+  border: 1px solid var(--zc-color-border);
+  direction: rtl;
+}
+
+/* All-day pills in both week and day */
+.zc-calendar .zc-allday-cell .zc-event,
+.zc-calendar .zc-day-allday-list .zc-event {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zc-calendar .zc-day-allday-list .zc-event {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px var(--zc-space-3);
+  border-radius: var(--zc-radius-sm);
+  font-size: var(--zc-font-size-md);
+}
+
+.zc-calendar .zc-allday-divider {
+  height: var(--zc-space-2);
+  position: relative;
+  background: var(--zc-color-border-soft);
+  border-left: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-allday-divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--zc-day-gutter-width);
+  background: var(--zc-color-surface-gutter);
+  border-right: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-day-allday + .zc-allday-divider::before {
+  background: var(--zc-color-surface);
+  border-left: 1px solid var(--zc-color-border);
+}

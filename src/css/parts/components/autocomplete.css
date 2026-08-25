@@ -1,0 +1,30 @@
+/* ---- Autocomplete ---- */
+.zc-calendar .zc-ac {
+  position: absolute;
+  top: calc(100% + var(--zc-space-2));
+  right: 0;
+  left: 0;
+  max-height: calc(45px * 3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-menu);
+  border-radius: var(--zc-radius-xl);
+  box-shadow: var(--zc-shadow-menu);
+  z-index: calc(var(--zc-z-dropdown) + 20);
+}
+
+.zc-calendar .zc-ac-item {
+  padding: var(--zc-space-4) var(--zc-space-5);
+  min-height: 44px;
+  font-size: var(--zc-font-size-lg);
+  line-height: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-ac-item:hover {
+  background: var(--zc-color-accent-tint);
+}

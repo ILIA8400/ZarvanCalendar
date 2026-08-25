@@ -1,0 +1,158 @@
+/* ---- Empty / filler cells ---- */
+.zc-calendar .zc-day-cell.zc-is-empty {
+  background: var(--zc-color-surface);
+}
+
+.zc-calendar .zc-mini-day.zc-is-empty,
+.zc-calendar .zc-year-day.zc-is-empty {
+  cursor: default;
+  background: none;
+}
+
+.zc-calendar .zc-mini-day.zc-is-empty {
+  opacity: .25;
+}
+
+.zc-calendar .zc-year-day.zc-is-empty {
+  opacity: .18;
+}
+
+/* ---- Today ---- */
+.zc-calendar .zc-month-grid .zc-day-num.zc-is-today {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  background: var(--zc-color-accent);
+  color: #fff;
+}
+
+.zc-calendar .zc-week-col-head.zc-is-today {
+  background: var(--zc-color-accent-weak);
+  color: var(--zc-color-accent);
+}
+
+.zc-calendar .zc-mini-day.zc-is-today {
+  border: 1px solid var(--zc-color-accent);
+  color: var(--zc-color-accent);
+  font-weight: 700;
+}
+
+.zc-calendar .zc-year-day.zc-is-today {
+  outline: 1px solid var(--zc-color-accent);
+  color: var(--zc-color-accent);
+}
+
+/* ---- Selected / active ---- */
+.zc-calendar .zc-mini-day.zc-is-selected {
+  background: var(--zc-color-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* The arrow-key highlight in the suggestion popup. The list is never focused - the input keeps focus
+   and points at this row with aria-activedescendant - so it needs a visible state of its own. */
+.zc-calendar .zc-ac-item.zc-is-active {
+  background: var(--zc-color-accent-weak);
+  color: var(--zc-color-accent);
+}
+
+.zc-calendar .zc-view-dd-item.zc-is-active {
+  background: var(--zc-color-accent-weak);
+  color: var(--zc-color-accent);
+  font-weight: 800;
+}
+
+/* ---- Open dropdowns ---- */
+.zc-calendar .zc-dd.zc-is-open .zc-dd-menu,
+.zc-calendar .zc-view-dd.zc-is-open .zc-view-dd-menu {
+  display: block;
+}
+
+/* ---- Sidebar open ---- */
+.zc-calendar.zc-sidebar-open .zc-sidebar {
+  width: var(--zc-sidebar-width);
+  overflow: hidden;
+}
+
+.zc-calendar.zc-sidebar-open.zc-sidebar-ready .zc-sidebar {
+  overflow: visible;
+}
+
+.zc-calendar.zc-sidebar-open .zc-menu-icon span {
+  opacity: 0;
+  transform: scaleX(.2);
+}
+
+.zc-calendar.zc-sidebar-open .zc-menu-icon::before {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.zc-calendar.zc-sidebar-open .zc-menu-icon::after {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ---- Day / time highlights ---- */
+.zc-calendar .zc-has-day-hl {
+  background: var(--zc-hl-bg);
+}
+
+.zc-calendar .zc-time-highlight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: var(--zc-z-highlight);
+  pointer-events: none;
+}
+
+/* ---- Overlap focus (week + day) ----
+   The animation and dim values are written by the renderer as custom properties so that
+   `features.overlapFocus` can turn the effect off without a second stylesheet. */
+.zc-calendar .zc-week-col .zc-event,
+.zc-calendar .zc-day-col .zc-event {
+  transition:
+    opacity var(--zc-ov-duration, 0s) var(--zc-ov-easing, linear) var(--zc-ov-delay, 0s),
+    box-shadow var(--zc-ov-duration, 0s) var(--zc-ov-easing, linear) var(--zc-ov-delay, 0s),
+    filter var(--zc-ov-duration, 0s) var(--zc-ov-easing, linear) var(--zc-ov-delay, 0s);
+}
+
+.zc-calendar .zc-event.zc-ov-conflict {
+  border: 1px solid #000;
+}
+
+.zc-calendar .zc-event.zc-ov-dim {
+  opacity: var(--zc-ov-dim-opacity, .07);
+}
+
+.zc-calendar .zc-event.zc-ov-focus {
+  opacity: 1;
+  box-shadow: var(--zc-shadow-focus);
+}
+
+/* ---- Focus ----
+   The reset sets `outline: 0` on every descendant so the host's focus styling cannot leak in, which
+   left the calendar with no focus indicator at all. `.zc-calendar :focus-visible` is (0,2,0) - the
+   views tier - so it beats the reset's (0,1,0) without an !important and stays overridable.
+   Retheme through --zc-focus-ring, or set it to `none` to opt out. */
+.zc-calendar :focus-visible,
+.zc-modal-overlay :focus-visible {
+  outline: var(--zc-focus-ring);
+  outline-offset: var(--zc-focus-ring-offset);
+}
+
+/* Rounded controls want the ring to follow the shape rather than the box. */
+.zc-calendar .zc-month-grid .zc-day-num:focus-visible,
+.zc-calendar .zc-week-col-head .zc-day-num:focus-visible,
+.zc-calendar .zc-mini-day:focus-visible,
+.zc-calendar .zc-prev:focus-visible,
+.zc-calendar .zc-next:focus-visible {
+  outline-offset: 1px;
+}
+
+/* ---- Hidden ----
+   Declared last on purpose: .zc-modal-overlay sets display:flex, so at equal specificity this must
+   come after it, and .zc-modal-overlay.zc-hidden (0,2,0) out-ranks it outright. */
+.zc-calendar .zc-hidden,
+.zc-modal-overlay.zc-hidden {
+  display: none;
+}

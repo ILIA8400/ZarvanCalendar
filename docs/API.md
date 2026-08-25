@@ -1,0 +1,264 @@
+# API reference
+
+- [Creating a calendar](#creating-a-calendar)
+- [Options](#options)
+- [Events (data)](#events-data)
+- [Instance methods](#instance-methods)
+- [Callbacks](#callbacks)
+- [Static methods](#static-methods)
+
+---
+
+## Creating a calendar
+
+Zarvan is loaded with a `<script>` tag and lives on `window.Zarvan`. It is not an ES module or a
+CommonJS module — copy `dist/` into your static assets and add two tags. See the README.
+
+```js
+var cal = Zarvan.create({ selector: "#calendar", events: [] });
+```
+
+`Zarvan.version` reports the build.
+
+`create()` renders synchronously — the calendar is in the DOM by the time it returns. Every subsequent
+change is batched into one animation frame unless you pass `renderMode: "sync"`.
+
+---
+
+## Options
+
+### Core
+
+| Option | Type | Default | Notes |
+|---|---|---|---|
+| `selector` | string \| Element | — | Required. |
+| `events` | array | `[]` | See [Events](#events-data). |
+| `view` | string | `"month"` | `day` `week` `month` `year` `list`, or a registered view. Falls back if disabled. |
+| `locale` | string \| object | `"fa"` | Persian is the only bundled locale. Pass a partial one to retune its wording — see [Wording and numerals](#wording-and-numerals). |
+| `renderMode` | `"batched"` \| `"sync"` | `"batched"` | `"sync"` renders on every change. |
+| `shadow` | boolean | `false` | Render inside a shadow root. |
+| `styles` | string \| CSSStyleSheet \| array | — | Shadow mode only; CSS to adopt. |
+| `plugins` | array | registered set | `[]` installs none. |
+| `deps` | object | `{}` | `{ xlsx }` for the export plugin. |
+| `handlers` | object | `{}` | Callbacks by name; same set as `.on()`. |
+
+### Presentation
+
+| Option | Type | Notes |
+|---|---|---|
+| `typeLabels` | object | `{ meeting: "پیگیری" }` — display names per event type. |
+| `typeStyles` | object | `{ meeting: { bg, color } }`. Types without an entry get a stable auto-colour. |
+| `highlights` | array | Day backgrounds and time bands. See [Highlight rules](#highlight-rules). |
+| `validation` | object | `{ enabled, requireNumericId, onInvalid, autoFix }`. |
+
+`validation.onInvalid` is `"drop"` (default) or `"keep"`; kept events are flagged `_invalid`.
+`validation.autoFix` repairs an `end` that falls strictly before `start`.
+
+### `features`
+
+Every flag defaults to `true` except `autoScrollToNow`.
+
+```js
+features: {
+  sidebar, miniCalendar, filters, typeFilter, search, autocomplete, exportExcel,
+  viewDropdown, menuButton, navigation, prevNext, todayButton,
+  views: { month, week, day, year, list },
+  dayHighlights, timeHighlights, nowLine, autoScrollToNow,
+  moreEventsModal, allDayRow, allDayBar,
+  interactions: { click, dblClick, hover, contextMenu, focus },
+  typeStyleInjection, events, overlapFocus,
+  timeGridLayout: "overlap" | "columns",
+}
+```
+
+`timeGridLayout` chooses how overlapping events are laid out: `"overlap"` cascades them with a visible
+offset, `"columns"` packs them side by side like Google Calendar.
+
+---
+
+## Events (data)
+
+```js
+{
+  id: 1,                                 // any comparable value; needed for updateEvent/removeEvent
+  title: "جلسه طراحی",
+  start: "1405-06-02T09:00",             // "YYYY-M-D" or "YYYY-M-DTHH:MM", padding optional
+  end: "1405-06-02T10:30",               // defaults to start
+  type: "meeting",                       // drives colour and filtering
+  allDay: false,
+  forceTimed: false,                     // keep a multi-day event on the time grid
+  repeat: { freq, interval, until, count, byWeekday },
+}
+```
+
+An event is all-day if `allDay` is set, if `start` has no time component, or if it spans more than one
+day without `forceTimed`.
+
+`repeat.freq` is `"daily"` / `"weekly"` / `"monthly"`; `interval` defaults to `1`; `byWeekday` counts
+from Saturday (`0`); `until` is inclusive; `count` caps occurrences within the queried range.
+
+### Highlight rules
+
+```js
+{
+  views: ["month", "week"],              // optional; all views when omitted
+  when: {
+    weekday: [5, 6],                     // Saturday = 0
+    jDates: ["1405-06-02"],
+    jRange: { start: "1405-06-01", end: "1405-06-31" },
+  },
+  day:  { bg: "#fff3f3", className: "is-holiday" },
+  time: { start: "09:00", end: "17:00", bg: "rgba(0,128,0,.1)" },   // week/day only
+}
+```
+
+All `when` clauses must match. Later rules override earlier ones. `when` may be omitted and its keys
+written at the top level.
+
+---
+
+## Instance methods
+
+### Data
+
+| Method | Returns | Notes |
+|---|---|---|
+| `getEvents()` | array | A copy. The event objects are shared — treat them as read-only. |
+| `getEventById(id)` | object \| null | |
+| `setEvents(list)` | array | Replaces everything. |
+| `addEvent(ev)` | object \| null | Returns the **normalised** stored event; `null` if rejected. |
+| `updateEvent(id, patch)` | object \| null | Merges and re-validates. A rejected patch changes nothing. |
+| `removeEvent(id)` | object \| null | Returns what was removed. |
+
+### Navigation
+
+| Method | Returns | Notes |
+|---|---|---|
+| `getView()` / `setView(v)` | string | |
+| `getViews()` | array | Enabled views, in switcher order. |
+| `getDate()` | Date | The active view's anchor date. |
+| `getJDate()` | `{jy,jm,jd}` | |
+| `gotoDate(date)` | Date \| null | `Date` or `{jy,jm,jd}`. Moves **every** view's anchor. |
+| `getVisibleRange()` | `{startG,endG}` | Copies. |
+| `next()` / `prev()` / `today()` | | `goNext` / `goPrev` / `goToday` are the older names. |
+
+### Configuration
+
+| Method | Notes |
+|---|---|
+| `setOption(key, value)` | Feature flags plus `view`, `locale`, `typeLabels`, `typeStyles`, `highlights`, `events`. Anything else warns. |
+| `setTheme(tokens)` | Bare names are namespaced; `null` clears an override. |
+| `setTypeStyles(map)` | |
+| `getHighlights()` / `setHighlights(list)` | |
+| `getLocale()` / `setLocale(l)` | Rebuilds the header, emits `onLocaleChange`. |
+
+### DOM and lifecycle
+
+| Method | Notes |
+|---|---|
+| `getContainer()` | The element you passed to `create()`. |
+| `getRoot()` | The `.zc-calendar` element. Same as above outside shadow mode. |
+| `getShadowRoot()` | The shadow root, or `null`. |
+| `refresh()` | Render any pending change immediately. |
+| `destroy()` | Releases every listener, interval, node and style tag, and hands the element back as it was found: the `zc-calendar` class, `data-zc-id`, `dir`/`lang` and every inline `--zc-*` property the instance wrote are removed. Custom properties the *host* set on that element are left alone. |
+| `plugins()` | Names installed into this instance. |
+
+### Bus
+
+`on(name, fn)` → unsubscribe · `off(name, fn)` · `emit(name, payload)`
+
+---
+
+## Callbacks
+
+Pass them as `handlers: { … }` or attach with `.on()`.
+
+**Lifecycle** — `onInit` · `onDestroy` `{phase}` · `onRenderStart` · `onRenderEnd` · `onViewRender`
+
+`onDestroy` fires twice, `{phase: "before"}` then `{phase: "after"}`. Both reach `.on()` subscribers
+as well as `handlers`; the listener table is cleared after the second, not before it.
+
+**Navigation** — `onViewChange` `{from,to,source}` · `onDateChange` `{from,to,source}` ·
+`onRangeChange` `{startG,endG,view}` · `onNext` · `onPrev` · `onToday`
+
+**Events** — `onEventsSet` · `onEventsChange` `{type,event,events}` · `onEventClick` ·
+`onEventDblClick` · `onEventHover` · `onEventLeave` · `onEventContextMenu` · `onEventFocus` ·
+`onEventBlur`
+
+Event callbacks receive `(event, meta, ctx)` where `meta` is `{view, gdate, jdate, isAllDay, domEvent}`.
+
+**Interaction** — `onDayNumberClick` `{gdate,jdate,view}` · `onWeekHeaderDayClick` ·
+`onMoreEventsClick` `{date,events,view}` · `onModalOpen` · `onModalClose` · `onSidebarToggle` ·
+`onFiltersChange` `{type,q,source}` · `onAutocompleteSelect` · `onViewDropdownOpen` ·
+`onViewDropdownClose`
+
+**Export** — `onExportStart` `{view,fileName}` · `onExportEnd` `{view,fileName,count}` ·
+`onExportError`
+
+**Diagnostics** — `onWarn` `{code,message,extra}` · `onError` · `onLocaleChange` `{code}`
+
+Switch on `p.code` in `onWarn`; `p.message` is localised and will change with the locale.
+
+---
+
+## Keyboard and assistive technology
+
+Everything clickable is operable from the keyboard, and everything focusable has a visible focus ring
+(`--zc-focus-ring`; set it to `none` to suppress it).
+
+| Control | Keys |
+|---|---|
+| Event pill | `Enter` / `Space` fire `onEventClick` |
+| View switcher, type filter | `Enter` / `Space` / `↓` open · `↑` `↓` move · `Enter` select · `Esc` close |
+| Search suggestions | `↑` `↓` highlight · `Enter` accept · `Esc` dismiss |
+| Month, year and mini-calendar day grids | one tab stop each; `←` `→` `↑` `↓` `Home` `End` move within the grid, `Enter` / `Space` open the day |
+| "+N more" | `Enter` / `Space` |
+| Modal | `Esc` closes · `Tab` cycles inside it · focus enters on open and returns to the opener on close |
+
+The day grids use the roving-tabindex pattern, so a year view is 12 tab stops rather than 372.
+
+The sidebar is `inert` and `aria-hidden` while collapsed: its controls exist in the DOM but are not
+reachable by `Tab` and are not announced.
+
+## Wording and numerals
+
+Zarvan is a Persian calendar. The calendar system is Jalali, the layout is right-to-left, and Persian
+is the only bundled locale — none of the three is configurable. The container is stamped
+`dir="rtl"`, and `lang` follows the locale code.
+
+What a locale *does* control is wording and numerals. Pass a partial locale and everything you do not
+name is inherited:
+
+```js
+Zarvan.create({
+  selector: "#cal",
+  locale: { code: "fa", strings: { today: "همین امروز", viewLabel: "نما" } },
+});
+```
+
+`digits` shapes every number the calendar prints — day numbers, hour labels, event times, the year in
+the header. Set it to `null` for Persian text with Latin numerals:
+
+```js
+Zarvan.create({ selector: "#cal", locale: { code: "fa", digits: null } });
+```
+
+`Zarvan.registerLocale(def)` adds a whole locale for consumers who need different vocabulary
+altogether; missing keys fall back to Persian, so a partial definition is usable. A locale has no
+`direction` field — right-to-left is a property of the stylesheet, not of the language.
+
+---
+
+## Static methods
+
+| Method | Notes |
+|---|---|
+| `Zarvan.version` | The build this file came from. A property, not a function. |
+| `Zarvan.create(options)` | |
+| `Zarvan.registerView(key, def)` | See [DEVELOPING.md](DEVELOPING.md#views-are-registered-not-hardcoded). |
+| `Zarvan.unregisterView(key)` / `Zarvan.registeredViews()` | |
+| `Zarvan.use(plugin)` / `Zarvan.unuse(name)` / `Zarvan.plugins()` | See [DEVELOPING.md](DEVELOPING.md#plugins). |
+| `Zarvan.registerLocale(def)` / `Zarvan.locales()` | See [DEVELOPING.md](DEVELOPING.md#locales). |
+
+`Zarvan._internal` exposes the module registry. It is unstable, exists for the test suite, and is not
+part of the API.

@@ -1,0 +1,41 @@
+/*!
+ * Zarvan Calendar - stylesheet
+ *
+ * GENERATED FILE - do not edit.
+ * Edit the parts under src/css/parts/ and re-run build/build.ps1 (or build.sh, or build.mjs).
+ * Order is defined by build/manifest-css.txt.
+ *
+ * Structure
+ * ---------
+ * Section order (later wins on ties):
+ *   reset      scoped normalisation that neutralises the host base styles
+ *   tokens     design tokens (custom properties) - the whole theming surface
+ *   base       calendar root, typography, container declaration
+ *   layout     shell: header / content / sidebar / body
+ *   components reusable widgets: buttons, dropdown, modal, autocomplete, mini-calendar, event chrome
+ *   views      month / week / day / year / list
+ *   state      state + highlight classes, which must win over view rules
+ *   responsive container queries
+ *
+ * Specificity contract
+ * --------------------
+ * This file is deliberately NOT wrapped in an @layer. Layers were tried first and rejected: unlayered
+ * host CSS beats layered CSS at any specificity, which is fine for a host that deliberately targets
+ * .zc-* classes, but it also lets collateral damage through - a global reset or a broad element rule in
+ * the host would win over our reset and break the layout. That is the exact failure this rewrite exists
+ * to prevent, so the reset has to be able to win.
+ *
+ * The resulting contract:
+ *   reset selectors        .zc-calendar *              (0,1,0)  - beats host universal/element rules
+ *   component/view rules   .zc-calendar .zc-x          (0,2,0)  - beats the reset
+ *   state rules            .zc-calendar .zc-x.zc-is-y  (0,3,0)  - beats the view rules
+ *
+ * For consumers that means: theme through the tokens (the supported path), or override with a selector
+ * of specificity (0,2,0) or higher.
+ *
+ * Responsiveness is driven by the calendar's own width via container queries, not the viewport.
+ *
+ * Fonts: this file forces none. See the optional src/css/zarvan-theme-fa.css.
+ *
+ * Every class is zc-prefixed and scoped under .zc-calendar. See docs/CLASS-MAP.md.
+ */

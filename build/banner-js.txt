@@ -1,0 +1,13 @@
+/*!
+ * Zarvan Calendar
+ *
+ * GENERATED FILE - do not edit.
+ * Edit src/js/main.js or the modules under src/js/{core,calendar,data,layout,highlights}/
+ * and re-run build/build.ps1 (or build.sh, or build.mjs).
+ * Order is defined by build/manifest-js.txt.
+ *
+ * This is the INTERMEDIATE build, and it is gitignored. It needs the jalaali library loaded ahead of
+ * it. What consumers use is dist/zarvan.js, which is this file with jalaali already concatenated in.
+ *
+ * Optional: SheetJS, for the Excel export only, resolved when the button is pressed.
+ */

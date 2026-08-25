@@ -1,0 +1,84 @@
+/* -------------------------------------------------- Time grid, week + day */
+.zc-calendar .zc-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--zc-color-border-soft);
+  z-index: var(--zc-z-hour-line);
+}
+
+/* Hour labels in the gutter. The renderer sets only `top`, which is data; everything else is here
+   so it can be rethemed. */
+.zc-calendar .zc-hour-label {
+  position: absolute;
+  font-size: var(--zc-font-size-xs);
+  color: var(--zc-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.zc-calendar .zc-week-gutter .zc-hour-label {
+  right: 35%;
+}
+
+/* Absolute positioning is scoped to the *timed* columns only. All-day rows sit outside these
+   selectors, which is why they no longer need `position: relative !important` to escape. */
+.zc-calendar .zc-week-col .zc-event,
+.zc-calendar .zc-day-col .zc-event {
+  position: absolute;
+  right: 0;
+  left: auto;
+  z-index: var(--zc-z-event);
+  padding: var(--zc-space-1) var(--zc-space-2);
+  border: 1px solid var(--zc-event-border);
+  font-size: var(--zc-font-size-md);
+  line-height: 1.25;
+  direction: rtl;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zc-calendar .zc-week-col .zc-event {
+  border-radius: var(--zc-radius-sm);
+}
+
+.zc-calendar .zc-day-col .zc-event {
+  min-height: var(--zc-font-size-xs);
+  border-radius: var(--zc-radius-md);
+}
+
+/* Density steps applied by the renderer once it measures the box. */
+.zc-calendar .zc-week-col .zc-event.zc-short,
+.zc-calendar .zc-day-col .zc-event.zc-short,
+.zc-calendar .zc-week-col .zc-event.zc-event-compact,
+.zc-calendar .zc-day-col .zc-event.zc-event-compact {
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-week-col .zc-event.zc-short {
+  border-radius: 5px;
+}
+
+.zc-calendar .zc-day-col .zc-event.zc-short {
+  border-radius: var(--zc-radius-sm);
+}
+
+.zc-calendar .zc-week-col .zc-event.zc-tiny,
+.zc-calendar .zc-day-col .zc-event.zc-tiny,
+.zc-calendar .zc-week-col .zc-event.zc-event-dot,
+.zc-calendar .zc-day-col .zc-event.zc-event-dot {
+  padding: 2px var(--zc-space-1);
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-week-col .zc-event.zc-tiny {
+  border-radius: var(--zc-radius-xs);
+}
+
+.zc-calendar .zc-day-col .zc-event.zc-tiny {
+  border-radius: 5px;
+}

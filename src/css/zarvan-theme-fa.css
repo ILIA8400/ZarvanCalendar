@@ -1,0 +1,44 @@
+/*!
+ * Zarvan Calendar - Persian font theme (OPTIONAL)
+ *
+ * Not part of the core stylesheet, and not required to use the library.
+ *
+ * Why it is separate
+ * ------------------
+ * The core stylesheet used to carry this @font-face rule, which meant it also carried a relative path
+ * to a font file. That path only resolved when the CSS was served from exactly src/css/, so it 404'd in
+ * any real integration where the file had been copied, bundled, or served from a CDN. It also forced a
+ * font onto the calendar that overrode whatever typography the host application had chosen.
+ *
+ * Core CSS now sets `font-family: var(--zc-font-family)` and nothing else. You pick one of:
+ *
+ *   1. Inherit the host's typography (no extra file):
+ *        .zc-calendar { --zc-font-family: inherit; }
+ *
+ *   2. Point the token at a font the host already loads:
+ *        .zc-calendar { --zc-font-family: "IRANSans", sans-serif; }
+ *
+ *   3. Load this file, which registers the bundled Vazir face and points the token at it.
+ *      Adjust the url() below if your fonts/ directory sits somewhere else relative to this file.
+ *
+ * Worth doing: convert the .ttf to .woff2 (roughly half the bytes) and put it first in the src list --
+ *
+ *   src: url("../../fonts/Vazir-FD-WOL.woff2") format("woff2"),
+ *        url("../../fonts/Vazir-FD-WOL.ttf")   format("truetype");
+ *
+ * It is not listed by default because only the .ttf is in fonts/, and naming a file that is not there
+ * costs every visitor a 404 on first paint.
+ */
+
+@font-face {
+  font-family: "VazirFD";
+  src: url("../../fonts/Vazir-FD-WOL.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.zc-calendar,
+.zc-modal-overlay {
+  --zc-font-family: VazirFD, Tahoma, sans-serif;
+}

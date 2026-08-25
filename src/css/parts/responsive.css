@@ -1,0 +1,200 @@
+/* ============================================================================
+ RESPONSIVE
+ ============================================================================
+ Driven by the width of the calendar itself, not the viewport.
+
+ This is the fix for the integration failure that started this work: embedded next to a 280px host nav
+ rail, a 1024px viewport leaves the calendar roughly 740px wide, but every viewport media query still
+ evaluated as "desktop" and the layout broke. `container-type: inline-size` on .zc-calendar (see
+ base.css) makes these queries read the calendar's own inline size instead.
+
+ Two things deliberately stay as media queries:
+
+   1. .zc-calendar's own box. A container query can only style DESCENDANTS of the container, never the
+      container itself - sizing the container from its own size would be circular. How the calendar sits
+      on the page is a viewport-level concern anyway.
+
+   2. The modal. It is appended to <body>, so it is not inside the container at all.
+
+ Tokens that used to be re-declared on .zc-calendar in a media query are now set on .zc-body inside a
+ container query. Every consumer of those tokens is a descendant of .zc-body, and custom properties
+ inherit, so the effect is identical while the trigger becomes the container.
+ ========================================================================= */
+
+/* ---- Viewport-level: how the calendar sits on the page ---- */
+@media (max-width: 1024px) {
+  .zc-calendar {
+    max-width: 100%;
+    margin: var(--zc-space-5) auto;
+    padding: 0 var(--zc-space-4);
+  }
+}
+
+/* ---- Viewport-level: the modal lives outside the container ---- */
+@media (max-width: 480px) {
+  .zc-modal-overlay .zc-modal {
+    max-width: 92vw;
+    border-radius: var(--zc-radius-lg);
+  }
+
+  .zc-modal-overlay .zc-modal-body {
+    padding: var(--zc-space-4);
+  }
+}
+
+/* ---- Container-level ---- */
+@container zc (max-width: 1024px) {
+  .zc-calendar .zc-body {
+    padding: var(--zc-space-3);
+  }
+}
+
+@container zc (max-width: 900px) {
+  /* The time grid stops fitting; let it scroll and pin the hour gutter. */
+  .zc-calendar .zc-week-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .zc-calendar .zc-week-header,
+  .zc-calendar .zc-week-row,
+  .zc-calendar .zc-allday-row {
+    min-width: var(--zc-week-min-width);
+  }
+
+  .zc-calendar .zc-week-gutter {
+    position: sticky;
+    right: 0;
+    z-index: calc(var(--zc-z-gutter) + 10);
+  }
+
+  .zc-calendar .zc-week-col-head.zc-is-gutter {
+    position: relative;
+    right: 0;
+    z-index: calc(var(--zc-z-gutter) + 20);
+  }
+
+  .zc-calendar .zc-allday-time {
+    right: 0;
+    z-index: calc(var(--zc-z-gutter) + 15);
+  }
+
+  .zc-calendar.zc-sidebar-open .zc-sidebar,
+  .zc-calendar .zc-sidebar-inner {
+    width: 240px;
+  }
+}
+
+@container zc (max-width: 768px) {
+  .zc-calendar .zc-body {
+    --zc-day-gutter-width: 52px;
+  }
+
+  .zc-calendar .zc-header {
+    flex-wrap: wrap;
+    gap: var(--zc-space-3);
+    padding: var(--zc-space-4);
+  }
+
+  .zc-calendar .zc-center {
+    order: 0;
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .zc-calendar .zc-left {
+    order: 1;
+  }
+
+  .zc-calendar .zc-right {
+    order: 2;
+  }
+
+  .zc-calendar .zc-title {
+    min-width: unset;
+    font-size: var(--zc-font-size-2xl);
+  }
+
+  .zc-calendar .zc-nav-group button {
+    height: 30px;
+    padding: 0 var(--zc-space-4);
+    font-size: var(--zc-font-size-lg);
+  }
+
+  .zc-calendar .zc-day-cell {
+    height: var(--zc-month-row-height);
+    padding: var(--zc-space-1);
+  }
+
+  .zc-calendar .zc-month-weekdays {
+    font-size: var(--zc-font-size-sm);
+  }
+
+  .zc-calendar .zc-day-gutter {
+    position: sticky;
+    right: 0;
+    z-index: var(--zc-z-gutter);
+    background: var(--zc-color-surface);
+  }
+}
+
+@container zc (max-width: 560px) {
+  /* Seven columns stop being usable at roughly 78px each - the "+N more" label is the first thing
+     to clip. Below that the month grid takes a floor and scrolls, rather than squeezing further. */
+  .zc-calendar .zc-body {
+    --zc-grid-min-width: 546px;
+  }
+}
+
+@container zc (max-width: 480px) {
+  .zc-calendar .zc-body {
+    --zc-day-gutter-width: 46px;
+    --zc-week-gutter-width: 56px;
+  }
+
+  .zc-calendar .zc-header {
+    gap: var(--zc-space-2);
+    padding: var(--zc-space-3);
+  }
+
+  .zc-calendar .zc-title {
+    font-size: var(--zc-font-size-xl);
+  }
+
+  .zc-calendar .zc-nav-group button {
+    height: 28px;
+    padding: 0 var(--zc-space-3);
+  }
+
+  .zc-calendar .zc-prev svg,
+  .zc-calendar .zc-next svg {
+    width: var(--zc-font-size-xl);
+    height: var(--zc-font-size-xl);
+  }
+
+  .zc-calendar .zc-day-cell {
+    height: 92px;
+    padding: 3px;
+  }
+
+  .zc-calendar .zc-month-grid .zc-day-num {
+    font-size: var(--zc-font-size-sm);
+  }
+
+  .zc-calendar .zc-month-grid .zc-event {
+    padding: 1px 3px;
+    font-size: var(--zc-font-size-sm);
+  }
+
+  .zc-calendar .zc-more-btn {
+    font-size: var(--zc-font-size-xs);
+  }
+
+  .zc-calendar .zc-day-name {
+    font-size: var(--zc-font-size-md);
+  }
+
+  .zc-calendar .zc-week-col-head .zc-day-num {
+    font-size: 16px;
+  }
+}

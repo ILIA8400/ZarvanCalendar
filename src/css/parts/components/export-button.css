@@ -1,0 +1,17 @@
+/* ---- Export button ---- */
+.zc-calendar .zc-export-btn {
+  width: 100%;
+  height: 36px;
+  margin-top: var(--zc-space-3);
+  border: 1px solid var(--zc-color-border);
+  border-radius: var(--zc-radius-lg);
+  background: var(--zc-color-surface-alt);
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  direction: rtl;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-export-btn:hover {
+  background: var(--zc-color-border-soft);
+}

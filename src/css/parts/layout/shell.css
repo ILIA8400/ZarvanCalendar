@@ -1,0 +1,50 @@
+/* ---- Content: sidebar beside body ----
+   The sidebar is the first child in the DOM and must render on the RIGHT.
+
+   This used `flex-direction: row-reverse` with no direction of its own, which only produced a
+   right-hand sidebar while the calendar happened to sit in a left-to-right document: row-reverse in
+   an LTR context runs the main axis right-to-left, so the first child lands on the right. Once the
+   container started carrying dir="rtl" the two negations cancelled and the sidebar jumped to the
+   left.
+
+   Declared rather than inherited now. `direction: rtl` plus a plain `row` puts main-start at the
+   right edge, so the sidebar is on the right whatever the host document or the container says. */
+.zc-calendar .zc-content {
+  display: flex;
+  direction: rtl;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  overflow-x: clip;
+}
+
+/* Collapsed by default; .zc-sidebar-open opens it. The renderer also marks it `inert` while it is
+   collapsed - width:0 and overflow:hidden hide it visually but leave its search box, dropdown, mini
+   calendar and export button in the tab order and in the accessibility tree. */
+.zc-calendar .zc-sidebar {
+  width: 0;
+  overflow: hidden;
+  background: var(--zc-color-surface);
+  transition: width var(--zc-transition-base);
+}
+
+.zc-calendar .zc-sidebar-inner {
+  width: var(--zc-sidebar-width);
+  padding: var(--zc-space-4);
+}
+
+.zc-calendar .zc-body {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  padding: var(--zc-space-4);
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  /* RTL on the scroll container puts the scrollbar on the left; children opt back out. */
+  direction: rtl;
+}
+
+.zc-calendar .zc-body > * {
+  direction: ltr;
+}

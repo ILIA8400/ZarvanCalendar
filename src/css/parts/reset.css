@@ -1,0 +1,76 @@
+/* ============================================================================
+ RESET - scoped to the calendar root
+ ============================================================================
+ Neutralises the host base styles - its global reset, its button/input/img rules, and inherited
+ properties - before they can reach inside the calendar. At (0,1,0) these beat any host element or
+ universal selector, while the library own (0,2,0) rules still beat these.
+ ========================================================================= */
+.zc-calendar,
+.zc-calendar *,
+.zc-calendar *::before,
+.zc-calendar *::after,
+.zc-modal-overlay,
+.zc-modal-overlay *,
+.zc-modal-overlay *::before,
+.zc-modal-overlay *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-align: inherit;
+  text-decoration: none;
+  text-transform: none;
+  text-indent: 0;
+  letter-spacing: normal;
+  word-spacing: normal;
+  vertical-align: baseline;
+  list-style: none;
+  float: none;
+  box-shadow: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+.zc-calendar button,
+.zc-calendar input,
+.zc-calendar select,
+.zc-calendar textarea,
+.zc-modal-overlay button {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border-radius: 0;
+  cursor: pointer;
+  width: auto;
+  height: auto;
+}
+
+.zc-calendar input {
+  cursor: text;
+}
+
+.zc-calendar img,
+.zc-calendar svg,
+.zc-modal-overlay img {
+  display: block;
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+  border: 0;
+}
+
+.zc-calendar table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}

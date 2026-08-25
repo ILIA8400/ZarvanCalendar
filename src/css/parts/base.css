@@ -1,0 +1,24 @@
+/* ============================================================================
+ BASE
+ ========================================================================= */
+.zc-calendar,
+.zc-calendar *,
+.zc-modal-overlay,
+.zc-modal-overlay * {
+  font-family: var(--zc-font-family);
+}
+
+.zc-calendar {
+  width: 100%;
+  max-width: var(--zc-max-width);
+  margin: 20px auto;
+  color: var(--zc-color-text);
+  font-size: var(--zc-font-size-xl);
+  line-height: var(--zc-line-height);
+
+  /* Makes every @container query in responsive.css read the calendar's own inline size rather than
+     the viewport. This is what lets the layout react correctly when the calendar is embedded in a
+     narrow column of a wide page. */
+  container-type: inline-size;
+  container-name: zc;
+}

@@ -1,0 +1,73 @@
+/* ---- Modal ---- */
+.zc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .35);
+  z-index: var(--zc-z-modal);
+}
+
+.zc-modal-overlay .zc-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--zc-color-surface);
+  border-radius: var(--zc-radius-md);
+  box-shadow: var(--zc-shadow-modal);
+  direction: rtl;
+  color: var(--zc-color-text);
+}
+
+.zc-modal-overlay .zc-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--zc-space-4) 14px;
+  border-bottom: 1px solid var(--zc-color-border-soft);
+}
+
+.zc-modal-overlay .zc-modal-title {
+  font-size: var(--zc-font-size-xl);
+  font-weight: bold;
+}
+
+.zc-modal-overlay .zc-modal-close {
+  background: transparent;
+  font-size: var(--zc-font-size-2xl);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.zc-modal-overlay .zc-modal-body {
+  padding: var(--zc-space-4) 14px;
+  overflow-y: auto;
+}
+
+.zc-modal-overlay .zc-modal-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zc-space-2);
+}
+
+.zc-modal-overlay .zc-modal-event-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--zc-space-2) var(--zc-space-3);
+  border-radius: var(--zc-radius-sm);
+  background: var(--zc-color-surface-sunken);
+  font-size: var(--zc-font-size-lg);
+}
+
+.zc-modal-overlay .zc-modal-event-title {
+  font-weight: 500;
+}
+
+.zc-modal-overlay .zc-modal-event-time {
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-text-faint);
+}

@@ -1,0 +1,65 @@
+/* ------------------------------------------------------------------- List */
+.zc-calendar .zc-list {
+  padding: var(--zc-space-5);
+  direction: rtl;
+}
+
+.zc-calendar .zc-list-day {
+  margin-bottom: var(--zc-space-5);
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-softer);
+  border-radius: var(--zc-radius-lg);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-list-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--zc-space-4) var(--zc-space-5);
+  background: var(--zc-color-surface-header);
+  border-bottom: 1px solid var(--zc-color-border-softer);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-list-items {
+  padding: var(--zc-space-3) 0;
+}
+
+.zc-calendar .zc-list-item {
+  display: grid;
+  grid-template-columns: 110px 18px 1fr;
+  align-items: center;
+  gap: var(--zc-space-3);
+  padding: var(--zc-space-3) var(--zc-space-5);
+  cursor: pointer;
+}
+
+.zc-calendar .zc-list-item + .zc-list-item {
+  border-top: 1px solid var(--zc-color-border-faint);
+}
+
+.zc-calendar .zc-list-time {
+  font-size: var(--zc-font-size-md);
+  color: var(--zc-color-text-subtle);
+  white-space: nowrap;
+}
+
+.zc-calendar .zc-list-dot {
+  width: var(--zc-font-size-xs);
+  height: var(--zc-font-size-xs);
+  border-radius: 50%;
+  background: var(--zc-event-bg);
+}
+
+.zc-calendar .zc-list-title {
+  font-size: var(--zc-font-size-xl);
+  color: var(--zc-color-text-strong);
+}
+
+.zc-calendar .zc-list-empty {
+  padding: 16px;
+  color: var(--zc-color-text-subtle);
+  direction: rtl;
+}

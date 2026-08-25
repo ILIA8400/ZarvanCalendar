@@ -1,0 +1,60 @@
+{
+  "name": "zarvan-calendar",
+  "version": "3.0.2",
+  "description": "A Jalali (Persian) calendar UI for the web — month, week, day, year and list views, recurring events, filtering and Excel export. Right-to-left and Persian by design. No build step, no framework, no runtime dependencies.",
+  "keywords": [
+    "calendar",
+    "jalali",
+    "shamsi",
+    "persian",
+    "iranian",
+    "scheduler",
+    "events",
+    "rtl",
+    "vanilla-js",
+    "no-dependencies"
+  ],
+  "license": "MIT",
+  "author": "ILIA",
+  "homepage": "https://github.com/ILIA8400/ZarvanCalendar#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ILIA8400/ZarvanCalendar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ILIA8400/ZarvanCalendar/issues"
+  },
+
+  "//delivery": "Zarvan is loaded with a <script> tag and lives on window.Zarvan. There is deliberately no `main`, `exports` or `module`: it is not an ES module or a CommonJS module, and declaring that it is would only produce a confusing runtime failure. Copy dist/ into your static assets. See README.md.",
+  "types": "dist/zarvan.d.ts",
+  "style": "dist/zarvan.css",
+
+  "files": [
+    "dist",
+    "docs",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+
+  "//dependencies": "There are none. jalaali.js is vendored in src/libs/ and built into dist/zarvan.js. SheetJS is optional and only used by the excel-export plugin, which resolves it at click time from options.deps.xlsx or window.XLSX.",
+  "peerDependencies": {
+    "xlsx": "*"
+  },
+  "peerDependenciesMeta": {
+    "xlsx": {
+      "optional": true
+    }
+  },
+
+  "//scripts": "The build is plain concatenation. build.ps1 and build.sh are equivalent and need no toolchain at all; the node entry exists only for people who already have it. All three produce byte-identical output.",
+  "scripts": {
+    "build": "node build/build.mjs",
+    "serve": "node build/serve.mjs",
+    "test": "echo \"Open test/index.html and test/host-hostile.html in a browser. Both print their own PASS/FAIL verdict.\" && exit 0"
+  },
+
+  "engines": {
+    "node": ">=14"
+  }
+}

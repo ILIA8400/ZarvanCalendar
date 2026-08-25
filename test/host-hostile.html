@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zarvan — host hostility harness</title>
+
+  <!-- dist/ on purpose: the isolation guarantee is about the stylesheet that ships. -->
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+  <!-- optional: registers the bundled Vazir face. Core CSS forces no font. -->
+  <link rel="stylesheet" href="../dist/zarvan-theme-fa.css" />
+
+  <!--
+    ==========================================================================
+    HOSTILE HOST STYLES
+    ==========================================================================
+    This is the regression test for the CSS isolation work. Everything below
+    simulates a large host application: an aggressive global reset, opinionated
+    element rules, and — worst of all — rules that target the generic class
+    names the library used to ship with (.events, .day-number, .day-cell,
+    .event-item, .calendar-grid, .hour-line …).
+
+    With Phase 1 in place the calendar must render IDENTICALLY whether or not
+    this stylesheet is applied. Use the toggle button to flip it.
+
+    Rules are written OUTSIDE any @layer on purpose: unlayered host CSS beats
+    layered library CSS at any specificity, which is exactly the override
+    behaviour integrators should get. The library survives because its classes
+    no longer collide and because the scoped reset absorbs the element rules.
+  -->
+  <style id="hostile">
+    /* --- a Preflight/Reboot-style global reset --- */
+    *,
+    *::before,
+    *::after {
+      box-sizing: content-box;
+      line-height: 2.4;
+      letter-spacing: .08em;
+    }
+
+    /* --- opinionated element rules --- */
+    button {
+      padding: 1rem 2rem;
+      border: 3px solid #e11d48;
+      border-radius: 0;
+      background: #fde68a;
+      font-size: 20px;
+      text-transform: uppercase;
+    }
+
+    input {
+      width: auto;
+      border: 3px dashed #16a34a;
+      padding: 1.2rem;
+      font-size: 22px;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #7c3aed;
+    }
+
+    svg {
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #7c3aed;
+      display: inline;
+    }
+
+    div {
+      margin: 4px;
+    }
+
+    span {
+      background: #fecaca;
+    }
+
+    ul,
+    li {
+      list-style: square;
+      padding-left: 2em;
+    }
+
+    /* --- direct collisions with the OLD unprefixed class names --- */
+    .events,
+    .day-number,
+    .day-name,
+    .day-cell,
+    .event-item,
+    .calendar-grid,
+    .hour-line,
+    .more-events-btn,
+    .week-row,
+    .day-grid {
+      color: magenta !important;
+      background: yellow !important;
+      font-size: 30px !important;
+      border: 4px dotted red !important;
+      display: block !important;
+      position: static !important;
+      height: auto !important;
+    }
+
+    /* --- high-specificity host selectors --- */
+    #app .zc-title,
+    #app .zc-body {
+      color: #be123c;
+    }
+
+    /* --- a host header that outranks a naive z-index: 999 modal --- */
+    .host-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 16px;
+      font: 14px/1.4 system-ui, sans-serif;
+      letter-spacing: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .host-bar button {
+      all: unset;
+      cursor: pointer;
+      background: #38bdf8;
+      color: #0f172a;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font: 600 13px system-ui, sans-serif;
+    }
+
+    .host-bar code {
+      background: #1e293b;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .host-note {
+      font: 13px/1.6 system-ui, sans-serif;
+      letter-spacing: 0;
+      max-width: 900px;
+      margin: 16px auto;
+      color: #334155;
+    }
+
+    /* --- results panel (deliberately uses its own names, not .zc-*) --- */
+    .results {
+      max-width: 900px;
+      margin: 16px auto;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      font: 13px/1.6 ui-monospace, Consolas, monospace;
+      letter-spacing: 0;
+      white-space: pre-wrap;
+      color: #0f172a;
+    }
+
+    .results .verdict {
+      display: block;
+      font: 700 15px/1.6 system-ui, sans-serif;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .results .pass {
+      background: #dcfce7;
+      color: #14532d;
+    }
+
+    .results .fail {
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+
+    .results .ok {
+      color: #15803d;
+    }
+
+    .results .bad {
+      color: #b91c1c;
+      font-weight: 700;
+    }
+
+    .results .dim {
+      color: #64748b;
+    }
+  </style>
+
+  <!--
+    The one rule a scoped reset cannot win.
+    `.zc-calendar *` is (0,1,0) and beats a bare `*` (0,0,0), which is why CHECK 1 passes. But an
+    ID-scoped universal selector is (1,0,0) and outranks it. Nothing written in a stylesheet can fix
+    that; only a shadow boundary can. Kept in its own element, disabled, because it IS collateral the
+    light DOM cannot survive - CHECK 6 enables it just long enough to measure.
+  -->
+  <style id="hostile-id-scoped" disabled>
+    #app * {
+      box-sizing: content-box !important;
+    }
+  </style>
+</head>
+
+<body id="app">
+
+  <div class="host-bar">
+    <strong>Host hostility harness</strong>
+    <button id="toggle" type="button">Disable hostile CSS</button>
+    <button id="rerun" type="button">Re-run checks</button>
+    <span id="status">hostile CSS: <code>ON</code></span>
+  </div>
+
+  <p class="host-note">
+    This page loads a deliberately aggressive host stylesheet — a content-box reset, loud
+    <code>button</code>/<code>input</code>/<code>img</code>/<code>svg</code>/<code>div</code> rules, and
+    <code>!important</code> rules aimed at the generic class names the library used to ship
+    (<code>.events</code>, <code>.day-number</code>, <code>.event-item</code> …).
+    <br>
+    Open this file directly in a browser — no server, no build, no devtools. The checks below run
+    automatically and print their own verdict.
+  </p>
+
+  <div id="results" class="results">running checks…</div>
+
+  <div id="calendar"></div>
+
+  <p class="host-note">
+    Below: the same calendar in <code>shadow: true</code> mode. The scoped reset already beats a plain
+    <code>* { … }</code> on specificity, which is why CHECK 1 passes. What it cannot beat is an
+    <em>ID-scoped</em> universal selector such as <code>#app * { box-sizing: content-box !important }</code>
+    — that is (1,0,0) against the reset&rsquo;s (0,1,0). No stylesheet can win that; only a shadow
+    boundary can. CHECK 6 switches that rule on and measures both calendars.
+  </p>
+
+  <div id="calendar-shadow"></div>
+
+  <script src="../dist/zarvan.js"></script>
+
+  <script>
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function jOf(date) {
+      var j = jalaali.toJalaali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      return j.jy + "-" + pad2(j.jm) + "-" + pad2(j.jd);
+    }
+
+    function addDays(base, n) {
+      var d = new Date(base);
+      d.setDate(d.getDate() + n);
+      return d;
+    }
+
+    var today = new Date();
+    var weekStart = addDays(today, -((today.getDay() + 1) % 7));
+    var D = [];
+    for (var i = 0; i < 7; i++) D.push(jOf(addDays(weekStart, i)));
+
+    var events = [
+      // overlapping cluster — exercises overlap layout + conflict borders
+      { id: 1, title: "جلسه A", start: D[0] + "T09:00", end: D[0] + "T11:00", type: "meeting" },
+      { id: 2, title: "جلسه B", start: D[0] + "T09:30", end: D[0] + "T10:30", type: "meeting" },
+      { id: 3, title: "تسک C", start: D[0] + "T10:00", end: D[0] + "T12:00", type: "task" },
+      { id: 4, title: "کال کوتاه", start: D[0] + "T10:15", end: D[0] + "T10:45", type: "meeting" },
+
+      // very short event — exercises the zc-tiny / zc-event-dot density classes
+      { id: 5, title: "استندآپ", start: D[1] + "T09:00", end: D[1] + "T09:10", type: "meeting" },
+      { id: 6, title: "کار عمیق", start: D[1] + "T09:30", end: D[1] + "T13:30", type: "task" },
+
+      // all-day + multi-day — exercises the all-day row and bar
+      { id: 7, title: "رویداد تمام‌روز", start: D[2], end: D[2], allDay: true, type: "task" },
+      { id: 8, title: "پروژه چندروزه", start: D[2] + "T09:00", end: D[4] + "T17:00", type: "meeting" },
+
+      // enough events on one day to force the "+N more" affordance in month view
+      { id: 9, title: "مورد ۱", start: D[3] + "T08:00", end: D[3] + "T09:00", type: "task" },
+      { id: 10, title: "مورد ۲", start: D[3] + "T09:00", end: D[3] + "T10:00", type: "task" },
+      { id: 11, title: "مورد ۳", start: D[3] + "T10:00", end: D[3] + "T11:00", type: "meeting" },
+      { id: 12, title: "مورد ۴", start: D[3] + "T11:00", end: D[3] + "T12:00", type: "meeting" },
+      { id: 13, title: "مورد ۵", start: D[3] + "T12:00", end: D[3] + "T13:00", type: "task" },
+
+      // recurring — exercises the expansion path
+      {
+        title: "جلسه تکرارشونده", type: "meeting",
+        start: D[5] + "T15:00", end: D[5] + "T15:30",
+        repeat: { freq: "daily", interval: 1 }
+      },
+
+      // hostile type string: spaces, braces and a quote. Must not break the class attribute,
+      // must not break the injected stylesheet, must not escape into a selector.
+      {
+        id: 99, title: "نوع مخرب", start: D[6] + "T14:00", end: D[6] + "T15:00",
+        type: 'evil} .zc-body { display:none } .x{"'
+      }
+    ];
+
+    var cal = Zarvan.create({
+      selector: "#calendar",
+      events: events,
+      view: "month",
+      typeStyles: {
+        meeting: { bg: "#1a73e8", color: "#fff" },
+        task: { bg: "#16a34a", color: "#fff" }
+      },
+      features: { timeGridLayout: "overlap", overlapFocus: true }
+    });
+
+    // --- hostile CSS toggle ---
+    var sheet = document.getElementById("hostile");
+    var status = document.getElementById("status");
+    document.getElementById("toggle").addEventListener("click", function () {
+      var off = sheet.disabled = !sheet.disabled;
+      this.textContent = off ? "Enable hostile CSS" : "Disable hostile CSS";
+      status.innerHTML = "hostile CSS: <code>" + (off ? "OFF" : "ON") + "</code>";
+    });
+
+    // --- the same calendar, mounted in a shadow root ---
+    var shadowCal = null;
+    if (Zarvan._internal.shadow.supported()) {
+      shadowCal = Zarvan.create({
+        selector: "#calendar-shadow",
+        shadow: true,
+        events: events,
+        view: "month",
+        typeStyles: {
+          meeting: { bg: "#1a73e8", color: "#fff" },
+          task: { bg: "#16a34a", color: "#fff" }
+        }
+      });
+    }
+
+    // --- expose for console poking during verification ---
+    window.cal = cal;
+    window.shadowCal = shadowCal;
+
+    /* ======================================================================
+       SELF-CHECKS
+       ======================================================================
+       Runs in-page so the harness needs nothing but a browser: no server, no
+       build step, no devtools. Open the file and read the verdict.
+       ==================================================================== */
+    (function () {
+      var out = document.getElementById("results");
+      var esc = function (s) {
+        return String(s).replace(/[&<>]/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c];
+        });
+      };
+
+      // Properties whose value must not change when the hostile sheet is toggled.
+      // Colour is excluded on purpose: the host deliberately targets #app .zc-title / #app .zc-body,
+      // and a deliberate override IS meant to win. Check 2 covers that separately.
+      var PROPS = [
+        "boxSizing", "lineHeight", "letterSpacing", "fontSize", "backgroundColor",
+        "borderTopWidth", "borderTopStyle", "display", "position",
+        "margin", "padding", "height", "width", "textTransform"
+      ];
+
+      var PROBES = [
+        ".zc-calendar", ".zc-header", ".zc-content", ".zc-body",
+        ".zc-month-weekdays", ".zc-month-weekday", ".zc-month-grid", ".zc-day-cell",
+        ".zc-month-grid .zc-day-num", ".zc-title", ".zc-today", ".zc-menu-btn", ".zc-prev svg"
+      ];
+
+      function snapshot() {
+        return PROBES.map(function (sel) {
+          var el = document.querySelector(sel);
+          if (!el) return null;
+          var cs = getComputedStyle(el);
+          return PROPS.map(function (p) { return cs[p]; }).join("|");
+        });
+      }
+
+      function run() {
+        var lines = [];
+        var failures = 0;
+        var wasDisabled = sheet.disabled;
+
+        // ---- Check 1: no collateral leakage -----------------------------
+        // Neutralise the host rules that deliberately target .zc-* classes, so what remains is
+        // purely collateral: the global reset, the element rules, and the old-class-name collisions.
+        var deliberate = [];
+        try {
+          var rules = sheet.sheet.cssRules;
+          for (var i = 0; i < rules.length; i++) {
+            if (rules[i].selectorText && rules[i].selectorText.indexOf(".zc-") !== -1) {
+              deliberate.push({ rule: rules[i], css: rules[i].style.cssText });
+            }
+          }
+        } catch (e) { /* inline sheet is same-document; this should not throw */ }
+
+        sheet.disabled = true;
+        var clean = snapshot();
+
+        sheet.disabled = false;
+        deliberate.forEach(function (d) { d.rule.style.cssText = ""; });
+        var collateral = snapshot();
+        deliberate.forEach(function (d) { d.rule.style.cssText = d.css; });
+
+        lines.push("CHECK 1  collateral leakage from hostile host CSS");
+        PROBES.forEach(function (sel, i) {
+          if (clean[i] === null || collateral[i] === null) {
+            lines.push('  <span class="dim">skip</span>  ' + esc(sel) + "  (not rendered in this view)");
+            return;
+          }
+          if (clean[i] === collateral[i]) {
+            lines.push('  <span class="ok">pass</span>  ' + esc(sel));
+          } else {
+            failures++;
+            var a = clean[i].split("|"), b = collateral[i].split("|");
+            var diff = PROPS.filter(function (p, k) { return a[k] !== b[k]; })
+              .map(function (p, k) {
+                var idx = PROPS.indexOf(p);
+                return p + ": " + a[idx] + " -> " + b[idx];
+              }).join(", ");
+            lines.push('  <span class="bad">FAIL</span>  ' + esc(sel) + "\n          " + esc(diff));
+          }
+        });
+
+        // ---- Check 2: deliberate overrides still land -------------------
+        sheet.disabled = false;
+        var title = document.querySelector(".zc-title");
+        var landed = title && getComputedStyle(title).color === "rgb(190, 18, 60)";
+        lines.push("");
+        lines.push("CHECK 2  deliberate host override (#app .zc-title) still wins");
+        lines.push(landed
+          ? '  <span class="ok">pass</span>  host colour applied as intended'
+          : '  <span class="bad">FAIL</span>  host could not override the library');
+        if (!landed) failures++;
+
+        // ---- Check 3: event type strings cannot escape ------------------
+        // Asserted against the injected stylesheet rather than a rendered node: the injector emits a
+        // rule for every type in the dataset regardless of which view is showing, so this is
+        // view-independent, and the stylesheet is where an unsanitised type would actually do harm.
+        var injected = document.querySelector("style[data-zc-type-style]");
+        var injectedText = injected ? injected.textContent : "";
+        var payloadInCss = /display\s*:\s*none/.test(injectedText) ||
+                           injectedText.indexOf(".zc-body") !== -1;
+        var sanitisedRulePresent = /\.zc-type-evil[A-Za-z0-9_-]*\s*\{/.test(injectedText);
+        var bodyVisible = getComputedStyle(document.querySelector(".zc-body")).display !== "none";
+
+        // If the evil-typed event happens to be rendered in the current view, check its class too.
+        var evil = document.querySelector('[class*="zc-type-evil"]');
+        var domClean = !evil || !/[{}"'<>\s]$|[{}"'<>]/.test(evil.className.replace(/ /g, ""));
+
+        var c3 = sanitisedRulePresent && !payloadInCss && bodyVisible && domClean;
+        lines.push("");
+        lines.push("CHECK 3  malicious event type is sanitised");
+        lines.push("  fixture type:     " + esc('evil} .zc-body { display:none } .x{"'));
+        lines.push("  emitted rule:     " +
+          esc((injectedText.match(/\.zc-type-evil[^{]*\{[^}]*\}/) || ["(not found)"])[0].trim()));
+        lines.push("  rendered class:   " + esc(evil ? evil.className : "(not in this view)"));
+        lines.push(c3
+          ? '  <span class="ok">pass</span>  payload neutralised; .zc-body still visible'
+          : '  <span class="bad">FAIL</span>  type string escaped into the DOM or the stylesheet');
+        if (!c3) failures++;
+
+        // ---- Check 4: no unprefixed classes reach the DOM ---------------
+        var legacy = [".events", ".calendar-grid", ".event-item", ".day-cell",
+                      ".week-row", ".hour-line", ".more-events-btn"];
+        var found = legacy.filter(function (s) { return document.querySelector(s); });
+        lines.push("");
+        lines.push("CHECK 4  no legacy unprefixed classes in the DOM");
+        lines.push(found.length === 0
+          ? '  <span class="ok">pass</span>  none of ' + esc(legacy.join(" ")) + " present"
+          : '  <span class="bad">FAIL</span>  still present: ' + esc(found.join(" ")));
+        if (found.length) failures++;
+
+        // ---- Check 4b: layout follows the CONTAINER, not the viewport ---
+        // The Phase 2 claim. Squeeze the calendar into a narrow column while the viewport stays wide,
+        // which is exactly what a host nav rail does, and confirm the narrow layout engages.
+        lines.push("");
+        lines.push("CHECK 4b  responsive layout tracks the calendar width, not the viewport");
+        var cal = document.querySelector(".zc-calendar");
+        var host = cal.parentNode;
+        var prevWidth = host.style.width;
+        var supported = window.CSS && CSS.supports && CSS.supports("container-type", "inline-size");
+
+        if (!supported) {
+          lines.push('  <span class="dim">skip</span>  this browser has no container query support');
+        } else {
+          var vw = window.innerWidth;
+          host.style.width = "700px";
+          // force layout, then read
+          void cal.offsetWidth;
+          var headerWrap = getComputedStyle(document.querySelector(".zc-header")).flexWrap;
+          var calWidth = Math.round(cal.getBoundingClientRect().width);
+          host.style.width = prevWidth;
+          void cal.offsetWidth;
+
+          var narrowEngaged = headerWrap === "wrap";
+          lines.push("  viewport " + vw + "px, calendar squeezed to " + calWidth + "px");
+          lines.push(narrowEngaged
+            ? '  <span class="ok">pass</span>  narrow layout engaged from the container width'
+            : '  <span class="bad">FAIL</span>  still using the wide layout — queries are viewport-bound');
+          if (!narrowEngaged) failures++;
+        }
+
+        // ---- Check 4c: core stylesheet forces no font -------------------
+        lines.push("");
+        lines.push("CHECK 4c  core stylesheet imposes no font of its own");
+        // Read the themed value first, from the page's natural state. Re-enabling a stylesheet does
+        // not force a synchronous style recalc, so measuring after a disable->enable round trip reads
+        // the stale (disabled) value and reports a false failure.
+        var themeLink = document.querySelector('link[href*="zarvan-theme-fa"]');
+        var themed = getComputedStyle(cal).fontFamily;
+        themeLink.disabled = true;
+        void cal.offsetWidth;
+        var bare = getComputedStyle(cal).fontFamily;
+        themeLink.disabled = false;
+        var defers = bare.indexOf("Vazir") === -1 && themed.indexOf("Vazir") !== -1;
+        lines.push("  without theme: " + esc(bare));
+        lines.push("  with theme:    " + esc(themed));
+        lines.push(defers
+          ? '  <span class="ok">pass</span>  defers to the host until the optional theme is loaded'
+          : '  <span class="bad">FAIL</span>  core CSS is still forcing a font');
+        if (!defers) failures++;
+
+        // ---- Check 6: shadow mode beats the universal selector ----------
+        /* The scoped reset wins against a bare * on specificity. It cannot win against an ID-scoped
+           universal selector, which is (1,0,0). Only a shadow boundary can. */
+        lines.push("");
+        lines.push("CHECK 6  shadow mode is immune to the host universal selector");
+        if (!window.shadowCal) {
+          lines.push('  <span class="dim">skip</span>  no Shadow DOM in this browser');
+        } else {
+          var idSheet = document.getElementById("hostile-id-scoped");
+          idSheet.disabled = false;
+          void document.body.offsetWidth;
+          var lightCell = document.querySelector(".zc-day-cell");
+          var shadowCell = shadowCal.getShadowRoot().querySelector(".zc-day-cell");
+          var lightBox = lightCell ? getComputedStyle(lightCell).boxSizing : "(none)";
+          var shadowBox = shadowCell ? getComputedStyle(shadowCell).boxSizing : "(none)";
+          idSheet.disabled = true;
+          lines.push("  with #app * { box-sizing: content-box !important } enabled:");
+          lines.push("    light DOM:  " + esc(lightBox) + "   (the host wins; no stylesheet can prevent this)");
+          lines.push("    shadow DOM: " + esc(shadowBox));
+          var immune = shadowBox === "border-box" && lightBox === "content-box";
+          lines.push(immune
+            ? '  <span class="ok">pass</span>  the host universal selector did not cross the boundary'
+            : '  <span class="bad">FAIL</span>  the host reached inside the shadow root');
+          if (!immune) failures++;
+        }
+
+        // ---- Check 5: stylesheet hygiene --------------------------------
+        // Readable only when served over http; skipped on file:// where cssRules is opaque.
+        lines.push("");
+        lines.push("CHECK 5  library stylesheet uses no !important");
+        var bangs = null;
+        for (var s = 0; s < document.styleSheets.length; s++) {
+          var ss = document.styleSheets[s];
+          if (!ss.href || ss.href.indexOf("zarvan.css") === -1) continue;
+          try {
+            bangs = 0;
+            for (var r = 0; r < ss.cssRules.length; r++) {
+              var txt = ss.cssRules[r].cssText || "";
+              bangs += (txt.match(/!important/g) || []).length;
+            }
+          } catch (e) { bangs = null; }
+        }
+        if (bangs === null) {
+          lines.push('  <span class="dim">skip</span>  cssRules not readable (expected on file://)');
+        } else if (bangs === 0) {
+          lines.push('  <span class="ok">pass</span>  0 !important declarations');
+        } else {
+          failures++;
+          lines.push('  <span class="bad">FAIL</span>  ' + bangs + " !important declarations");
+        }
+
+        sheet.disabled = wasDisabled;
+
+        var verdict = failures === 0
+          ? '<span class="verdict pass">PASS — the calendar is isolated from the host</span>'
+          : '<span class="verdict fail">FAIL — ' + failures + " check(s) failed</span>";
+        out.innerHTML = verdict + lines.join("\n");
+      }
+
+      // Month view lays events out in a requestAnimationFrame pass; let it settle first.
+      setTimeout(run, 350);
+      document.getElementById("rerun").addEventListener("click", run);
+    })();
+  </script>
+
+</body>
+
+</html>

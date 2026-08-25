@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zarvan — Vue 3 example</title>
+
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+  <link rel="stylesheet" href="../dist/zarvan-theme-fa.css" />
+
+  <style>
+    body { font: 14px/1.6 system-ui, sans-serif; margin: 0; padding: 0 0 48px; background: #f1f5f9; color: #0f172a; }
+    header { background: #0f172a; color: #fff; padding: 16px 20px; }
+    header h1 { margin: 0 0 4px; font-size: 18px; }
+    header p { margin: 0; opacity: .75; font-size: 13px; }
+    .panel { max-width: 1100px; margin: 16px auto; padding: 14px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, select { font: inherit; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; cursor: pointer; }
+    button:hover { background: #f1f5f9; }
+    .cal-wrap { max-width: 1100px; margin: 16px auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .selected { max-width: 1100px; margin: 0 auto; padding: 10px 16px; background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 10px; font-size: 13px; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Zarvan Calendar — Vue 3</h1>
+    <p>A single-file component, no build step. Props in, events out.</p>
+  </header>
+
+  <div id="app">
+    <div class="panel">
+      <div class="row">
+        <select v-model="view">
+          <option v-for="v in views" :key="v" :value="v">{{ v }}</option>
+        </select>
+
+        <select v-model="localeName">
+          <option v-for="(l, name) in locales" :key="name" :value="name">wording: {{ name }}</option>
+        </select>
+
+        <select v-model="themeName">
+          <option v-for="(t, name) in themes" :key="name" :value="name">theme: {{ name }}</option>
+        </select>
+
+        <button @click="addEvent">add event</button>
+        <button @click="resetEvents">reset events</button>
+        <span>{{ events.length }} events in Vue state</span>
+      </div>
+    </div>
+
+    <div class="selected" v-if="selected">
+      onEventClick → <strong>{{ selected.title }}</strong>
+      on {{ selected.date }} ({{ selected.view }} view)
+    </div>
+
+    <div class="cal-wrap">
+      <zarvan-calendar
+        :events="events"
+        :view="view"
+        :locale="locales[localeName]"
+        :theme="themes[themeName]"
+        :type-labels="typeLabels"
+        :type-styles="typeStyles"
+        :features="{ nowLine: true }"
+        @event-click="onEventClick"
+        @view-change="onViewChange"
+        @ready="onReady" />
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- jalaali is inside this file; there is no second tag and no order to get wrong. -->
+  <script src="../dist/zarvan.js"></script>
+
+  <script>
+    var createApp = Vue.createApp, ref = Vue.ref, onMounted = Vue.onMounted;
+    var onBeforeUnmount = Vue.onBeforeUnmount, watch = Vue.watch, toRaw = Vue.toRaw;
+
+    /* =====================================================================
+       <zarvan-calendar>
+       =====================================================================
+       Two things matter when wrapping a library that owns its own DOM:
+
+       1. The template is a single EMPTY div. Vue must not render anything
+          inside it, or the two will fight over the same nodes.
+
+       2. Pass toRaw(...) into the calendar. Vue deep-proxies reactive
+          arrays, and handing those proxies to a library that stores and
+          compares them is a needless source of surprise. The calendar wants
+          plain objects.
+       ===================================================================== */
+    var ZarvanCalendar = {
+      name: "ZarvanCalendar",
+
+      props: {
+        events: { type: Array, default: function () { return []; } },
+        view: { type: String, default: "month" },
+        locale: { type: [String, Object], default: "fa" },
+        theme: { type: Object, default: null },
+        typeLabels: { type: Object, default: null },
+        typeStyles: { type: Object, default: null },
+        highlights: { type: Array, default: null },
+        features: { type: Object, default: null },
+      },
+
+      emits: ["ready", "event-click", "view-change", "date-change", "events-change"],
+
+      setup: function (props, ctx) {
+        var hostEl = ref(null);
+        var cal = null;
+
+        onMounted(function () {
+          cal = Zarvan.create({
+            selector: hostEl.value,
+            events: toRaw(props.events),
+            view: props.view,
+            locale: props.locale,
+            typeLabels: toRaw(props.typeLabels) || undefined,
+            typeStyles: toRaw(props.typeStyles) || undefined,
+            highlights: toRaw(props.highlights) || undefined,
+            features: toRaw(props.features) || undefined,
+
+            handlers: {
+              onEventClick: function (ev, meta) { ctx.emit("event-click", ev, meta); },
+              onViewChange: function (p) { ctx.emit("view-change", p.to); },
+              onDateChange: function (p) { ctx.emit("date-change", p); },
+              onEventsChange: function (p) { ctx.emit("events-change", p); },
+            },
+          });
+
+          if (props.theme) cal.setTheme(toRaw(props.theme));
+          ctx.emit("ready", cal);
+        });
+
+        onBeforeUnmount(function () {
+          if (cal) cal.destroy();
+          cal = null;
+        });
+
+        watch(function () { return props.events; }, function (next) {
+          if (cal) cal.setEvents(toRaw(next));
+        }, { deep: true });
+
+        watch(function () { return props.view; }, function (next) {
+          if (cal && next && cal.getView() !== next) cal.setView(next);
+        });
+
+        watch(function () { return props.locale; }, function (next) {
+          if (cal && next) cal.setLocale(toRaw(next));
+        });
+
+        watch(function () { return props.theme; }, function (next) {
+          if (cal && next) cal.setTheme(toRaw(next));
+        }, { deep: true });
+
+        return { hostEl: hostEl };
+      },
+
+      // One empty div. Vue renders nothing inside it, ever.
+      template: '<div ref="hostEl"></div>',
+    };
+
+    /* ===================== demo app ===================== */
+    function jOf(d) {
+      var j = jalaali.toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      return j.jy + "-" + j.jm + "-" + j.jd;
+    }
+    function addDays(base, n) { var d = new Date(base); d.setDate(d.getDate() + n); return d; }
+
+    var today = new Date();
+    var weekStart = addDays(today, -((today.getDay() + 1) % 7));
+    var D = [];
+    for (var i = 0; i < 7; i++) D.push(jOf(addDays(weekStart, i)));
+
+    var INITIAL = [
+      { id: 1, title: "جلسه طراحی", start: D[0] + "T09:00", end: D[0] + "T11:00", type: "meeting" },
+      { id: 2, title: "بازبینی کد", start: D[0] + "T09:30", end: D[0] + "T10:30", type: "review" },
+      { id: 3, title: "کار عمیق", start: D[1] + "T09:30", end: D[1] + "T13:30", type: "task" },
+      { id: 4, title: "تعطیل", start: D[2], end: D[2], allDay: true, type: "holiday" },
+    ];
+
+    createApp({
+      components: { ZarvanCalendar: ZarvanCalendar },
+
+      data: function () {
+        return {
+          events: INITIAL.slice(),
+          view: "week",
+          localeName: "default",
+          themeName: "default",
+          selected: null,
+          views: ["day", "week", "month", "year", "list"],
+          /* Zarvan ships one locale, Persian. A partial locale overrides its wording and
+             inherits the rest - that is the whole localisation surface. */
+          locales: {
+            default: "fa",
+            custom: { code: "fa", strings: { today: "همین امروز", viewLabel: "نما" } },
+            "latin digits": { code: "fa", digits: null },
+          },
+          themes: {
+            default: {},
+            rose: { "color-accent": "#e11d48", "color-accent-weak": "#ffe4e6" },
+            slate: { "color-accent": "#334155", "color-accent-weak": "#e2e8f0" },
+          },
+          typeLabels: { meeting: "جلسه", task: "کار", review: "بازبینی", holiday: "تعطیل" },
+          typeStyles: {
+            meeting: { bg: "#1a73e8", color: "#fff" },
+            task: { bg: "#16a34a", color: "#fff" },
+            review: { bg: "#a855f7", color: "#fff" },
+            holiday: { bg: "#ef4444", color: "#fff" },
+          },
+        };
+      },
+
+      methods: {
+        addEvent: function () {
+          var next = this.events.length + 100;
+          this.events = this.events.concat([{
+            id: next,
+            title: "رویداد " + next,
+            start: D[3] + "T14:00",
+            end: D[3] + "T15:00",
+            type: "task",
+          }]);
+        },
+
+        resetEvents: function () {
+          this.events = INITIAL.slice();
+        },
+
+        // The calendar has its own view switcher, so mirror its choice back into Vue state or the
+        // <select> above and the calendar will disagree about which view is showing.
+        onViewChange: function (next) {
+          this.view = next;
+        },
+
+        // A Vue template evaluates against the component instance and cannot see `window`, so
+        // exposing the instance for console poking goes through a method rather than an inline arrow.
+        onReady: function (instance) {
+          window.cal = instance;
+        },
+
+        onEventClick: function (ev, meta) {
+          // meta.jdate is present for every path, including rows inside the "+N more" modal.
+          var j = meta.jdate;
+          this.selected = {
+            title: ev.title,
+            view: meta.view,
+            date: j ? j.jy + "-" + j.jm + "-" + j.jd : "(unknown)",
+          };
+        },
+      },
+    }).mount("#app");
+  </script>
+</body>
+
+</html>

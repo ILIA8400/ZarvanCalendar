@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zarvan — React example</title>
+
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+  <link rel="stylesheet" href="../dist/zarvan-theme-fa.css" />
+
+  <style>
+    body { font: 14px/1.6 system-ui, sans-serif; margin: 0; padding: 0 0 48px; background: #f1f5f9; color: #0f172a; }
+    header { background: #0f172a; color: #fff; padding: 16px 20px; }
+    header h1 { margin: 0 0 4px; font-size: 18px; }
+    header p { margin: 0; opacity: .75; font-size: 13px; }
+    .panel { max-width: 1100px; margin: 16px auto; padding: 14px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, select { font: inherit; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; cursor: pointer; }
+    button:hover { background: #f1f5f9; }
+    .cal-wrap { max-width: 1100px; margin: 16px auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .selected { max-width: 1100px; margin: 0 auto; padding: 10px 16px; background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 10px; font-size: 13px; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Zarvan Calendar — React</h1>
+    <p>A wrapper component. React owns the props; the calendar owns its own DOM.</p>
+  </header>
+
+  <div id="root"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- jalaali is inside this file; there is no second tag and no order to get wrong. -->
+  <script src="../dist/zarvan.js"></script>
+
+  <script>
+    var h = React.createElement;
+    var useRef = React.useRef, useEffect = React.useEffect, useState = React.useState;
+
+    /* =====================================================================
+       <ZarvanCalendar />
+       =====================================================================
+       Two rules make this work:
+
+       1. React renders an EMPTY div and never touches it again. The calendar
+          manages everything inside; if React also tried to, the two would
+          fight over the same nodes. That is why the div has no children and
+          no key-bearing content.
+
+       2. The instance is created ONCE and then driven through its API. Props
+          become method calls in effects, not a reason to tear down and
+          rebuild. Only options that cannot change at runtime belong in the
+          dependency-free creation effect.
+
+       Written without JSX so it runs from a plain <script> tag with no build.
+       ===================================================================== */
+    function ZarvanCalendar(props) {
+      var hostRef = useRef(null);
+      var calRef = useRef(null);
+      // Callbacks live in a ref so a new closure each render does not force a re-subscribe.
+      var handlers = useRef(props);
+      handlers.current = props;
+
+      // ---- create once, destroy on unmount ----
+      useEffect(function () {
+        var cal = Zarvan.create({
+          selector: hostRef.current,
+          events: handlers.current.events || [],
+          view: handlers.current.view || "month",
+          locale: handlers.current.locale || "fa",
+          typeLabels: handlers.current.typeLabels,
+          typeStyles: handlers.current.typeStyles,
+          highlights: handlers.current.highlights,
+          features: handlers.current.features,
+
+          handlers: {
+            onEventClick: function (ev, meta) {
+              var fn = handlers.current.onEventClick;
+              if (fn) fn(ev, meta);
+            },
+            onViewChange: function (p) {
+              var fn = handlers.current.onViewChange;
+              if (fn) fn(p.to);
+            },
+            onDateChange: function (p) {
+              var fn = handlers.current.onDateChange;
+              if (fn) fn(p);
+            },
+          },
+        });
+
+        calRef.current = cal;
+        if (handlers.current.onReady) handlers.current.onReady(cal);
+
+        return function () {
+          cal.destroy();
+          calRef.current = null;
+        };
+      }, []);
+
+      // ---- props → API ----
+      useEffect(function () {
+        if (calRef.current) calRef.current.setEvents(props.events || []);
+      }, [props.events]);
+
+      useEffect(function () {
+        if (calRef.current && props.view) calRef.current.setView(props.view);
+      }, [props.view]);
+
+      useEffect(function () {
+        if (calRef.current && props.locale) calRef.current.setLocale(props.locale);
+      }, [props.locale]);
+
+      useEffect(function () {
+        if (calRef.current && props.theme) calRef.current.setTheme(props.theme);
+      }, [props.theme]);
+
+      // An empty div. React must not render children here.
+      return h("div", { ref: hostRef });
+    }
+
+    /* ===================== demo app ===================== */
+    function jOf(d) {
+      var j = jalaali.toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      return j.jy + "-" + j.jm + "-" + j.jd;
+    }
+    function addDays(base, n) { var d = new Date(base); d.setDate(d.getDate() + n); return d; }
+
+    var today = new Date();
+    var weekStart = addDays(today, -((today.getDay() + 1) % 7));
+    var D = [];
+    for (var i = 0; i < 7; i++) D.push(jOf(addDays(weekStart, i)));
+
+    var INITIAL = [
+      { id: 1, title: "جلسه طراحی", start: D[0] + "T09:00", end: D[0] + "T11:00", type: "meeting" },
+      { id: 2, title: "بازبینی کد", start: D[0] + "T09:30", end: D[0] + "T10:30", type: "review" },
+      { id: 3, title: "کار عمیق", start: D[1] + "T09:30", end: D[1] + "T13:30", type: "task" },
+      { id: 4, title: "تعطیل", start: D[2], end: D[2], allDay: true, type: "holiday" },
+    ];
+
+    var THEMES = {
+      default: {},
+      rose: { "color-accent": "#e11d48", "color-accent-weak": "#ffe4e6" },
+      slate: { "color-accent": "#334155", "color-accent-weak": "#e2e8f0" },
+    };
+
+    /* Zarvan ships one locale, Persian. A partial locale overrides its wording and inherits the
+       rest - that is the whole localisation surface. */
+    var LOCALES = {
+      "default": "fa",
+      "custom": { code: "fa", strings: { today: "همین امروز", viewLabel: "نما" } },
+      "latin digits": { code: "fa", digits: null },
+    };
+
+    function App() {
+      var s1 = useState(INITIAL), events = s1[0], setEvents = s1[1];
+      var s2 = useState("week"), view = s2[0], setView = s2[1];
+      var s3 = useState("default"), localeName = s3[0], setLocaleName = s3[1];
+      var locale = LOCALES[localeName];
+      var s4 = useState("default"), themeName = s4[0], setThemeName = s4[1];
+      var s5 = useState(null), selected = s5[0], setSelected = s5[1];
+
+      function addEvent() {
+        var next = events.length + 100;
+        setEvents(events.concat([{
+          id: next,
+          title: "رویداد " + next,
+          start: D[3] + "T14:00",
+          end: D[3] + "T15:00",
+          type: "task",
+        }]));
+      }
+
+      return h("div", null,
+        h("div", { className: "panel" },
+          h("div", { className: "row" },
+            h("select", {
+              value: view,
+              onChange: function (e) { setView(e.target.value); },
+            }, ["day", "week", "month", "year", "list"].map(function (v) {
+              return h("option", { key: v, value: v }, v);
+            })),
+
+            h("select", {
+              value: localeName,
+              onChange: function (e) { setLocaleName(e.target.value); },
+            }, Object.keys(LOCALES).map(function (l) {
+              return h("option", { key: l, value: l }, "wording: " + l);
+            })),
+
+            h("select", {
+              value: themeName,
+              onChange: function (e) { setThemeName(e.target.value); },
+            }, Object.keys(THEMES).map(function (t) {
+              return h("option", { key: t, value: t }, "theme: " + t);
+            })),
+
+            h("button", { onClick: addEvent }, "add event"),
+            h("button", { onClick: function () { setEvents(INITIAL); } }, "reset events"),
+            h("span", null, events.length + " events in React state")
+          )
+        ),
+
+        selected && h("div", { className: "selected" },
+          "onEventClick → ", h("strong", null, selected.title),
+          " on ", selected.jdate.jy + "-" + selected.jdate.jm + "-" + selected.jdate.jd,
+          " (", selected.view, " view)"
+        ),
+
+        h("div", { className: "cal-wrap" },
+          h(ZarvanCalendar, {
+            events: events,
+            view: view,
+            locale: locale,
+            theme: THEMES[themeName],
+            typeLabels: { meeting: "جلسه", task: "کار", review: "بازبینی", holiday: "تعطیل" },
+            typeStyles: {
+              meeting: { bg: "#1a73e8", color: "#fff" },
+              task: { bg: "#16a34a", color: "#fff" },
+              review: { bg: "#a855f7", color: "#fff" },
+              holiday: { bg: "#ef4444", color: "#fff" },
+            },
+            features: { nowLine: true },
+            onEventClick: function (ev, meta) {
+              setSelected({ title: ev.title, jdate: meta.jdate, view: meta.view });
+            },
+            // The calendar can change the view itself (its own switcher), so mirror that back
+            // into React state or the two will disagree.
+            onViewChange: function (next) { setView(next); },
+            onReady: function (cal) { window.cal = cal; },
+          })
+        )
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+  </script>
+</body>
+
+</html>

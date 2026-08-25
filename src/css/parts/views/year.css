@@ -1,0 +1,96 @@
+/* ------------------------------------------------------------------- Year */
+.zc-calendar .zc-year {
+  padding: var(--zc-space-4);
+  direction: rtl;
+}
+
+/* auto-fill rather than a fixed count: this replaces the three breakpoints that used to step the year
+   grid 4 -> 3 -> 2 -> 1, and it reflows on the calendar's own width with no query at all.
+   At the 1100px default it yields 4 columns, matching the previous layout. */
+.zc-calendar .zc-year-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--zc-space-5);
+}
+
+.zc-calendar .zc-year-month {
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-softer);
+  border-radius: var(--zc-radius-xl);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-year-month-header {
+  padding: var(--zc-space-4);
+  background: var(--zc-color-surface-header);
+  border-bottom: 1px solid #eef0f3;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 800;
+}
+
+.zc-calendar .zc-year-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: var(--zc-space-2) var(--zc-space-3);
+  background: var(--zc-color-surface);
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-text-subtle);
+}
+
+.zc-calendar .zc-year-wd {
+  text-align: center;
+}
+
+.zc-calendar .zc-year-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--zc-space-1);
+  padding: var(--zc-space-3);
+}
+
+.zc-calendar .zc-year-day {
+  height: 28px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--zc-radius-md);
+  user-select: none;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-year-day:hover {
+  background: var(--zc-color-accent-tint);
+}
+
+.zc-calendar .zc-year-day-num {
+  font-size: var(--zc-font-size-md);
+  font-weight: 700;
+  color: var(--zc-color-text-strong);
+}
+
+.zc-calendar .zc-year-dots {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.zc-calendar .zc-year-dot {
+  width: var(--zc-space-2);
+  height: var(--zc-space-2);
+  border-radius: 50%;
+  background: var(--zc-event-bg);
+}
+
+.zc-calendar .zc-year-more {
+  padding: 0 var(--zc-space-2);
+  border-radius: var(--zc-radius-pill);
+  font-size: var(--zc-font-size-xs);
+  font-weight: 800;
+  line-height: 5px;
+  color: var(--zc-color-accent);
+}

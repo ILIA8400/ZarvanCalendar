@@ -1,0 +1,41 @@
+/* -------------------------------------------------------------------- Day */
+.zc-calendar .zc-day-grid {
+  display: grid;
+  grid-template-columns: 1fr var(--zc-day-gutter-width);
+  position: relative;
+  direction: ltr;
+}
+
+.zc-calendar .zc-day-col {
+  position: relative;
+  background: var(--zc-color-surface);
+  border-left: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-day-gutter {
+  position: relative;
+  padding-left: 5px;
+  border-left: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-day-gutter .zc-hour-label {
+  right: 27px;
+}
+
+.zc-calendar .zc-day-title-text {
+  display: inline-block;
+}
+
+.zc-calendar .zc-day-today-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 2px var(--zc-space-4);
+  margin-right: var(--zc-space-4);
+  border-radius: var(--zc-radius-pill);
+  background: var(--zc-color-accent);
+  color: #fff;
+  font-size: var(--zc-font-size-md);
+  font-weight: 700;
+}

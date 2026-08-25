@@ -1,0 +1,33 @@
+/* ---- Header ---- */
+.zc-calendar .zc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--zc-color-surface);
+  padding: var(--zc-space-5) var(--zc-space-6);
+  direction: rtl;
+}
+
+.zc-calendar .zc-left,
+.zc-calendar .zc-center,
+.zc-calendar .zc-right {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-4);
+  direction: ltr;
+}
+
+.zc-calendar .zc-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.zc-calendar .zc-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  direction: rtl;
+  font-size: var(--zc-font-size-2xl);
+  font-weight: bold;
+}

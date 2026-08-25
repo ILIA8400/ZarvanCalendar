@@ -1,0 +1,51 @@
+# ============================================================================
+#  Line endings
+# ============================================================================
+#
+#  Everything is LF, in the repository AND in the working tree on every OS.
+#
+#  This is not cosmetic. The three build runners (build.mjs / build.sh /
+#  build.ps1) are required to produce byte-identical output, and dist/ is a
+#  committed artefact that people download. Left to Git's default autocrlf on
+#  Windows, a clone would rewrite every source part to CRLF, the build would
+#  emit CRLF, and the dist/ a Windows contributor produced would differ from
+#  the committed one on every line — for no reason a reader could see.
+#
+# ----------------------------------------------------------------------------
+
+*           text=auto eol=lf
+
+# Explicit for the file types that matter most.
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.ts        text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.sh        text eol=lf
+*.svg       text eol=lf
+
+# PowerShell is fine with LF and Git Bash is not fine with CRLF, so keep it
+# consistent with everything else rather than special-casing it.
+*.ps1       text eol=lf
+
+# --- Binary: never touched, never diffed as text ---
+*.ttf       binary
+*.woff      binary
+*.woff2     binary
+*.eot       binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.xlsx      binary
+
+# --- Generated: collapse the diff noise in reviews ---
+# Still committed and still reviewable with `git diff --text`, but a rebuild
+# touching 6,000 lines should not drown a two-line change to a source part.
+dist/zarvan.js      linguist-generated=true
+dist/zarvan.css     linguist-generated=true
+dist/zarvan.d.ts    linguist-generated=true

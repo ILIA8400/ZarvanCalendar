@@ -1,0 +1,52 @@
+/* ---- Hamburger button ---- */
+.zc-calendar .zc-menu-btn {
+  order: 1;
+  width: 36px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1px solid var(--zc-color-border);
+  border-radius: var(--zc-radius-lg);
+  background: var(--zc-color-surface);
+  color: var(--zc-color-text-icon);
+  cursor: pointer;
+  transition: background var(--zc-transition-fast), box-shadow .2s ease, transform .12s ease;
+}
+
+.zc-calendar .zc-menu-btn:active {
+  transform: scale(.98);
+}
+
+.zc-calendar .zc-menu-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  position: relative;
+}
+
+.zc-calendar .zc-menu-icon::before,
+.zc-calendar .zc-menu-icon::after,
+.zc-calendar .zc-menu-icon span {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: currentColor;
+  border-radius: var(--zc-radius-pill);
+  transform-origin: 50% 50%;
+  transition: transform 260ms cubic-bezier(.2, .85, .2, 1), opacity 160ms ease;
+}
+
+.zc-calendar .zc-menu-icon::before {
+  top: 1px;
+}
+
+.zc-calendar .zc-menu-icon span {
+  top: 8px;
+}
+
+.zc-calendar .zc-menu-icon::after {
+  top: 15px;
+}

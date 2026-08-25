@@ -1,0 +1,32 @@
+/* ---- Event chrome, shared across views ----
+   Type colours arrive through --zc-event-bg / --zc-event-fg, written per instance by the type-style
+   injector. There is deliberately no hardcoded per-type rule in this stylesheet. */
+.zc-calendar .zc-event {
+  background: var(--zc-event-bg);
+  color: var(--zc-event-fg);
+  cursor: pointer;
+}
+
+/* ---- "+N more" affordances ---- */
+.zc-calendar .zc-more-btn,
+.zc-calendar .zc-allday-more {
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-accent);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-more-btn {
+  margin-top: 2px;
+  text-align: right;
+}
+
+.zc-calendar .zc-allday-more {
+  margin-left: auto;
+  text-align: center;
+}
+
+.zc-calendar .zc-more-btn:hover,
+.zc-calendar .zc-allday-more:hover {
+  text-decoration: underline;
+}

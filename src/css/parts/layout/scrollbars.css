@@ -1,0 +1,44 @@
+/* ---- Scrollbars ---- */
+.zc-calendar .zc-body::-webkit-scrollbar,
+.zc-calendar .zc-week-grid::-webkit-scrollbar,
+.zc-calendar .zc-ac::-webkit-scrollbar,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar {
+  width: var(--zc-space-4);
+  height: var(--zc-space-4);
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-track,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-track,
+.zc-calendar .zc-ac::-webkit-scrollbar-track,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-track,
+.zc-calendar .zc-body::-webkit-scrollbar-corner,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-corner,
+.zc-calendar .zc-ac::-webkit-scrollbar-corner,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-thumb,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-thumb,
+.zc-calendar .zc-ac::-webkit-scrollbar-thumb,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-thumb {
+  background: var(--zc-color-scrollbar);
+  border-radius: var(--zc-radius-pill);
+  border: 3px solid rgba(255, 255, 255, .85);
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-thumb:hover,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-thumb:hover,
+.zc-calendar .zc-ac::-webkit-scrollbar-thumb:hover,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--zc-color-scrollbar-hover);
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-button,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-button,
+.zc-calendar .zc-ac::-webkit-scrollbar-button,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}

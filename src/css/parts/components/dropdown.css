@@ -1,0 +1,97 @@
+/* ---- Dropdown, shared shape by the type filter and the view switcher ---- */
+.zc-calendar .zc-dd,
+.zc-calendar .zc-view-dd {
+  position: relative;
+  direction: rtl;
+}
+
+.zc-calendar .zc-dd-selected,
+.zc-calendar .zc-view-dd-selected {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-3);
+  border: 1px solid var(--zc-color-border);
+  background: var(--zc-color-surface);
+  border-radius: var(--zc-radius-lg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.zc-calendar .zc-dd-selected {
+  padding: var(--zc-space-4);
+}
+
+.zc-calendar .zc-view-dd-selected {
+  height: 32px;
+  padding: 0 var(--zc-space-4);
+}
+
+.zc-calendar .zc-dd-selected:focus,
+.zc-calendar .zc-view-dd-selected:focus {
+  box-shadow: 0 0 0 2px var(--zc-color-accent-ring);
+}
+
+.zc-calendar .zc-dd-label,
+.zc-calendar .zc-view-dd-label,
+.zc-calendar .zc-dd-caret,
+.zc-calendar .zc-view-dd-caret {
+  font-size: var(--zc-font-size-md);
+  color: var(--zc-color-text-faint);
+}
+
+.zc-calendar .zc-dd-value {
+  flex: 1;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  color: var(--zc-color-text);
+}
+
+.zc-calendar .zc-view-dd-value {
+  min-width: 48px;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 800;
+  color: var(--zc-color-text);
+}
+
+.zc-calendar .zc-dd-menu,
+.zc-calendar .zc-view-dd-menu {
+  position: absolute;
+  top: calc(100% + var(--zc-space-2));
+  right: 0;
+  left: 0;
+  display: none;
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-menu);
+  border-radius: var(--zc-radius-xl);
+  box-shadow: var(--zc-shadow-menu);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-dd-menu {
+  max-height: calc(45px * 3);
+  overflow-y: auto;
+  z-index: var(--zc-z-dropdown);
+}
+
+.zc-calendar .zc-view-dd-menu {
+  z-index: calc(var(--zc-z-dropdown) + 50);
+}
+
+.zc-calendar .zc-dd-item,
+.zc-calendar .zc-view-dd-item {
+  padding: var(--zc-space-4) var(--zc-space-5);
+  font-size: var(--zc-font-size-lg);
+  line-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-dd-item {
+  display: flex;
+  align-items: center;
+}
+
+.zc-calendar .zc-dd-item:hover,
+.zc-calendar .zc-view-dd-item:hover {
+  background: var(--zc-color-accent-tint-alt);
+}

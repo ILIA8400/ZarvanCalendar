@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zarvan — vanilla example</title>
+
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+  <link rel="stylesheet" href="../dist/zarvan-theme-fa.css" />
+
+  <style>
+    body {
+      font: 14px/1.6 system-ui, sans-serif;
+      margin: 0;
+      padding: 0 0 48px;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    header {
+      background: #0f172a;
+      color: #fff;
+      padding: 16px 20px;
+    }
+
+    header h1 { margin: 0 0 4px; font-size: 18px; }
+    header p  { margin: 0; opacity: .75; font-size: 13px; }
+
+    .panel {
+      max-width: 1100px;
+      margin: 16px auto;
+      padding: 14px 16px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #64748b;
+    }
+
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .row:last-child { margin-bottom: 0; }
+
+    button, select, input {
+      font: inherit;
+      padding: 6px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button:hover { background: #f1f5f9; }
+    button.primary { background: #0f172a; color: #fff; border-color: #0f172a; }
+
+    #log {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      background: #0f172a;
+      color: #94a3b8;
+      border-radius: 10px;
+      font: 12px/1.7 ui-monospace, Consolas, monospace;
+      height: 150px;
+      overflow: auto;
+      direction: ltr;
+      text-align: left;
+    }
+
+    #log b { color: #7dd3fc; }
+
+    .cal-wrap {
+      max-width: 1100px;
+      margin: 16px auto;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Zarvan Calendar — vanilla</h1>
+    <p>Every control below calls a public API method. Watch the log to see what fires.</p>
+  </header>
+
+  <div class="panel">
+    <h2>View &amp; navigation</h2>
+    <div class="row">
+      <select id="view"></select>
+      <button data-act="prev">‹ prev</button>
+      <button data-act="today">today</button>
+      <button data-act="next">next ›</button>
+      <input id="goto" type="text" placeholder="1405-06-20" size="12" />
+      <button data-act="goto">gotoDate</button>
+      <button data-act="range">getVisibleRange</button>
+    </div>
+
+    <h2>Events</h2>
+    <div class="row">
+      <button data-act="add" class="primary">addEvent</button>
+      <button data-act="update">updateEvent</button>
+      <button data-act="remove">removeEvent</button>
+      <button data-act="count">getEvents</button>
+    </div>
+
+    <h2>Appearance</h2>
+    <div class="row">
+      <button data-act="theme-rose">theme: rose</button>
+      <button data-act="theme-slate">theme: slate</button>
+      <button data-act="theme-reset">theme: reset</button>
+      <button data-act="locale-custom">wording: custom</button>
+      <button data-act="locale-fa">wording: default</button>
+      <button data-act="digits-latin">digits: latin</button>
+      <button data-act="nowline">toggle nowLine</button>
+      <button data-act="layout">toggle timeGridLayout</button>
+      <button data-act="export">exportToExcel</button>
+    </div>
+  </div>
+
+  <div class="cal-wrap"><div id="calendar"></div></div>
+
+  <div id="log"></div>
+
+  <!-- Optional. Without it the export button warns instead of downloading. -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- jalaali is inside this file; there is no second tag and no order to get wrong. -->
+  <script src="../dist/zarvan.js"></script>
+
+  <script>
+    // ---- a week of demo data, relative to today so the calendar opens on something ----
+    function jOf(d) {
+      var j = jalaali.toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      return j.jy + "-" + j.jm + "-" + j.jd;
+    }
+    function addDays(base, n) {
+      var d = new Date(base);
+      d.setDate(d.getDate() + n);
+      return d;
+    }
+
+    var today = new Date();
+    var weekStart = addDays(today, -((today.getDay() + 1) % 7));
+    var D = [];
+    for (var i = 0; i < 7; i++) D.push(jOf(addDays(weekStart, i)));
+
+    var events = [
+      { id: 1, title: "جلسه طراحی", start: D[0] + "T09:00", end: D[0] + "T11:00", type: "meeting" },
+      { id: 2, title: "بازبینی کد", start: D[0] + "T09:30", end: D[0] + "T10:30", type: "review" },
+      { id: 3, title: "کار عمیق", start: D[1] + "T09:30", end: D[1] + "T13:30", type: "task" },
+      { id: 4, title: "استندآپ", start: D[1] + "T09:00", end: D[1] + "T09:15", type: "meeting" },
+      { id: 5, title: "تعطیل", start: D[2], end: D[2], allDay: true, type: "holiday" },
+      { id: 6, title: "اسپرینت", start: D[2] + "T09:00", end: D[4] + "T17:00", type: "meeting" },
+      { id: 7, title: "دمو هفتگی", start: D[3] + "T15:00", end: D[3] + "T16:00", type: "meeting",
+        repeat: { freq: "weekly", interval: 1 } },
+    ];
+
+    // ---- logging ----
+    var logEl = document.getElementById("log");
+    function log(name, detail) {
+      var line = document.createElement("div");
+      line.innerHTML = "<b>" + name + "</b> " + (detail == null ? "" : detail);
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // ---- the calendar ----
+    var cal = Zarvan.create({
+      selector: "#calendar",
+      events: events,
+      view: "week",
+
+      typeLabels: { meeting: "جلسه", task: "کار", review: "بازبینی", holiday: "تعطیل" },
+      typeStyles: {
+        meeting: { bg: "#1a73e8", color: "#fff" },
+        task: { bg: "#16a34a", color: "#fff" },
+        review: { bg: "#a855f7", color: "#fff" },
+        holiday: { bg: "#ef4444", color: "#fff" },
+      },
+
+      highlights: [
+        // Thursday and Friday are the Iranian weekend
+        { when: { weekday: [5, 6] }, day: { bg: "#fff5f5" } },
+        { views: ["week", "day"], when: { weekday: [0, 1, 2, 3, 4] },
+          time: { start: "09:00", end: "17:00", bg: "rgba(22,163,74,.07)" } },
+      ],
+
+      features: { timeGridLayout: "overlap", nowLine: true },
+
+      handlers: {
+        onEventClick: function (ev, meta) { log("onEventClick", ev.title + "  (" + meta.view + ")"); },
+        onViewChange: function (p) { log("onViewChange", p.from + " → " + p.to); },
+        onDateChange: function (p) { log("onDateChange", "source=" + p.source); },
+        onEventsChange: function (p) { log("onEventsChange", p.type + ", now " + p.events.length); },
+        onFiltersChange: function (p) { log("onFiltersChange", JSON.stringify({ type: p.type, q: p.q })); },
+        onMoreEventsClick: function (p) { log("onMoreEventsClick", p.events.length + " events"); },
+        onExportEnd: function (p) { log("onExportEnd", p.count + " rows → " + p.fileName); },
+        onWarn: function (p) { log("onWarn", p.code + " — " + p.message); },
+      },
+    });
+
+    // ---- populate the view picker from the calendar itself ----
+    var viewSelect = document.getElementById("view");
+    cal.getViews().forEach(function (key) {
+      var opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = key;
+      viewSelect.appendChild(opt);
+    });
+    viewSelect.value = cal.getView();
+    viewSelect.addEventListener("change", function () {
+      cal.setView(viewSelect.value);
+      cal.refresh();
+    });
+
+    // ---- wire the buttons ----
+    var nextId = 100;
+    var lastAdded = null;
+    var layout = "overlap";
+    var nowLine = true;
+
+    var actions = {
+      prev: function () { cal.prev(); },
+      next: function () { cal.next(); },
+      today: function () { cal.today(); },
+
+      goto: function () {
+        var parts = (document.getElementById("goto").value || "").split("-").map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) return log("gotoDate", "expected YYYY-M-D");
+        cal.gotoDate({ jy: parts[0], jm: parts[1], jd: parts[2] });
+        log("gotoDate", JSON.stringify(cal.getJDate()));
+      },
+
+      range: function () {
+        var r = cal.getVisibleRange();
+        log("getVisibleRange", r.startG.toDateString() + "  →  " + r.endG.toDateString());
+      },
+
+      add: function () {
+        var j = cal.getJDate();
+        lastAdded = cal.addEvent({
+          id: nextId++,
+          title: "رویداد جدید " + (nextId - 1),
+          start: j.jy + "-" + j.jm + "-" + j.jd + "T14:00",
+          end: j.jy + "-" + j.jm + "-" + j.jd + "T15:00",
+          type: "task",
+        });
+        log("addEvent", lastAdded ? "id=" + lastAdded.id : "rejected");
+      },
+
+      update: function () {
+        if (!lastAdded) return log("updateEvent", "add one first");
+        var r = cal.updateEvent(lastAdded.id, { title: lastAdded.title + " ✎" });
+        lastAdded = r || lastAdded;
+        log("updateEvent", r ? r.title : "rejected");
+      },
+
+      remove: function () {
+        if (!lastAdded) return log("removeEvent", "add one first");
+        var r = cal.removeEvent(lastAdded.id);
+        log("removeEvent", r ? "removed id=" + r.id : "not found");
+        lastAdded = null;
+      },
+
+      count: function () { log("getEvents", cal.getEvents().length + " events"); },
+
+      "theme-rose": function () {
+        cal.setTheme({ "color-accent": "#e11d48", "color-accent-weak": "#ffe4e6", "radius-lg": "14px" });
+        log("setTheme", "rose");
+      },
+      "theme-slate": function () {
+        cal.setTheme({ "color-accent": "#334155", "color-accent-weak": "#e2e8f0", "radius-lg": "2px" });
+        log("setTheme", "slate");
+      },
+      "theme-reset": function () {
+        cal.setTheme({ "color-accent": null, "color-accent-weak": null, "radius-lg": null });
+        log("setTheme", "reset");
+      },
+
+      /* Zarvan ships one locale, Persian. You retune its wording by passing a partial locale -
+         everything you do not name is inherited. */
+      "locale-custom": function () {
+        cal.setLocale({ code: "fa", strings: { today: "همین امروز", viewLabel: "نما" } });
+        log("setLocale", "partial override");
+      },
+      "locale-fa": function () { cal.setLocale("fa"); log("setLocale", "fa"); },
+      // Persian text, Latin numerals.
+      "digits-latin": function () {
+        cal.setLocale({ code: "fa", digits: null });
+        log("setLocale", "digits: null");
+      },
+
+      nowline: function () {
+        nowLine = !nowLine;
+        cal.setOption("features.nowLine", nowLine);
+        log("setOption", "features.nowLine = " + nowLine);
+      },
+
+      layout: function () {
+        layout = layout === "overlap" ? "columns" : "overlap";
+        cal.setOption("features.timeGridLayout", layout);
+        log("setOption", "timeGridLayout = " + layout);
+      },
+
+      export: function () { cal.exportToExcel(); },
+    };
+
+    document.querySelectorAll("[data-act]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        actions[btn.dataset.act]();
+        cal.refresh();
+        viewSelect.value = cal.getView();
+      });
+    });
+
+    log("ready", cal.getEvents().length + " events, plugins: " + cal.plugins().join(", "));
+    window.cal = cal;
+  </script>
+
+</body>
+
+</html>

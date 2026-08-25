@@ -1,0 +1,25 @@
+/*!
+ * Zarvan Calendar v__ZARVAN_VERSION__ - a Jalali (Persian) calendar for the web.
+ *
+ * GENERATED FILE - do not edit. Built by build/build.ps1 (or build.sh, or build.mjs).
+ *
+ * This is the drop-in build. It contains the jalaali date library followed by Zarvan itself, so there
+ * is one script to load and no order to get wrong:
+ *
+ *   <link rel="stylesheet" href="zarvan.css">
+ *   <script src="zarvan.js"></script>
+ *   <div id="calendar"></div>
+ *   <script>Zarvan.create({ selector: "#calendar", events: [] });</script>
+ *
+ * Optional, in the same folder:
+ *   zarvan-theme-fa.css  registers the bundled Vazir face (core CSS forces no font)
+ *   zarvan.d.ts          TypeScript definitions for the Zarvan global
+ *
+ * Excel export additionally needs SheetJS, resolved when the button is pressed - from
+ * options.deps.xlsx or window.XLSX. Without it the button warns and nothing breaks.
+ *
+ * Zarvan renders right-to-left and uses the Jalali calendar. Neither is configurable.
+ *
+ * Docs: docs/API.md      Licence: MIT
+ * Bundled: jalaali-js (MIT, https://github.com/jalaali/jalaali-js)
+ */

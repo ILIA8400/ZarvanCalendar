@@ -1,0 +1,1871 @@
+/*!
+ * Zarvan Calendar - stylesheet
+ *
+ * GENERATED FILE - do not edit.
+ * Edit the parts under src/css/parts/ and re-run build/build.ps1 (or build.sh, or build.mjs).
+ * Order is defined by build/manifest-css.txt.
+ *
+ * Structure
+ * ---------
+ * Section order (later wins on ties):
+ *   reset      scoped normalisation that neutralises the host base styles
+ *   tokens     design tokens (custom properties) - the whole theming surface
+ *   base       calendar root, typography, container declaration
+ *   layout     shell: header / content / sidebar / body
+ *   components reusable widgets: buttons, dropdown, modal, autocomplete, mini-calendar, event chrome
+ *   views      month / week / day / year / list
+ *   state      state + highlight classes, which must win over view rules
+ *   responsive container queries
+ *
+ * Specificity contract
+ * --------------------
+ * This file is deliberately NOT wrapped in an @layer. Layers were tried first and rejected: unlayered
+ * host CSS beats layered CSS at any specificity, which is fine for a host that deliberately targets
+ * .zc-* classes, but it also lets collateral damage through - a global reset or a broad element rule in
+ * the host would win over our reset and break the layout. That is the exact failure this rewrite exists
+ * to prevent, so the reset has to be able to win.
+ *
+ * The resulting contract:
+ *   reset selectors        .zc-calendar *              (0,1,0)  - beats host universal/element rules
+ *   component/view rules   .zc-calendar .zc-x          (0,2,0)  - beats the reset
+ *   state rules            .zc-calendar .zc-x.zc-is-y  (0,3,0)  - beats the view rules
+ *
+ * For consumers that means: theme through the tokens (the supported path), or override with a selector
+ * of specificity (0,2,0) or higher.
+ *
+ * Responsiveness is driven by the calendar's own width via container queries, not the viewport.
+ *
+ * Fonts: this file forces none. See the optional src/css/zarvan-theme-fa.css.
+ *
+ * Every class is zc-prefixed and scoped under .zc-calendar. See docs/CLASS-MAP.md.
+ */
+
+/* ============================================================================
+ RESET - scoped to the calendar root
+ ============================================================================
+ Neutralises the host base styles - its global reset, its button/input/img rules, and inherited
+ properties - before they can reach inside the calendar. At (0,1,0) these beat any host element or
+ universal selector, while the library own (0,2,0) rules still beat these.
+ ========================================================================= */
+.zc-calendar,
+.zc-calendar *,
+.zc-calendar *::before,
+.zc-calendar *::after,
+.zc-modal-overlay,
+.zc-modal-overlay *,
+.zc-modal-overlay *::before,
+.zc-modal-overlay *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-align: inherit;
+  text-decoration: none;
+  text-transform: none;
+  text-indent: 0;
+  letter-spacing: normal;
+  word-spacing: normal;
+  vertical-align: baseline;
+  list-style: none;
+  float: none;
+  box-shadow: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+.zc-calendar button,
+.zc-calendar input,
+.zc-calendar select,
+.zc-calendar textarea,
+.zc-modal-overlay button {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border-radius: 0;
+  cursor: pointer;
+  width: auto;
+  height: auto;
+}
+
+.zc-calendar input {
+  cursor: text;
+}
+
+.zc-calendar img,
+.zc-calendar svg,
+.zc-modal-overlay img {
+  display: block;
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+  border: 0;
+}
+
+.zc-calendar table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* ============================================================================
+ TOKENS - the complete theming surface
+ ============================================================================
+ Override any of these on .zc-calendar (or a parent) to retheme. No structural CSS lives here, and
+ custom properties pierce a shadow boundary, so these keep working in shadow mode too.
+ ========================================================================= */
+.zc-calendar,
+.zc-modal-overlay {
+  /* --- colour: brand --- */
+  --zc-color-accent: #1a73e8;
+  --zc-color-accent-weak: #e8f0fe;
+  --zc-color-accent-tint: #f1f5ff;
+  --zc-color-accent-tint-alt: #f3f6ff;
+  --zc-color-accent-ring: rgba(26, 115, 232, .15);
+  --zc-color-accent-border: #cfd8ff;
+
+  /* --- colour: surfaces --- */
+  --zc-color-surface: #fff;
+  --zc-color-surface-alt: #fafafa;
+  --zc-color-surface-sunken: #f7f7f7;
+  --zc-color-surface-gutter: #f0f0f0;
+  --zc-color-surface-header: #f6f7f9;
+
+  /* --- colour: text --- */
+  --zc-color-text: #202124;
+  --zc-color-text-strong: #111827;
+  --zc-color-text-muted: #5f6368;
+  --zc-color-text-subtle: #6b7280;
+  --zc-color-text-faint: #666;
+  --zc-color-text-icon: #444;
+
+  /* --- colour: lines --- */
+  --zc-color-border: #ddd;
+  --zc-color-border-soft: #eee;
+  --zc-color-border-softer: #e5e7eb;
+  --zc-color-border-menu: #e6e6e6;
+  --zc-color-border-faint: #f0f2f5;
+
+  /* --- colour: semantic --- */
+  --zc-color-now: #ea4335;
+  --zc-color-hover-veil: rgba(0, 0, 0, .06);
+  --zc-color-active-veil: rgba(0, 0, 0, .10);
+  --zc-color-scrollbar: rgba(0, 0, 0, .22);
+  --zc-color-scrollbar-hover: rgba(0, 0, 0, .32);
+  /* The reset clears `outline` so the host's focus styling cannot leak in; this is what replaces
+     it. Set it to `none` to suppress the calendar's focus ring altogether. */
+  --zc-focus-ring: 2px solid var(--zc-color-accent);
+  --zc-focus-ring-offset: 2px;
+
+  /* --- event chrome --- */
+  --zc-event-bg: var(--zc-color-accent);
+  --zc-event-fg: #fff;
+  --zc-event-border: rgba(0, 0, 0, .08);
+
+  /* --- day highlight, set per element by the highlight rules --- */
+  --zc-hl-bg: transparent;
+
+  /* --- typography --- */
+  /* Defers to the host application by default - the core stylesheet forces no font.
+     Load zarvan-theme-fa.css, or set this token, to use a specific face. */
+  --zc-font-family: inherit;
+  --zc-font-size-xs: 10px;
+  --zc-font-size-sm: 11px;
+  --zc-font-size-md: 12px;
+  --zc-font-size-lg: 13px;
+  --zc-font-size-xl: 14px;
+  --zc-font-size-2xl: 18px;
+  --zc-line-height: 1.5;
+
+  /* --- spacing --- */
+  --zc-space-1: 4px;
+  --zc-space-2: 6px;
+  --zc-space-3: 8px;
+  --zc-space-4: 10px;
+  --zc-space-5: 12px;
+  --zc-space-6: 15px;
+
+  /* --- radius --- */
+  --zc-radius-xs: 4px;
+  --zc-radius-sm: 6px;
+  --zc-radius-md: 8px;
+  --zc-radius-lg: 10px;
+  --zc-radius-xl: 12px;
+  --zc-radius-pill: 999px;
+
+  /* --- elevation --- */
+  --zc-shadow-menu: 0 8px 24px rgba(0, 0, 0, .12);
+  --zc-shadow-modal: 0 4px 16px rgba(0, 0, 0, .2);
+  --zc-shadow-focus: 0 6px 18px rgba(0, 0, 0, .18);
+
+  /* --- structure --- */
+  --zc-max-width: 1100px;
+  --zc-week-gutter-width: 69.5px;
+  --zc-day-gutter-width: 60px;
+  --zc-sidebar-width: 280px;
+  --zc-month-row-height: 140px;
+  --zc-hour-height: 60px;
+  /* The month grid is seven fluid columns and needs no floor of its own until the calendar gets
+     genuinely narrow, at which point responsive.css raises this and the grid scrolls rather than
+     squeezing. This was a flat 980px, so every calendar narrower than that scrolled horizontally
+     whether it needed to or not. */
+  --zc-grid-min-width: 0px;
+  --zc-week-min-width: 900px;
+
+  /* --- z-index scale, replaces the previous ad-hoc 2...999 --- */
+  --zc-z-highlight: 2;
+  --zc-z-hour-line: 3;
+  --zc-z-event: 10;
+  --zc-z-gutter: 20;
+  --zc-z-now: 25;
+  --zc-z-sticky: 60;
+  --zc-z-sticky-week: 70;
+  --zc-z-dropdown: 200;
+  --zc-z-modal: 1000;
+
+  /* --- motion --- */
+  --zc-transition-fast: .15s ease;
+  --zc-transition-base: .25s ease;
+}
+
+/* ============================================================================
+ BASE
+ ========================================================================= */
+.zc-calendar,
+.zc-calendar *,
+.zc-modal-overlay,
+.zc-modal-overlay * {
+  font-family: var(--zc-font-family);
+}
+
+.zc-calendar {
+  width: 100%;
+  max-width: var(--zc-max-width);
+  margin: 20px auto;
+  color: var(--zc-color-text);
+  font-size: var(--zc-font-size-xl);
+  line-height: var(--zc-line-height);
+
+  /* Makes every @container query in responsive.css read the calendar's own inline size rather than
+     the viewport. This is what lets the layout react correctly when the calendar is embedded in a
+     narrow column of a wide page. */
+  container-type: inline-size;
+  container-name: zc;
+}
+
+/* ---- Header ---- */
+.zc-calendar .zc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--zc-color-surface);
+  padding: var(--zc-space-5) var(--zc-space-6);
+  direction: rtl;
+}
+
+.zc-calendar .zc-left,
+.zc-calendar .zc-center,
+.zc-calendar .zc-right {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-4);
+  direction: ltr;
+}
+
+.zc-calendar .zc-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.zc-calendar .zc-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  direction: rtl;
+  font-size: var(--zc-font-size-2xl);
+  font-weight: bold;
+}
+
+/* ---- Content: sidebar beside body ----
+   The sidebar is the first child in the DOM and must render on the RIGHT.
+
+   This used `flex-direction: row-reverse` with no direction of its own, which only produced a
+   right-hand sidebar while the calendar happened to sit in a left-to-right document: row-reverse in
+   an LTR context runs the main axis right-to-left, so the first child lands on the right. Once the
+   container started carrying dir="rtl" the two negations cancelled and the sidebar jumped to the
+   left.
+
+   Declared rather than inherited now. `direction: rtl` plus a plain `row` puts main-start at the
+   right edge, so the sidebar is on the right whatever the host document or the container says. */
+.zc-calendar .zc-content {
+  display: flex;
+  direction: rtl;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  overflow-x: clip;
+}
+
+/* Collapsed by default; .zc-sidebar-open opens it. The renderer also marks it `inert` while it is
+   collapsed - width:0 and overflow:hidden hide it visually but leave its search box, dropdown, mini
+   calendar and export button in the tab order and in the accessibility tree. */
+.zc-calendar .zc-sidebar {
+  width: 0;
+  overflow: hidden;
+  background: var(--zc-color-surface);
+  transition: width var(--zc-transition-base);
+}
+
+.zc-calendar .zc-sidebar-inner {
+  width: var(--zc-sidebar-width);
+  padding: var(--zc-space-4);
+}
+
+.zc-calendar .zc-body {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  padding: var(--zc-space-4);
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  /* RTL on the scroll container puts the scrollbar on the left; children opt back out. */
+  direction: rtl;
+}
+
+.zc-calendar .zc-body > * {
+  direction: ltr;
+}
+
+/* ---- Scrollbars ---- */
+.zc-calendar .zc-body::-webkit-scrollbar,
+.zc-calendar .zc-week-grid::-webkit-scrollbar,
+.zc-calendar .zc-ac::-webkit-scrollbar,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar {
+  width: var(--zc-space-4);
+  height: var(--zc-space-4);
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-track,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-track,
+.zc-calendar .zc-ac::-webkit-scrollbar-track,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-track,
+.zc-calendar .zc-body::-webkit-scrollbar-corner,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-corner,
+.zc-calendar .zc-ac::-webkit-scrollbar-corner,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-thumb,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-thumb,
+.zc-calendar .zc-ac::-webkit-scrollbar-thumb,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-thumb {
+  background: var(--zc-color-scrollbar);
+  border-radius: var(--zc-radius-pill);
+  border: 3px solid rgba(255, 255, 255, .85);
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-thumb:hover,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-thumb:hover,
+.zc-calendar .zc-ac::-webkit-scrollbar-thumb:hover,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--zc-color-scrollbar-hover);
+}
+
+.zc-calendar .zc-body::-webkit-scrollbar-button,
+.zc-calendar .zc-week-grid::-webkit-scrollbar-button,
+.zc-calendar .zc-ac::-webkit-scrollbar-button,
+.zc-calendar .zc-dd-menu::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* ---- Hamburger button ---- */
+.zc-calendar .zc-menu-btn {
+  order: 1;
+  width: 36px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1px solid var(--zc-color-border);
+  border-radius: var(--zc-radius-lg);
+  background: var(--zc-color-surface);
+  color: var(--zc-color-text-icon);
+  cursor: pointer;
+  transition: background var(--zc-transition-fast), box-shadow .2s ease, transform .12s ease;
+}
+
+.zc-calendar .zc-menu-btn:active {
+  transform: scale(.98);
+}
+
+.zc-calendar .zc-menu-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  position: relative;
+}
+
+.zc-calendar .zc-menu-icon::before,
+.zc-calendar .zc-menu-icon::after,
+.zc-calendar .zc-menu-icon span {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: currentColor;
+  border-radius: var(--zc-radius-pill);
+  transform-origin: 50% 50%;
+  transition: transform 260ms cubic-bezier(.2, .85, .2, 1), opacity 160ms ease;
+}
+
+.zc-calendar .zc-menu-icon::before {
+  top: 1px;
+}
+
+.zc-calendar .zc-menu-icon span {
+  top: 8px;
+}
+
+.zc-calendar .zc-menu-icon::after {
+  top: 15px;
+}
+
+/* ---- Header navigation (arrows + today) ---- */
+.zc-calendar .zc-nav-group {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-3);
+}
+
+.zc-calendar .zc-nav-group button {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--zc-transition-fast), transform .12s ease;
+}
+
+.zc-calendar .zc-prev,
+.zc-calendar .zc-next {
+  width: 36px;
+  padding: 0;
+  border-radius: var(--zc-radius-pill);
+}
+
+.zc-calendar .zc-prev:hover,
+.zc-calendar .zc-next:hover {
+  background: var(--zc-color-hover-veil);
+}
+
+.zc-calendar .zc-prev:active,
+.zc-calendar .zc-next:active {
+  background: var(--zc-color-active-veil);
+  transform: scale(.96);
+}
+
+/* The chevron is inlined by the renderer and painted with currentColor, so it needs no network
+   request, no path that has to resolve from the host page, and no second asset for the other
+   direction. */
+.zc-calendar .zc-prev svg,
+.zc-calendar .zc-next svg {
+  width: 18px;
+  height: 18px;
+  color: var(--zc-color-text-icon);
+}
+
+.zc-calendar .zc-next svg {
+  transform: rotate(180deg);
+}
+
+.zc-calendar .zc-today {
+  min-width: 70px;
+  padding: 0 14px;
+  border: 1px solid rgba(0, 0, 0, .22);
+  border-radius: var(--zc-radius-pill);
+  background: var(--zc-color-surface);
+  color: #111;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  letter-spacing: .2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+}
+
+.zc-calendar .zc-today:hover {
+  background: rgba(0, 0, 0, .04);
+  border-color: rgba(0, 0, 0, .30);
+}
+
+.zc-calendar .zc-today:active {
+  background: rgba(0, 0, 0, .08);
+  transform: scale(.99);
+}
+
+.zc-calendar .zc-today:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .06);
+}
+
+/* ---- Dropdown, shared shape by the type filter and the view switcher ---- */
+.zc-calendar .zc-dd,
+.zc-calendar .zc-view-dd {
+  position: relative;
+  direction: rtl;
+}
+
+.zc-calendar .zc-dd-selected,
+.zc-calendar .zc-view-dd-selected {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-3);
+  border: 1px solid var(--zc-color-border);
+  background: var(--zc-color-surface);
+  border-radius: var(--zc-radius-lg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.zc-calendar .zc-dd-selected {
+  padding: var(--zc-space-4);
+}
+
+.zc-calendar .zc-view-dd-selected {
+  height: 32px;
+  padding: 0 var(--zc-space-4);
+}
+
+.zc-calendar .zc-dd-selected:focus,
+.zc-calendar .zc-view-dd-selected:focus {
+  box-shadow: 0 0 0 2px var(--zc-color-accent-ring);
+}
+
+.zc-calendar .zc-dd-label,
+.zc-calendar .zc-view-dd-label,
+.zc-calendar .zc-dd-caret,
+.zc-calendar .zc-view-dd-caret {
+  font-size: var(--zc-font-size-md);
+  color: var(--zc-color-text-faint);
+}
+
+.zc-calendar .zc-dd-value {
+  flex: 1;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  color: var(--zc-color-text);
+}
+
+.zc-calendar .zc-view-dd-value {
+  min-width: 48px;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 800;
+  color: var(--zc-color-text);
+}
+
+.zc-calendar .zc-dd-menu,
+.zc-calendar .zc-view-dd-menu {
+  position: absolute;
+  top: calc(100% + var(--zc-space-2));
+  right: 0;
+  left: 0;
+  display: none;
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-menu);
+  border-radius: var(--zc-radius-xl);
+  box-shadow: var(--zc-shadow-menu);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-dd-menu {
+  max-height: calc(45px * 3);
+  overflow-y: auto;
+  z-index: var(--zc-z-dropdown);
+}
+
+.zc-calendar .zc-view-dd-menu {
+  z-index: calc(var(--zc-z-dropdown) + 50);
+}
+
+.zc-calendar .zc-dd-item,
+.zc-calendar .zc-view-dd-item {
+  padding: var(--zc-space-4) var(--zc-space-5);
+  font-size: var(--zc-font-size-lg);
+  line-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-dd-item {
+  display: flex;
+  align-items: center;
+}
+
+.zc-calendar .zc-dd-item:hover,
+.zc-calendar .zc-view-dd-item:hover {
+  background: var(--zc-color-accent-tint-alt);
+}
+
+/* ---- Sidebar filters ---- */
+.zc-calendar .zc-filters {
+  margin-top: var(--zc-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--zc-space-4);
+}
+
+.zc-calendar .zc-search {
+  position: relative;
+  direction: rtl;
+}
+
+.zc-calendar .zc-search-label {
+  display: block;
+  margin-bottom: var(--zc-space-2);
+  font-size: var(--zc-font-size-md);
+  color: var(--zc-color-text-faint);
+}
+
+.zc-calendar .zc-search-box {
+  position: relative;
+}
+
+.zc-calendar .zc-search-input {
+  width: 100%;
+  padding: var(--zc-space-4);
+  border: 1px solid var(--zc-color-border);
+  border-radius: var(--zc-radius-lg);
+  font-size: var(--zc-font-size-lg);
+}
+
+.zc-calendar .zc-search-input:focus {
+  border-color: var(--zc-color-accent-border);
+  box-shadow: 0 0 0 2px var(--zc-color-accent-ring);
+}
+
+/* ---- Autocomplete ---- */
+.zc-calendar .zc-ac {
+  position: absolute;
+  top: calc(100% + var(--zc-space-2));
+  right: 0;
+  left: 0;
+  max-height: calc(45px * 3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-menu);
+  border-radius: var(--zc-radius-xl);
+  box-shadow: var(--zc-shadow-menu);
+  z-index: calc(var(--zc-z-dropdown) + 20);
+}
+
+.zc-calendar .zc-ac-item {
+  padding: var(--zc-space-4) var(--zc-space-5);
+  min-height: 44px;
+  font-size: var(--zc-font-size-lg);
+  line-height: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-ac-item:hover {
+  background: var(--zc-color-accent-tint);
+}
+
+/* ---- Export button ---- */
+.zc-calendar .zc-export-btn {
+  width: 100%;
+  height: 36px;
+  margin-top: var(--zc-space-3);
+  border: 1px solid var(--zc-color-border);
+  border-radius: var(--zc-radius-lg);
+  background: var(--zc-color-surface-alt);
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  direction: rtl;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-export-btn:hover {
+  background: var(--zc-color-border-soft);
+}
+
+/* ---- Mini calendar ---- */
+.zc-calendar .zc-mini {
+  border: 1px solid var(--zc-color-border-soft);
+  border-radius: var(--zc-radius-lg);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--zc-space-4);
+  background: var(--zc-color-surface-alt);
+  border-bottom: 1px solid var(--zc-color-border-soft);
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-title {
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-nav {
+  display: flex;
+  gap: var(--zc-space-2);
+}
+
+.zc-calendar .zc-mini-nav button {
+  width: 30px;
+  height: 28px;
+  border: 1px solid var(--zc-color-border);
+  border-radius: 7px;
+  background: var(--zc-color-surface);
+  cursor: pointer;
+}
+
+.zc-calendar .zc-mini-nav button:hover {
+  background: #f3f3f3;
+}
+
+.zc-calendar .zc-mini-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: var(--zc-space-2) var(--zc-space-3);
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-text-faint);
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-weekdays div {
+  text-align: center;
+}
+
+.zc-calendar .zc-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: var(--zc-space-3);
+  direction: rtl;
+}
+
+.zc-calendar .zc-mini-day {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--zc-radius-md);
+  font-size: var(--zc-font-size-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+.zc-calendar .zc-mini-day:hover {
+  background: var(--zc-color-accent-tint);
+}
+
+/* ---- Modal ---- */
+.zc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .35);
+  z-index: var(--zc-z-modal);
+}
+
+.zc-modal-overlay .zc-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--zc-color-surface);
+  border-radius: var(--zc-radius-md);
+  box-shadow: var(--zc-shadow-modal);
+  direction: rtl;
+  color: var(--zc-color-text);
+}
+
+.zc-modal-overlay .zc-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--zc-space-4) 14px;
+  border-bottom: 1px solid var(--zc-color-border-soft);
+}
+
+.zc-modal-overlay .zc-modal-title {
+  font-size: var(--zc-font-size-xl);
+  font-weight: bold;
+}
+
+.zc-modal-overlay .zc-modal-close {
+  background: transparent;
+  font-size: var(--zc-font-size-2xl);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.zc-modal-overlay .zc-modal-body {
+  padding: var(--zc-space-4) 14px;
+  overflow-y: auto;
+}
+
+.zc-modal-overlay .zc-modal-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zc-space-2);
+}
+
+.zc-modal-overlay .zc-modal-event-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--zc-space-2) var(--zc-space-3);
+  border-radius: var(--zc-radius-sm);
+  background: var(--zc-color-surface-sunken);
+  font-size: var(--zc-font-size-lg);
+}
+
+.zc-modal-overlay .zc-modal-event-title {
+  font-weight: 500;
+}
+
+.zc-modal-overlay .zc-modal-event-time {
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-text-faint);
+}
+
+/* ---- Now indicator ---- */
+.zc-calendar .zc-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--zc-color-now);
+  z-index: var(--zc-z-now);
+  pointer-events: none;
+}
+
+.zc-calendar .zc-now-dot {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--zc-color-now);
+}
+
+/* ---- Event chrome, shared across views ----
+   Type colours arrive through --zc-event-bg / --zc-event-fg, written per instance by the type-style
+   injector. There is deliberately no hardcoded per-type rule in this stylesheet. */
+.zc-calendar .zc-event {
+  background: var(--zc-event-bg);
+  color: var(--zc-event-fg);
+  cursor: pointer;
+}
+
+/* ---- "+N more" affordances ---- */
+.zc-calendar .zc-more-btn,
+.zc-calendar .zc-allday-more {
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-accent);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-more-btn {
+  margin-top: 2px;
+  text-align: right;
+}
+
+.zc-calendar .zc-allday-more {
+  margin-left: auto;
+  text-align: center;
+}
+
+.zc-calendar .zc-more-btn:hover,
+.zc-calendar .zc-allday-more:hover {
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------ Month */
+.zc-calendar .zc-month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-width: var(--zc-grid-min-width);
+  position: sticky;
+  top: calc(var(--zc-space-4) * -1);
+  z-index: var(--zc-z-sticky);
+  background: var(--zc-color-surface);
+  border-bottom: 1px solid var(--zc-color-border);
+  font-size: var(--zc-font-size-md);
+  direction: rtl;
+}
+
+.zc-calendar .zc-month-weekday {
+  padding: var(--zc-space-2) 0;
+  text-align: center;
+  color: var(--zc-color-text-faint);
+}
+
+.zc-calendar .zc-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: var(--zc-month-row-height);
+  align-items: stretch;
+  gap: 1px;
+  min-width: var(--zc-grid-min-width);
+  background: var(--zc-color-border);
+  direction: rtl;
+}
+
+.zc-calendar .zc-day-cell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 5px;
+  position: relative;
+  overflow: hidden;
+  background: var(--zc-color-surface);
+}
+
+.zc-calendar .zc-month-grid .zc-day-num {
+  width: 28px;
+  height: 28px;
+  margin: auto;
+  border-radius: 50%;
+  text-align: center;
+  font-size: var(--zc-font-size-md);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-day-events {
+  flex: 1;
+  margin-top: 5px;
+  overflow-y: hidden;
+}
+
+.zc-calendar .zc-month-grid .zc-event {
+  width: 100%;
+  margin: 2px 0;
+  padding: 2px var(--zc-space-1);
+  border-radius: var(--zc-radius-xs);
+  font-size: var(--zc-font-size-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  transition: background .2s;
+}
+
+/* timed row inside a month cell */
+.zc-calendar .zc-month-timed {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-2);
+  font-size: var(--zc-font-size-md);
+  line-height: 18px;
+  direction: rtl;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-month-dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--zc-event-bg);
+}
+
+.zc-calendar .zc-month-time {
+  color: var(--zc-color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.zc-calendar .zc-month-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------- Week */
+.zc-calendar .zc-week-grid {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--zc-color-border);
+  font-size: var(--zc-font-size-md);
+  direction: rtl;
+}
+
+.zc-calendar .zc-week-header {
+  display: flex;
+  flex-direction: row-reverse;
+  position: sticky;
+  top: calc(var(--zc-space-4) * -1);
+  z-index: var(--zc-z-sticky-week);
+  background: var(--zc-color-surface);
+  border-bottom: 1px solid var(--zc-color-border);
+  direction: ltr;
+}
+
+.zc-calendar .zc-week-col-head {
+  flex: 1;
+  padding: 5px;
+  text-align: center;
+  background: var(--zc-color-surface-sunken);
+  border-left: 1px solid var(--zc-color-border);
+  border-right: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-week-col-head.zc-is-gutter {
+  flex: 0 0 var(--zc-week-gutter-width);
+  width: var(--zc-week-gutter-width);
+  padding: 0;
+  background: var(--zc-color-surface-gutter);
+  border: 0;
+  border-right: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-week-col-head-inner {
+  padding: var(--zc-space-4) 0;
+  text-align: center;
+  border-left: 1px solid var(--zc-color-border-soft);
+}
+
+.zc-calendar .zc-week-col-head-inner:first-child {
+  border-left: 0;
+}
+
+.zc-calendar .zc-day-name {
+  font-size: var(--zc-font-size-xl);
+  color: var(--zc-color-text-faint);
+}
+
+.zc-calendar .zc-week-col-head .zc-day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin: var(--zc-space-2) auto 0;
+  border-radius: 50%;
+  font-size: var(--zc-font-size-2xl);
+  font-weight: bold;
+  color: #333;
+  cursor: pointer;
+  transition: background var(--zc-transition-fast), color var(--zc-transition-fast);
+}
+
+.zc-calendar .zc-week-col-head .zc-day-num:hover {
+  background: #e7e7e7;
+  color: var(--zc-color-text);
+}
+
+.zc-calendar .zc-week-row {
+  display: flex;
+  flex-direction: row-reverse;
+  min-height: calc(var(--zc-hour-height) * 24);
+  border-top: 1px solid var(--zc-color-border);
+  direction: ltr;
+}
+
+.zc-calendar .zc-week-gutter {
+  flex-shrink: 0;
+  width: var(--zc-week-gutter-width);
+  padding-top: 2px;
+  background: var(--zc-color-surface-gutter);
+  border-right: 1px solid var(--zc-color-border);
+  text-align: center;
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-week-col {
+  flex: 1;
+  position: relative;
+  background: var(--zc-color-surface);
+  border-left: 1px solid var(--zc-color-border);
+}
+
+/* -------------------------------------------------------------------- Day */
+.zc-calendar .zc-day-grid {
+  display: grid;
+  grid-template-columns: 1fr var(--zc-day-gutter-width);
+  position: relative;
+  direction: ltr;
+}
+
+.zc-calendar .zc-day-col {
+  position: relative;
+  background: var(--zc-color-surface);
+  border-left: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-day-gutter {
+  position: relative;
+  padding-left: 5px;
+  border-left: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-day-gutter .zc-hour-label {
+  right: 27px;
+}
+
+.zc-calendar .zc-day-title-text {
+  display: inline-block;
+}
+
+.zc-calendar .zc-day-today-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 2px var(--zc-space-4);
+  margin-right: var(--zc-space-4);
+  border-radius: var(--zc-radius-pill);
+  background: var(--zc-color-accent);
+  color: #fff;
+  font-size: var(--zc-font-size-md);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------- Time grid, week + day */
+.zc-calendar .zc-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--zc-color-border-soft);
+  z-index: var(--zc-z-hour-line);
+}
+
+/* Hour labels in the gutter. The renderer sets only `top`, which is data; everything else is here
+   so it can be rethemed. */
+.zc-calendar .zc-hour-label {
+  position: absolute;
+  font-size: var(--zc-font-size-xs);
+  color: var(--zc-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.zc-calendar .zc-week-gutter .zc-hour-label {
+  right: 35%;
+}
+
+/* Absolute positioning is scoped to the *timed* columns only. All-day rows sit outside these
+   selectors, which is why they no longer need `position: relative !important` to escape. */
+.zc-calendar .zc-week-col .zc-event,
+.zc-calendar .zc-day-col .zc-event {
+  position: absolute;
+  right: 0;
+  left: auto;
+  z-index: var(--zc-z-event);
+  padding: var(--zc-space-1) var(--zc-space-2);
+  border: 1px solid var(--zc-event-border);
+  font-size: var(--zc-font-size-md);
+  line-height: 1.25;
+  direction: rtl;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zc-calendar .zc-week-col .zc-event {
+  border-radius: var(--zc-radius-sm);
+}
+
+.zc-calendar .zc-day-col .zc-event {
+  min-height: var(--zc-font-size-xs);
+  border-radius: var(--zc-radius-md);
+}
+
+/* Density steps applied by the renderer once it measures the box. */
+.zc-calendar .zc-week-col .zc-event.zc-short,
+.zc-calendar .zc-day-col .zc-event.zc-short,
+.zc-calendar .zc-week-col .zc-event.zc-event-compact,
+.zc-calendar .zc-day-col .zc-event.zc-event-compact {
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-week-col .zc-event.zc-short {
+  border-radius: 5px;
+}
+
+.zc-calendar .zc-day-col .zc-event.zc-short {
+  border-radius: var(--zc-radius-sm);
+}
+
+.zc-calendar .zc-week-col .zc-event.zc-tiny,
+.zc-calendar .zc-day-col .zc-event.zc-tiny,
+.zc-calendar .zc-week-col .zc-event.zc-event-dot,
+.zc-calendar .zc-day-col .zc-event.zc-event-dot {
+  padding: 2px var(--zc-space-1);
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-week-col .zc-event.zc-tiny {
+  border-radius: var(--zc-radius-xs);
+}
+
+.zc-calendar .zc-day-col .zc-event.zc-tiny {
+  border-radius: 5px;
+}
+
+/* ------------------------------------------------------ All-day row, week */
+.zc-calendar .zc-allday-row {
+  display: flex;
+  flex-direction: row-reverse;
+  background: var(--zc-color-surface);
+  border-bottom: 1px solid var(--zc-color-border);
+  direction: ltr;
+}
+
+.zc-calendar .zc-allday-time {
+  flex: 0 0 var(--zc-week-gutter-width);
+  width: var(--zc-week-gutter-width);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--zc-space-2) 0;
+  background: var(--zc-color-surface-gutter);
+  border-right: 1px solid var(--zc-color-border);
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-allday-cell {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  gap: var(--zc-space-1);
+  padding: var(--zc-space-1);
+  border-left: 1px solid var(--zc-color-border);
+  direction: rtl;
+}
+
+/* ------------------------------------------------------- All-day bar, day */
+.zc-calendar .zc-day-allday {
+  display: flex;
+  flex-direction: row-reverse;
+  background: var(--zc-color-surface);
+}
+
+.zc-calendar .zc-day-allday-label {
+  flex: 0 0 var(--zc-day-gutter-width);
+  width: var(--zc-day-gutter-width);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--zc-space-2) 0;
+  font-size: var(--zc-font-size-sm);
+}
+
+.zc-calendar .zc-day-allday-list {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--zc-space-2);
+  padding: var(--zc-space-2) var(--zc-space-3);
+  border: 1px solid var(--zc-color-border);
+  direction: rtl;
+}
+
+/* All-day pills in both week and day */
+.zc-calendar .zc-allday-cell .zc-event,
+.zc-calendar .zc-day-allday-list .zc-event {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zc-calendar .zc-day-allday-list .zc-event {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px var(--zc-space-3);
+  border-radius: var(--zc-radius-sm);
+  font-size: var(--zc-font-size-md);
+}
+
+.zc-calendar .zc-allday-divider {
+  height: var(--zc-space-2);
+  position: relative;
+  background: var(--zc-color-border-soft);
+  border-left: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-allday-divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--zc-day-gutter-width);
+  background: var(--zc-color-surface-gutter);
+  border-right: 1px solid var(--zc-color-border);
+}
+
+.zc-calendar .zc-day-allday + .zc-allday-divider::before {
+  background: var(--zc-color-surface);
+  border-left: 1px solid var(--zc-color-border);
+}
+
+/* ------------------------------------------------------------------- Year */
+.zc-calendar .zc-year {
+  padding: var(--zc-space-4);
+  direction: rtl;
+}
+
+/* auto-fill rather than a fixed count: this replaces the three breakpoints that used to step the year
+   grid 4 -> 3 -> 2 -> 1, and it reflows on the calendar's own width with no query at all.
+   At the 1100px default it yields 4 columns, matching the previous layout. */
+.zc-calendar .zc-year-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--zc-space-5);
+}
+
+.zc-calendar .zc-year-month {
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-softer);
+  border-radius: var(--zc-radius-xl);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-year-month-header {
+  padding: var(--zc-space-4);
+  background: var(--zc-color-surface-header);
+  border-bottom: 1px solid #eef0f3;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 800;
+}
+
+.zc-calendar .zc-year-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: var(--zc-space-2) var(--zc-space-3);
+  background: var(--zc-color-surface);
+  font-size: var(--zc-font-size-sm);
+  color: var(--zc-color-text-subtle);
+}
+
+.zc-calendar .zc-year-wd {
+  text-align: center;
+}
+
+.zc-calendar .zc-year-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--zc-space-1);
+  padding: var(--zc-space-3);
+}
+
+.zc-calendar .zc-year-day {
+  height: 28px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--zc-radius-md);
+  user-select: none;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-year-day:hover {
+  background: var(--zc-color-accent-tint);
+}
+
+.zc-calendar .zc-year-day-num {
+  font-size: var(--zc-font-size-md);
+  font-weight: 700;
+  color: var(--zc-color-text-strong);
+}
+
+.zc-calendar .zc-year-dots {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.zc-calendar .zc-year-dot {
+  width: var(--zc-space-2);
+  height: var(--zc-space-2);
+  border-radius: 50%;
+  background: var(--zc-event-bg);
+}
+
+.zc-calendar .zc-year-more {
+  padding: 0 var(--zc-space-2);
+  border-radius: var(--zc-radius-pill);
+  font-size: var(--zc-font-size-xs);
+  font-weight: 800;
+  line-height: 5px;
+  color: var(--zc-color-accent);
+}
+
+/* ------------------------------------------------------------------- List */
+.zc-calendar .zc-list {
+  padding: var(--zc-space-5);
+  direction: rtl;
+}
+
+.zc-calendar .zc-list-day {
+  margin-bottom: var(--zc-space-5);
+  background: var(--zc-color-surface);
+  border: 1px solid var(--zc-color-border-softer);
+  border-radius: var(--zc-radius-lg);
+  overflow: hidden;
+}
+
+.zc-calendar .zc-list-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--zc-space-4) var(--zc-space-5);
+  background: var(--zc-color-surface-header);
+  border-bottom: 1px solid var(--zc-color-border-softer);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-list-items {
+  padding: var(--zc-space-3) 0;
+}
+
+.zc-calendar .zc-list-item {
+  display: grid;
+  grid-template-columns: 110px 18px 1fr;
+  align-items: center;
+  gap: var(--zc-space-3);
+  padding: var(--zc-space-3) var(--zc-space-5);
+  cursor: pointer;
+}
+
+.zc-calendar .zc-list-item + .zc-list-item {
+  border-top: 1px solid var(--zc-color-border-faint);
+}
+
+.zc-calendar .zc-list-time {
+  font-size: var(--zc-font-size-md);
+  color: var(--zc-color-text-subtle);
+  white-space: nowrap;
+}
+
+.zc-calendar .zc-list-dot {
+  width: var(--zc-font-size-xs);
+  height: var(--zc-font-size-xs);
+  border-radius: 50%;
+  background: var(--zc-event-bg);
+}
+
+.zc-calendar .zc-list-title {
+  font-size: var(--zc-font-size-xl);
+  color: var(--zc-color-text-strong);
+}
+
+.zc-calendar .zc-list-empty {
+  padding: 16px;
+  color: var(--zc-color-text-subtle);
+  direction: rtl;
+}
+
+/* ---- Empty / filler cells ---- */
+.zc-calendar .zc-day-cell.zc-is-empty {
+  background: var(--zc-color-surface);
+}
+
+.zc-calendar .zc-mini-day.zc-is-empty,
+.zc-calendar .zc-year-day.zc-is-empty {
+  cursor: default;
+  background: none;
+}
+
+.zc-calendar .zc-mini-day.zc-is-empty {
+  opacity: .25;
+}
+
+.zc-calendar .zc-year-day.zc-is-empty {
+  opacity: .18;
+}
+
+/* ---- Today ---- */
+.zc-calendar .zc-month-grid .zc-day-num.zc-is-today {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  background: var(--zc-color-accent);
+  color: #fff;
+}
+
+.zc-calendar .zc-week-col-head.zc-is-today {
+  background: var(--zc-color-accent-weak);
+  color: var(--zc-color-accent);
+}
+
+.zc-calendar .zc-mini-day.zc-is-today {
+  border: 1px solid var(--zc-color-accent);
+  color: var(--zc-color-accent);
+  font-weight: 700;
+}
+
+.zc-calendar .zc-year-day.zc-is-today {
+  outline: 1px solid var(--zc-color-accent);
+  color: var(--zc-color-accent);
+}
+
+/* ---- Selected / active ---- */
+.zc-calendar .zc-mini-day.zc-is-selected {
+  background: var(--zc-color-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* The arrow-key highlight in the suggestion popup. The list is never focused - the input keeps focus
+   and points at this row with aria-activedescendant - so it needs a visible state of its own. */
+.zc-calendar .zc-ac-item.zc-is-active {
+  background: var(--zc-color-accent-weak);
+  color: var(--zc-color-accent);
+}
+
+.zc-calendar .zc-view-dd-item.zc-is-active {
+  background: var(--zc-color-accent-weak);
+  color: var(--zc-color-accent);
+  font-weight: 800;
+}
+
+/* ---- Open dropdowns ---- */
+.zc-calendar .zc-dd.zc-is-open .zc-dd-menu,
+.zc-calendar .zc-view-dd.zc-is-open .zc-view-dd-menu {
+  display: block;
+}
+
+/* ---- Sidebar open ---- */
+.zc-calendar.zc-sidebar-open .zc-sidebar {
+  width: var(--zc-sidebar-width);
+  overflow: hidden;
+}
+
+.zc-calendar.zc-sidebar-open.zc-sidebar-ready .zc-sidebar {
+  overflow: visible;
+}
+
+.zc-calendar.zc-sidebar-open .zc-menu-icon span {
+  opacity: 0;
+  transform: scaleX(.2);
+}
+
+.zc-calendar.zc-sidebar-open .zc-menu-icon::before {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.zc-calendar.zc-sidebar-open .zc-menu-icon::after {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ---- Day / time highlights ---- */
+.zc-calendar .zc-has-day-hl {
+  background: var(--zc-hl-bg);
+}
+
+.zc-calendar .zc-time-highlight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: var(--zc-z-highlight);
+  pointer-events: none;
+}
+
+/* ---- Overlap focus (week + day) ----
+   The animation and dim values are written by the renderer as custom properties so that
+   `features.overlapFocus` can turn the effect off without a second stylesheet. */
+.zc-calendar .zc-week-col .zc-event,
+.zc-calendar .zc-day-col .zc-event {
+  transition:
+    opacity var(--zc-ov-duration, 0s) var(--zc-ov-easing, linear) var(--zc-ov-delay, 0s),
+    box-shadow var(--zc-ov-duration, 0s) var(--zc-ov-easing, linear) var(--zc-ov-delay, 0s),
+    filter var(--zc-ov-duration, 0s) var(--zc-ov-easing, linear) var(--zc-ov-delay, 0s);
+}
+
+.zc-calendar .zc-event.zc-ov-conflict {
+  border: 1px solid #000;
+}
+
+.zc-calendar .zc-event.zc-ov-dim {
+  opacity: var(--zc-ov-dim-opacity, .07);
+}
+
+.zc-calendar .zc-event.zc-ov-focus {
+  opacity: 1;
+  box-shadow: var(--zc-shadow-focus);
+}
+
+/* ---- Focus ----
+   The reset sets `outline: 0` on every descendant so the host's focus styling cannot leak in, which
+   left the calendar with no focus indicator at all. `.zc-calendar :focus-visible` is (0,2,0) - the
+   views tier - so it beats the reset's (0,1,0) without an !important and stays overridable.
+   Retheme through --zc-focus-ring, or set it to `none` to opt out. */
+.zc-calendar :focus-visible,
+.zc-modal-overlay :focus-visible {
+  outline: var(--zc-focus-ring);
+  outline-offset: var(--zc-focus-ring-offset);
+}
+
+/* Rounded controls want the ring to follow the shape rather than the box. */
+.zc-calendar .zc-month-grid .zc-day-num:focus-visible,
+.zc-calendar .zc-week-col-head .zc-day-num:focus-visible,
+.zc-calendar .zc-mini-day:focus-visible,
+.zc-calendar .zc-prev:focus-visible,
+.zc-calendar .zc-next:focus-visible {
+  outline-offset: 1px;
+}
+
+/* ---- Hidden ----
+   Declared last on purpose: .zc-modal-overlay sets display:flex, so at equal specificity this must
+   come after it, and .zc-modal-overlay.zc-hidden (0,2,0) out-ranks it outright. */
+.zc-calendar .zc-hidden,
+.zc-modal-overlay.zc-hidden {
+  display: none;
+}
+
+/* ============================================================================
+ RESPONSIVE
+ ============================================================================
+ Driven by the width of the calendar itself, not the viewport.
+
+ This is the fix for the integration failure that started this work: embedded next to a 280px host nav
+ rail, a 1024px viewport leaves the calendar roughly 740px wide, but every viewport media query still
+ evaluated as "desktop" and the layout broke. `container-type: inline-size` on .zc-calendar (see
+ base.css) makes these queries read the calendar's own inline size instead.
+
+ Two things deliberately stay as media queries:
+
+   1. .zc-calendar's own box. A container query can only style DESCENDANTS of the container, never the
+      container itself - sizing the container from its own size would be circular. How the calendar sits
+      on the page is a viewport-level concern anyway.
+
+   2. The modal. It is appended to <body>, so it is not inside the container at all.
+
+ Tokens that used to be re-declared on .zc-calendar in a media query are now set on .zc-body inside a
+ container query. Every consumer of those tokens is a descendant of .zc-body, and custom properties
+ inherit, so the effect is identical while the trigger becomes the container.
+ ========================================================================= */
+
+/* ---- Viewport-level: how the calendar sits on the page ---- */
+@media (max-width: 1024px) {
+  .zc-calendar {
+    max-width: 100%;
+    margin: var(--zc-space-5) auto;
+    padding: 0 var(--zc-space-4);
+  }
+}
+
+/* ---- Viewport-level: the modal lives outside the container ---- */
+@media (max-width: 480px) {
+  .zc-modal-overlay .zc-modal {
+    max-width: 92vw;
+    border-radius: var(--zc-radius-lg);
+  }
+
+  .zc-modal-overlay .zc-modal-body {
+    padding: var(--zc-space-4);
+  }
+}
+
+/* ---- Container-level ---- */
+@container zc (max-width: 1024px) {
+  .zc-calendar .zc-body {
+    padding: var(--zc-space-3);
+  }
+}
+
+@container zc (max-width: 900px) {
+  /* The time grid stops fitting; let it scroll and pin the hour gutter. */
+  .zc-calendar .zc-week-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .zc-calendar .zc-week-header,
+  .zc-calendar .zc-week-row,
+  .zc-calendar .zc-allday-row {
+    min-width: var(--zc-week-min-width);
+  }
+
+  .zc-calendar .zc-week-gutter {
+    position: sticky;
+    right: 0;
+    z-index: calc(var(--zc-z-gutter) + 10);
+  }
+
+  .zc-calendar .zc-week-col-head.zc-is-gutter {
+    position: relative;
+    right: 0;
+    z-index: calc(var(--zc-z-gutter) + 20);
+  }
+
+  .zc-calendar .zc-allday-time {
+    right: 0;
+    z-index: calc(var(--zc-z-gutter) + 15);
+  }
+
+  .zc-calendar.zc-sidebar-open .zc-sidebar,
+  .zc-calendar .zc-sidebar-inner {
+    width: 240px;
+  }
+}
+
+@container zc (max-width: 768px) {
+  .zc-calendar .zc-body {
+    --zc-day-gutter-width: 52px;
+  }
+
+  .zc-calendar .zc-header {
+    flex-wrap: wrap;
+    gap: var(--zc-space-3);
+    padding: var(--zc-space-4);
+  }
+
+  .zc-calendar .zc-center {
+    order: 0;
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .zc-calendar .zc-left {
+    order: 1;
+  }
+
+  .zc-calendar .zc-right {
+    order: 2;
+  }
+
+  .zc-calendar .zc-title {
+    min-width: unset;
+    font-size: var(--zc-font-size-2xl);
+  }
+
+  .zc-calendar .zc-nav-group button {
+    height: 30px;
+    padding: 0 var(--zc-space-4);
+    font-size: var(--zc-font-size-lg);
+  }
+
+  .zc-calendar .zc-day-cell {
+    height: var(--zc-month-row-height);
+    padding: var(--zc-space-1);
+  }
+
+  .zc-calendar .zc-month-weekdays {
+    font-size: var(--zc-font-size-sm);
+  }
+
+  .zc-calendar .zc-day-gutter {
+    position: sticky;
+    right: 0;
+    z-index: var(--zc-z-gutter);
+    background: var(--zc-color-surface);
+  }
+}
+
+@container zc (max-width: 560px) {
+  /* Seven columns stop being usable at roughly 78px each - the "+N more" label is the first thing
+     to clip. Below that the month grid takes a floor and scrolls, rather than squeezing further. */
+  .zc-calendar .zc-body {
+    --zc-grid-min-width: 546px;
+  }
+}
+
+@container zc (max-width: 480px) {
+  .zc-calendar .zc-body {
+    --zc-day-gutter-width: 46px;
+    --zc-week-gutter-width: 56px;
+  }
+
+  .zc-calendar .zc-header {
+    gap: var(--zc-space-2);
+    padding: var(--zc-space-3);
+  }
+
+  .zc-calendar .zc-title {
+    font-size: var(--zc-font-size-xl);
+  }
+
+  .zc-calendar .zc-nav-group button {
+    height: 28px;
+    padding: 0 var(--zc-space-3);
+  }
+
+  .zc-calendar .zc-prev svg,
+  .zc-calendar .zc-next svg {
+    width: var(--zc-font-size-xl);
+    height: var(--zc-font-size-xl);
+  }
+
+  .zc-calendar .zc-day-cell {
+    height: 92px;
+    padding: 3px;
+  }
+
+  .zc-calendar .zc-month-grid .zc-day-num {
+    font-size: var(--zc-font-size-sm);
+  }
+
+  .zc-calendar .zc-month-grid .zc-event {
+    padding: 1px 3px;
+    font-size: var(--zc-font-size-sm);
+  }
+
+  .zc-calendar .zc-more-btn {
+    font-size: var(--zc-font-size-xs);
+  }
+
+  .zc-calendar .zc-day-name {
+    font-size: var(--zc-font-size-md);
+  }
+
+  .zc-calendar .zc-week-col-head .zc-day-num {
+    font-size: 16px;
+  }
+}

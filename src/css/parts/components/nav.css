@@ -1,0 +1,75 @@
+/* ---- Header navigation (arrows + today) ---- */
+.zc-calendar .zc-nav-group {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-3);
+}
+
+.zc-calendar .zc-nav-group button {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--zc-transition-fast), transform .12s ease;
+}
+
+.zc-calendar .zc-prev,
+.zc-calendar .zc-next {
+  width: 36px;
+  padding: 0;
+  border-radius: var(--zc-radius-pill);
+}
+
+.zc-calendar .zc-prev:hover,
+.zc-calendar .zc-next:hover {
+  background: var(--zc-color-hover-veil);
+}
+
+.zc-calendar .zc-prev:active,
+.zc-calendar .zc-next:active {
+  background: var(--zc-color-active-veil);
+  transform: scale(.96);
+}
+
+/* The chevron is inlined by the renderer and painted with currentColor, so it needs no network
+   request, no path that has to resolve from the host page, and no second asset for the other
+   direction. */
+.zc-calendar .zc-prev svg,
+.zc-calendar .zc-next svg {
+  width: 18px;
+  height: 18px;
+  color: var(--zc-color-text-icon);
+}
+
+.zc-calendar .zc-next svg {
+  transform: rotate(180deg);
+}
+
+.zc-calendar .zc-today {
+  min-width: 70px;
+  padding: 0 14px;
+  border: 1px solid rgba(0, 0, 0, .22);
+  border-radius: var(--zc-radius-pill);
+  background: var(--zc-color-surface);
+  color: #111;
+  font-size: var(--zc-font-size-lg);
+  font-weight: 700;
+  letter-spacing: .2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+}
+
+.zc-calendar .zc-today:hover {
+  background: rgba(0, 0, 0, .04);
+  border-color: rgba(0, 0, 0, .30);
+}
+
+.zc-calendar .zc-today:active {
+  background: rgba(0, 0, 0, .08);
+  transform: scale(.99);
+}
+
+.zc-calendar .zc-today:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .06);
+}

@@ -1,0 +1,102 @@
+/* ------------------------------------------------------------------ Month */
+.zc-calendar .zc-month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-width: var(--zc-grid-min-width);
+  position: sticky;
+  top: calc(var(--zc-space-4) * -1);
+  z-index: var(--zc-z-sticky);
+  background: var(--zc-color-surface);
+  border-bottom: 1px solid var(--zc-color-border);
+  font-size: var(--zc-font-size-md);
+  direction: rtl;
+}
+
+.zc-calendar .zc-month-weekday {
+  padding: var(--zc-space-2) 0;
+  text-align: center;
+  color: var(--zc-color-text-faint);
+}
+
+.zc-calendar .zc-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: var(--zc-month-row-height);
+  align-items: stretch;
+  gap: 1px;
+  min-width: var(--zc-grid-min-width);
+  background: var(--zc-color-border);
+  direction: rtl;
+}
+
+.zc-calendar .zc-day-cell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 5px;
+  position: relative;
+  overflow: hidden;
+  background: var(--zc-color-surface);
+}
+
+.zc-calendar .zc-month-grid .zc-day-num {
+  width: 28px;
+  height: 28px;
+  margin: auto;
+  border-radius: 50%;
+  text-align: center;
+  font-size: var(--zc-font-size-md);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-day-events {
+  flex: 1;
+  margin-top: 5px;
+  overflow-y: hidden;
+}
+
+.zc-calendar .zc-month-grid .zc-event {
+  width: 100%;
+  margin: 2px 0;
+  padding: 2px var(--zc-space-1);
+  border-radius: var(--zc-radius-xs);
+  font-size: var(--zc-font-size-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  transition: background .2s;
+}
+
+/* timed row inside a month cell */
+.zc-calendar .zc-month-timed {
+  display: flex;
+  align-items: center;
+  gap: var(--zc-space-2);
+  font-size: var(--zc-font-size-md);
+  line-height: 18px;
+  direction: rtl;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.zc-calendar .zc-month-dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--zc-event-bg);
+}
+
+.zc-calendar .zc-month-time {
+  color: var(--zc-color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.zc-calendar .zc-month-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

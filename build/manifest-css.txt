@@ -1,0 +1,48 @@
+# Build order for src/css/zarvan.css
+#
+# This file is the single source of truth for stylesheet order. Order matters: the specificity contract
+# documented at the top of the generated file relies on reset coming first and state coming last, and
+# equal-specificity ties are resolved by source order.
+#
+# Blank lines and lines starting with # are ignored. Paths are relative to src/css/.
+
+# --- reset: neutralise the host's base styles (lowest specificity, must come first) ---
+parts/reset.css
+
+# --- tokens: the whole theming surface ---
+parts/tokens.css
+
+# --- base: root box, typography, container declaration ---
+parts/base.css
+
+# --- layout: the shell around the active view ---
+parts/layout/header.css
+parts/layout/shell.css
+parts/layout/scrollbars.css
+
+# --- components: reusable widgets, no view knowledge ---
+parts/components/menu-button.css
+parts/components/nav.css
+parts/components/dropdown.css
+parts/components/filters.css
+parts/components/autocomplete.css
+parts/components/export-button.css
+parts/components/mini-calendar.css
+parts/components/modal.css
+parts/components/now-indicator.css
+parts/components/event.css
+
+# --- views ---
+parts/views/month.css
+parts/views/week.css
+parts/views/day.css
+parts/views/timegrid.css
+parts/views/allday.css
+parts/views/year.css
+parts/views/list.css
+
+# --- state: must come after views so equal-specificity state rules win ---
+parts/state.css
+
+# --- responsive: container queries, last ---
+parts/responsive.css

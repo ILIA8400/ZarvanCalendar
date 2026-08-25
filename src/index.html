@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>تقویم</title>
-  <link rel="stylesheet" href="css/zarvan.css" />
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+  <!-- optional: registers the bundled Vazir face. Core CSS forces no font. -->
+  <link rel="stylesheet" href="../dist/zarvan-theme-fa.css" />
   <style>
     .cal-wrap {
       margin: 30px auto;
@@ -26,9 +28,11 @@
     <div id="calendar2"></div>
   </div>
 
-  <script src="libs/xlsx.full.min.js"></script>
-  <script src="libs/jalaali.js"></script>
-  <script src="js/zarvan.js"></script>
+  <!-- Optional, and not vendored: SheetJS is resolved when the export button is pressed. Offline, or
+       with this tag removed, the button warns through onWarn and nothing else changes. -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- jalaali is inside this file; there is no second tag and no order to get wrong. -->
+  <script src="../dist/zarvan.js"></script>
 
   <script>
     // --- helper برای ساخت تاریخ شمسیِ همین هفته ---
@@ -167,7 +171,7 @@
         holiday: { bg: "#ef4444", color: "#fff" },
       },
       handlers: {
-        onInit: (_, ctx) => console.log("init", ctx.instanceId),
+        onInit: (_payload, _meta, ctx) => console.log("init", ctx.instanceId),
 
         onFiltersChange: (p, ctx) =>
           console.log("filters", p.source, { type: p.type, q: p.q }),
@@ -186,7 +190,6 @@
         onExportError: (err) => console.error("export error", err),
 
         onEventClick: (ev, meta, ctx) => {
-          debugger;
           console.log("event click", ev.title, meta.view, meta.jdate, meta.isAllDay);
         },
 
