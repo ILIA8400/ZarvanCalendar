@@ -463,7 +463,7 @@ cal.destroy();</code></pre>
           <!-- ============================================================ configuration -->
           <section id="section-configuration" class="zd-section" data-title="Configuration"
             data-group="Getting started"
-            data-keywords="options features flags sidebar minicalendar search filters export toggle setOption hot validation">
+            data-keywords="options features flags sidebar sidebarOpen minicalendar search filters export toggle setOption hot validation">
 
             <p class="zd-eyebrow">Getting started</p>
             <h1>Configuration</h1>
@@ -514,6 +514,7 @@ cal.destroy();</code></pre>
                   <tr><td><code>view</code></td><td>string</td><td><code>"month"</code></td><td><code>day</code> <code>week</code> <code>month</code> <code>year</code> <code>list</code>, or a registered view. Falls back if disabled.</td></tr>
                   <tr><td><code>locale</code></td><td>string | object</td><td><code>"fa"</code></td><td>Persian is the only bundled locale. Pass a partial one to retune its wording.</td></tr>
                   <tr><td><code>colorScheme</code></td><td>"light" | "dark" | "auto"</td><td><code>"light"</code></td><td><code>"auto"</code> follows the system and keeps following it.</td></tr>
+                  <tr><td><code>sidebarOpen</code></td><td>boolean</td><td><code>false</code></td><td>Whether the sidebar starts open. Read once, at construction.</td></tr>
                   <tr><td><code>renderMode</code></td><td>"batched" | "sync"</td><td><code>"batched"</code></td><td><code>"sync"</code> renders on every change.</td></tr>
                   <tr><td><code>shadow</code></td><td>boolean</td><td><code>false</code></td><td>Render inside a shadow root.</td></tr>
                   <tr><td><code>styles</code></td><td>string | CSSStyleSheet | array</td><td>—</td><td>Shadow mode only; CSS to adopt.</td></tr>
@@ -556,6 +557,53 @@ cal.destroy();</code></pre>
 
   timeGridLayout: "overlap",  // "overlap" | "columns"
 }</code></pre>
+            </div>
+
+            <h2 id="sidebar-open">The sidebar's initial state</h2>
+            <p>
+              The sidebar is collapsed unless you ask for it open. That default is deliberate: a calendar
+              that says nothing looks exactly as it always has.
+            </p>
+
+            <div class="zd-demo" data-demo="configuration-sidebar">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls" data-role="sidebar-open">
+                  <span class="zd-field">Rebuild the calendar with</span>
+                  <div class="zd-btn-group">
+                    <button class="zd-btn" type="button" data-sidebar-open="false">sidebarOpen: false</button>
+                    <button class="zd-btn" type="button" data-sidebar-open="true">sidebarOpen: true</button>
+                  </div>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                Each button destroys the calendar and constructs a new one, because this is read at
+                construction. Notice that constructing with the sidebar open emits no
+                <code>onSidebarToggle</code> — nothing toggled — but the menu button still works normally
+                afterwards.
+              </div>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({ selector: "#calendar", sidebarOpen: true });</code></pre>
+            </div>
+
+            <p>
+              It is read once and is <strong>not</strong> hot — <code>setOption("sidebarOpen", …)</code>
+              warns with <code>warn.optionNotHot</code>. An initially-open sidebar is open in the first
+              frame rather than sliding open in front of the reader, and the option is ignored when
+              <code>features.sidebar</code> is <code>false</code>: there is no panel to open.
+            </p>
+
+            <p>
+              There is no method for opening or closing it from code. Click the button the library
+              rendered:
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.getRoot().querySelector(".zc-menu-btn").click();</code></pre>
             </div>
 
             <h2 id="hot-options">Which options are hot</h2>
@@ -2518,7 +2566,7 @@ Zarvan.create({ selector: "#calendar", deps: { xlsx: XLSX } });</code></pre>
             <div class="zd-callout is-note">
               <span class="zd-callout-label">Why it is a plugin</span>
               <p>
-                An 881 KB dependency for one optional button should not be something every consumer pays for.
+                An ~880 KB dependency for one optional button should not be something every consumer pays for.
                 Dropping the plugin removes the button, the API method and the dependency together.
               </p>
             </div>
@@ -3145,6 +3193,7 @@ cal.getShadowRoot();   // the shadow root, or null in the light DOM</code></pre>
                   <tr><td><code>view</code></td><td>string</td><td><code>"month"</code></td><td>Falls back to an enabled view if this one is disabled.</td></tr>
                   <tr><td><code>locale</code></td><td>string | object</td><td><code>"fa"</code></td><td>A code, a full locale, or a partial one.</td></tr>
                   <tr><td><code>colorScheme</code></td><td>"light" | "dark" | "auto"</td><td><code>"light"</code></td><td><a href="#dark-mode">Dark mode</a>.</td></tr>
+                  <tr><td><code>sidebarOpen</code></td><td>boolean</td><td><code>false</code></td><td>Whether the sidebar starts open. Construction-only; needs <code>features.sidebar</code>.</td></tr>
                   <tr><td><code>renderMode</code></td><td>"batched" | "sync"</td><td><code>"batched"</code></td><td><code>"sync"</code> renders on every change.</td></tr>
                   <tr><td><code>features</code></td><td>object</td><td>all on</td><td>See <a href="#configuration">Configuration</a>.</td></tr>
                   <tr><td><code>handlers</code></td><td>object</td><td><code>{}</code></td><td>Callbacks by name; the same set as <code>.on()</code>.</td></tr>

@@ -11,6 +11,8 @@ clone until you have run a build. Edit these:
 src/js/
 ├─ core/utils.js        clamp, pad2, norm, mergeDeep, typeClass, hashStr
 ├─ core/dom.js          qs, qsa, createEl, resolveElement
+├─ core/disposable.js   a bag of teardown callbacks; two stores per instance
+├─ core/scheduler.js    coalesces renders into one animation frame
 ├─ calendar/jdate.js    Jalali date STRINGS: parse, format, compare, sort keys
 ├─ calendar/gregorian.js plain Date helpers, calendar-system agnostic
 ├─ calendar/jalali.js   the ONLY file that touches the jalaali library
@@ -125,7 +127,7 @@ self-contained.
 
 The Excel export resolves SheetJS when the button is pressed — from `options.deps.xlsx` or
 `window.XLSX` — and warns through `onWarn` if it is absent. It is not a dependency and it is not
-committed: at 882 KB it was the largest thing in the repository and it ships in no build output.
+committed: at roughly 880 KB it was the largest thing in the repository and it ships in no build output.
 
 `src/index.html` and `examples/vanilla.html` load it from a CDN. Offline, those two pages still work;
 the export button reports `warn.xlsxMissing` instead of downloading, which is the documented and
@@ -148,7 +150,7 @@ instructions in README.md are true. This is the one to run after any packaging c
 
 ### `test/index.html` — unit tests
 
-253 assertions across 24 suites covering every pure layer plus the UI widgets. Prints a PASS/FAIL
+265 assertions across 24 suites covering every pure layer plus the UI widgets. Prints a PASS/FAIL
 verdict with per-assertion detail. Add a case with `test("name", function () { eq(actual, expected); })`
 inside a `suite(...)`.
 
@@ -485,7 +487,7 @@ same is true of a plugin that throws during `install`.
 2. `window.XLSX` — the global, for the `<script>` tag case
 3. absent — the button reports `warn.xlsxMissing` and nothing breaks
 
-That is the whole reason it is a plugin: an 881 KB dependency for one optional button should not be
+That is the whole reason it is a plugin: an ~880 KB dependency for one optional button should not be
 something every consumer pays for.
 
 ### Writing a plugin
@@ -505,8 +507,14 @@ Two rules:
 ## Public API
 
 ```js
-var cal = Zarvan.create({ selector, events, view, locale, features, plugins, shadow, renderMode });
+var cal = Zarvan.create({
+  selector, events, view, locale, colorScheme, sidebarOpen,
+  features, highlights, typeLabels, typeStyles, validation,
+  plugins, deps, shadow, styles, renderMode, eventCacheLimit, handlers,
+});
 ```
+
+The full option reference, with types and defaults, is in [API.md](API.md#options).
 
 **Events**
 
@@ -520,6 +528,19 @@ var cal = Zarvan.create({ selector, events, view, locale, features, plugins, sha
 | `removeEvent(id)` | Returns the removed event, or `null`. |
 
 Every mutation emits `onEventsChange` with `{ type: "set"|"add"|"update"|"remove", event, events }`.
+
+**Loading on demand**
+
+| Method | Notes |
+|---|---|
+| `refetchEvents()` | Reloads the visible range, ignoring the cache. `false` when `events` is an array. |
+| `isLazy()` | Whether `events` is a function. |
+| `isLoading()` | Whether a load is outstanding. |
+
+`setEvents()` takes either kind, so a source can be swapped at runtime. A lazy load also emits
+`onEventsChange` with `type: "load"`, plus the three `onEventsLoad*` callbacks. The timing rules —
+generation counting, de-duplication, the capped range cache — live in `data/source.js`; see
+[API.md](API.md#loading-events-on-demand) for the consumer-facing contract.
 
 **Navigation**
 
@@ -558,10 +579,25 @@ Feature flags are merged **into** the existing object rather than replacing it �
 contexts hold a reference to it from construction, and swapping it out would leave every one of them
 reading a stale copy.
 
-**DOM**
+`sidebarOpen` is one of the options that is **not** hot: it is the state the calendar is built in, read
+once, at the end of construction. `zc-sidebar-open` and `zc-sidebar-ready` are set together there
+because the second is normally added when the width transition ends and there is no transition on the
+first frame. Nothing is emitted — nothing toggled — and the menu button drives it from then on.
+
+**Bus**
+
+`on(name, fn)` returns an unsubscribe function; `off(name, fn)` takes the reference; `emit(name, payload)`
+is yours to use for your own names too. Every callback is `(payload, meta, ctx)`, and each subscriber is
+called in isolation so one that throws cannot stop the render.
+
+**DOM and lifecycle**
 
 `getContainer()` returns the element you passed. `getRoot()` returns the `.zc-calendar` element — the
 same thing unless shadow mode is on. `getShadowRoot()` returns the shadow root or `null`.
+
+`refresh()` flushes a pending render immediately. `plugins()` lists what this instance has.
+`exportToExcel()` exists when the export plugin is installed. `destroy()` releases everything and hands
+the element back as it was found — see [Lifetimes](#lifetimes-the-disposable-stores).
 
 ## Shadow DOM mode
 

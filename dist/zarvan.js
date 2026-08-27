@@ -4838,8 +4838,16 @@ var Zarvan = (function () {
        see. `inert` covers both; aria-hidden is the fallback for browsers without it (it hides from
        assistive tech but not from Tab, hence both). */
     function syncSidebarHidden() {
-      if (!sidebarEl) return;
       var open = container.classList.contains("zc-sidebar-open");
+
+      /* Announced on the button as well as on the panel. renderHeader() builds the button from
+         scratch - on setLocale(), on a feature change - so this cannot be written once at
+         construction: it would say "false" for an open sidebar the first time the header was
+         rebuilt, and again for a calendar that starts open. */
+      var menuBtn = qs(".zc-menu-btn", container);
+      if (menuBtn) menuBtn.setAttribute("aria-expanded", String(open));
+
+      if (!sidebarEl) return;
       if (open) {
         sidebarEl.removeAttribute("inert");
         sidebarEl.removeAttribute("aria-hidden");
@@ -4852,9 +4860,8 @@ var Zarvan = (function () {
     function toggleSidebar() {
       if (!features.sidebar) return;
 
+      // aria-expanded is written by syncSidebarHidden(), which both branches below call.
       var wasOpen = container.classList.contains("zc-sidebar-open");
-      var btn = qs(".zc-menu-btn", container);
-      if (btn) btn.setAttribute("aria-expanded", String(!wasOpen));
 
       if (!wasOpen) {
         container.classList.add("zc-sidebar-open");
@@ -4909,8 +4916,8 @@ var Zarvan = (function () {
         var menuBtn = createEl("button", "zc-menu-btn");
         menuBtn.type = "button";
         menuBtn.setAttribute("aria-label", t("menu"));
-        // Stated up front rather than only after the first click, and pointed at what it opens.
-        menuBtn.setAttribute("aria-expanded", "false");
+        // Pointed at what it opens. aria-expanded is set from the real state by the
+        // syncSidebarHidden() call at the end of this function.
         menuBtn.setAttribute("aria-controls", instanceId + "-sidebar");
         /* Inlined SVG rather than the old div/pseudo-element bars: crisp rounded caps at any size,
            and the same currentColor family as the other icons. The three <line>s keep the classes
@@ -6438,6 +6445,21 @@ var Zarvan = (function () {
 
     // --------------------------- Init ---------------------------
     renderHeader();
+
+    /* The sidebar is collapsed unless the caller asks for it open. Default-closed is the whole
+       point of the option: a calendar that says nothing looks exactly as it always has.
+     *
+     * Both classes go on together, before the first paint. `zc-sidebar-ready` is normally added
+     * when the width transition finishes, and there is no transition to wait for here - the panel
+     * is simply open in the first frame, rather than sliding open in front of the reader on load.
+     *
+     * No onSidebarToggle is emitted: nothing toggled. This is the state the calendar was built in,
+     * and onInit is the callback that reports construction. */
+    if (features.sidebar && options.sidebarOpen) {
+      container.classList.add("zc-sidebar-open", "zc-sidebar-ready");
+      syncSidebarHidden();
+    }
+
     if (features.moreEventsModal) ensureModal();
 
     renderTypeStyles();

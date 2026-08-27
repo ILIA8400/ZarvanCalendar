@@ -278,6 +278,50 @@
         echo();
       });
     });
+
+    /* ---- the sidebar's initial state, further down the same page ----
+       sidebarOpen is read at construction, so showing it means building a new
+       calendar rather than setting anything on the running one. */
+    var sidebarMount = d.el("[data-demo=configuration-sidebar] [data-mount]");
+    if (!sidebarMount) return;
+
+    var sidebarLog = d.logger("[data-demo=configuration-sidebar] [data-log]");
+    var sidebarCal = null;
+
+    function buildSidebarDemo(open) {
+      if (sidebarCal) sidebarCal.destroy();
+
+      sidebarCal = Zarvan.create({
+        selector: sidebarMount,
+        view: "month",
+        events: sampleEvents(),
+        typeLabels: TYPE_LABELS,
+        typeStyles: TYPE_STYLES,
+        colorScheme: Docs.theme(),
+        sidebarOpen: open,
+        handlers: {
+          onInit: function () {
+            sidebarLog.write("onInit", "constructed with sidebarOpen: " + open);
+          },
+          onSidebarToggle: function (isOpen) {
+            sidebarLog.write("onSidebarToggle", isOpen ? "opened" : "closed");
+          },
+        },
+      });
+
+      d.selectIn("[data-role=sidebar-open]", "data-sidebar-open", String(open));
+    }
+
+    // One cleanup for whichever instance is current, however many times it is rebuilt.
+    d.add(function () { if (sidebarCal) sidebarCal.destroy(); });
+    d.add(Docs.onTheme(function (theme) {
+      if (sidebarCal) sidebarCal.setColorScheme(theme);
+    }));
+
+    buildSidebarDemo(false);
+    d.click("[data-sidebar-open]", function (btn) {
+      buildSidebarDemo(btn.dataset.sidebarOpen === "true");
+    });
   });
 
   /* ==========================================================================

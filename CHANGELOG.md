@@ -4,6 +4,28 @@
 
 ### Added
 
+- **`sidebarOpen` — the sidebar's initial state.** Closed by default, so a calendar that says nothing
+  looks exactly as it always has.
+
+  ```js
+  Zarvan.create({ selector: "#calendar", sidebarOpen: true });
+  ```
+
+  Read once, at construction, and deliberately not hot: `setOption("sidebarOpen", …)` warns with
+  `warn.optionNotHot` rather than pretending. From then on the menu button toggles the panel exactly
+  as before, and `onSidebarToggle` reports each change — construction itself emits nothing, because
+  nothing toggled, and `onInit` is the callback that reports construction.
+
+  `zc-sidebar-open` and `zc-sidebar-ready` are set together and before the first paint. The second is
+  normally added when the width transition ends; there is no transition to wait for here, so the panel
+  is simply open in the first frame rather than sliding open in front of the reader on load. The option
+  is ignored when `features.sidebar` is `false` — there is no panel to open.
+
+- **The documentation site, `website/`.** 28 sections, each pairing prose and an API table with a live
+  calendar the reader can drive. Open `website/index.html` — no server, no build step, no network. Every
+  demo uses the public API only, and is destroyed when the reader navigates away, so browsing it
+  exercises `destroy()` a few dozen times.
+
 - **Dark mode.** `colorScheme: "light" | "dark" | "auto"`, defaulting to `"light"`, so an existing
   calendar looks exactly as it did.
 
@@ -108,6 +130,14 @@
 
   The year view still has no per-event nodes: it draws dots and a `+N` badge, and clicking a day
   emits `onDayNumberClick`, not `onEventClick`.
+
+### Fixed
+
+- **`aria-expanded` on the menu button went stale after a header rebuild.** `renderHeader()` built the
+  button with a hardcoded `aria-expanded="false"`, so `setLocale()` — or any feature change — on a
+  calendar with an open sidebar left the button announcing the opposite of what was on screen. It is
+  now written from the real state by `syncSidebarHidden()`, which is the one place that already knew
+  it, and which both toggle branches and the header rebuild all call.
 
 ### Changed
 

@@ -6,6 +6,9 @@
 - [Instance methods](#instance-methods)
 - [Callbacks](#callbacks)
 - [Dark mode](#dark-mode)
+- [Design tokens](#design-tokens)
+- [Keyboard and assistive technology](#keyboard-and-assistive-technology)
+- [Wording and numerals](#wording-and-numerals)
 - [Static methods](#static-methods)
 
 ---
@@ -38,6 +41,7 @@ change is batched into one animation frame unless you pass `renderMode: "sync"`.
 | `view` | string | `"month"` | `day` `week` `month` `year` `list`, or a registered view. Falls back if disabled. |
 | `locale` | string \| object | `"fa"` | Persian is the only bundled locale. Pass a partial one to retune its wording — see [Wording and numerals](#wording-and-numerals). |
 | `colorScheme` | `"light"` \| `"dark"` \| `"auto"` | `"light"` | `"auto"` follows the system's `prefers-color-scheme` and keeps following it. See [Dark mode](#dark-mode). |
+| `sidebarOpen` | boolean | `false` | Whether the sidebar starts open. Read once, at construction. Needs `features.sidebar`. |
 | `renderMode` | `"batched"` \| `"sync"` | `"batched"` | `"sync"` renders on every change. |
 | `shadow` | boolean | `false` | Render inside a shadow root. |
 | `styles` | string \| CSSStyleSheet \| array | — | Shadow mode only; CSS to adopt. |
@@ -56,6 +60,28 @@ change is batched into one animation frame unless you pass `renderMode: "sync"`.
 
 `validation.onInvalid` is `"drop"` (default) or `"keep"`; kept events are flagged `_invalid`.
 `validation.autoFix` repairs an `end` that falls strictly before `start`.
+
+### The sidebar's initial state
+
+The sidebar is collapsed unless you ask for it open:
+
+```js
+Zarvan.create({ selector: "#calendar", sidebarOpen: true });
+```
+
+It is read once, at construction, and is **not** a hot option — `setOption("sidebarOpen", …)` warns
+with `warn.optionNotHot`. From then on the menu button toggles it exactly as it always has, and
+`onSidebarToggle` reports each change. Construction itself emits nothing: nothing toggled, and
+`onInit` is the callback that reports construction.
+
+An initially-open sidebar is open in the first frame rather than sliding open in front of the reader,
+and it is ignored when `features.sidebar` is `false` — there is no panel to open.
+
+There is no method for opening or closing it from code. Click the button the library rendered:
+
+```js
+cal.getRoot().querySelector(".zc-menu-btn").click();
+```
 
 ### `features`
 
@@ -306,6 +332,154 @@ Two things do **not** follow the scheme, both deliberately:
 
 The calendar paints its own background in dark mode (`--zc-color-canvas`), because a dark widget
 cannot leave its padding to a light host page. In light mode that token is `transparent`, as before.
+
+---
+
+## Design tokens
+
+The complete theming surface: 85 custom properties, with their light-scheme defaults. Override any of
+them on `.zc-calendar` (or a parent) to retheme, or write them at runtime with
+[`setTheme()`](#configuration).
+
+Custom properties inherit through a shadow boundary, which is why tokens keep working in
+`shadow: true` mode when no other override technique does. The colour tokens — and only those — are
+re-valued under `.zc-scheme-dark`; see [Dark mode](#dark-mode).
+
+### Colour
+
+```css
+/* brand */
+--zc-color-accent: #1a73e8;
+--zc-color-accent-weak: #e8f0fe;
+--zc-color-accent-tint: #f1f5ff;
+--zc-color-accent-tint-alt: #f3f6ff;
+--zc-color-accent-ring: rgba(26, 115, 232, .15);
+--zc-color-accent-border: #cfd8ff;
+
+/* surfaces */
+--zc-color-canvas: transparent;      /* the ground the calendar paints behind itself */
+--zc-color-surface: #fff;
+--zc-color-surface-alt: #fafafa;
+--zc-color-surface-sunken: #f7f7f7;
+--zc-color-surface-gutter: #f0f0f0;
+--zc-color-surface-header: #f6f7f9;
+
+/* text */
+--zc-color-text: #202124;
+--zc-color-text-strong: #111827;
+--zc-color-text-muted: #5f6368;
+--zc-color-text-subtle: #6b7280;
+--zc-color-text-faint: #666;
+--zc-color-text-icon: #444;
+
+/* lines */
+--zc-color-border: #ddd;
+--zc-color-border-soft: #eee;
+--zc-color-border-softer: #e5e7eb;
+--zc-color-border-menu: #e6e6e6;
+--zc-color-border-faint: #f0f2f5;
+--zc-color-border-strong: rgba(0, 0, 0, .22);
+--zc-color-border-stronger: rgba(0, 0, 0, .30);
+
+/* semantic */
+--zc-color-now: #ea4335;             /* the now indicator */
+--zc-color-on-accent: #fff;          /* ink for anything sitting ON the accent */
+--zc-color-hover-veil: rgba(0, 0, 0, .06);
+--zc-color-active-veil: rgba(0, 0, 0, .10);
+--zc-color-scrim: rgba(0, 0, 0, .35);
+--zc-color-conflict-border: #000;
+--zc-color-scrollbar: rgba(0, 0, 0, .22);
+--zc-color-scrollbar-hover: rgba(0, 0, 0, .32);
+--zc-color-scrollbar-gutter: rgba(255, 255, 255, .85);
+```
+
+### Event chrome and focus
+
+```css
+--zc-event-bg: var(--zc-color-accent);
+--zc-event-fg: #fff;
+--zc-event-border: rgba(0, 0, 0, .08);
+
+--zc-hl-bg: transparent;             /* written per element by the highlight rules */
+
+/* The reset clears `outline` so the host's focus styling cannot leak in; this replaces it.
+   Set it to `none` to suppress the calendar's focus ring altogether. */
+--zc-focus-ring: 2px solid var(--zc-color-accent);
+--zc-focus-ring-offset: 2px;
+```
+
+### Typography
+
+```css
+--zc-font-family: inherit;           /* the core stylesheet forces no font */
+--zc-font-size-xs: 10px;
+--zc-font-size-sm: 11px;
+--zc-font-size-md: 12px;
+--zc-font-size-lg: 13px;
+--zc-font-size-xl: 14px;
+--zc-font-size-2xl: 18px;
+--zc-line-height: 1.5;
+```
+
+### Spacing, radius, elevation and motion
+
+```css
+--zc-space-1: 4px;   --zc-space-2: 6px;   --zc-space-3: 8px;
+--zc-space-4: 10px;  --zc-space-5: 12px;  --zc-space-6: 15px;
+
+--zc-radius-xs: 4px;  --zc-radius-sm: 6px;   --zc-radius-md: 8px;
+--zc-radius-lg: 10px; --zc-radius-xl: 12px;  --zc-radius-pill: 999px;
+
+--zc-shadow-menu: 0 8px 24px rgba(0, 0, 0, .12);
+--zc-shadow-modal: 0 4px 16px rgba(0, 0, 0, .2);
+--zc-shadow-focus: 0 6px 18px rgba(0, 0, 0, .18);
+--zc-shadow-button: 0 1px 2px rgba(0, 0, 0, .06);
+--zc-shadow-button-focus: 0 0 0 3px rgba(0, 0, 0, .12);
+
+--zc-transition-fast: .15s ease;
+--zc-transition-base: .25s ease;
+```
+
+### Structure
+
+```css
+--zc-max-width: 1100px;
+--zc-week-gutter-width: 69.5px;
+--zc-day-gutter-width: 60px;
+--zc-sidebar-width: 280px;
+--zc-month-row-height: 140px;
+--zc-hour-height: 60px;              /* the whole vertical scale of the time grid */
+--zc-grid-min-width: 0px;
+--zc-week-min-width: 900px;
+```
+
+`--zc-hour-height` is the one that matters most: everything positioned on the time grid — events, the
+hour lines, the now indicator — is derived from it, so changing it rescales the day rather than
+breaking it.
+
+### The z-index scale
+
+Every stacking decision in the library, in one place, so a host that needs to sit something above or
+below part of the calendar has a number to aim at rather than a guess to make.
+
+```css
+--zc-z-highlight: 2;
+--zc-z-hour-line: 3;
+--zc-z-event: 10;
+--zc-z-event-focus: 18;
+--zc-z-gutter: 20;
+--zc-z-now: 25;
+--zc-z-sticky: 60;
+--zc-z-sticky-week: 70;
+--zc-z-dropdown: 200;
+--zc-z-modal: 1000;
+```
+
+The overlap-focus effect also reads four properties the renderer writes, which you can retune:
+`--zc-ov-duration`, `--zc-ov-easing`, `--zc-ov-delay` and `--zc-ov-dim-opacity`.
+
+If tokens are not enough, override with a selector of specificity (0,2,0) or higher. The class names
+and the reasoning behind that contract are in [CLASS-MAP.md](CLASS-MAP.md).
 
 ---
 

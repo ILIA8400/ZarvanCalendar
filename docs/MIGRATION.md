@@ -1,4 +1,99 @@
-# Upgrading from v1 to v2
+# Upgrading
+
+Two upgrades, newest first. Nothing since v3.0.0 has been breaking, so a v3.x → v3.y upgrade is a file
+copy — see the [CHANGELOG](../CHANGELOG.md) for what each release added.
+
+- [v2 to v3](#v2-to-v3) — Persian-only, and `dist/` becomes the drop-in
+- [v1 to v2](#v1-to-v2) — every class renamed, renders batched
+
+---
+
+# v2 to v3
+
+Small, and it only touches you if you used the English locale, imported the package as a module, or
+loaded files out of `src/`.
+
+## 1. The English locale is gone
+
+Zarvan is a Persian calendar, and v3 makes that a property of the library rather than a default you
+could configure your way out of.
+
+`locale: "en"` no longer resolves; it falls back to Persian. `Zarvan.locales()` returns `["fa"]`.
+
+If you were using it, register your own — missing keys fall back to Persian, so a partial definition
+works:
+
+```js
+Zarvan.registerLocale({
+  code: "en",
+  weekdays: ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  weekdaysShort: ["Sa", "Su", "Mo", "Tu", "We", "Th", "Fr"],
+  months: ["Farvardin", "Ordibehesht", "Khordad", "Tir", "Mordad", "Shahrivar",
+           "Mehr", "Aban", "Azar", "Dey", "Bahman", "Esfand"],
+  digits: null,                       // Latin numerals
+  strings: { today: "Today", viewLabel: "View" },
+});
+
+Zarvan.create({ selector: "#calendar", locale: "en" });
+```
+
+The calendar system is still Jalali and the layout is still right-to-left. A locale changes wording and
+numerals, not either of those.
+
+## 2. A locale has no `direction`, and neither does the plugin context
+
+The field looked like a per-locale decision and never was: the stylesheet is written right-to-left
+throughout. The container is stamped `dir="rtl"` unconditionally.
+
+- Remove `direction` from any locale you registered — it is ignored.
+- **`cal.direction` is gone from the plugin context.** A plugin can assume right-to-left.
+
+## 3. There is no module entry point
+
+`package.json` no longer declares `main`, `exports`, `module` or `sideEffects`. Those advertised an
+ESM/CJS entry that never worked — importing the bundle threw, because it assumes `this === window`.
+
+```js
+import Zarvan from "zarvan-calendar";   // v2: threw at runtime. v3: fails to resolve, honestly.
+```
+
+Load the script tag and read `window.Zarvan`. See [Installation](../README.md#install).
+
+## 4. The files you copy moved to `dist/`
+
+`files` now ships `dist` rather than scattered `src/` paths, and `dist/` is the folder a consumer
+copies:
+
+```html
+<!-- v2 -->
+<link rel="stylesheet" href="/vendor/zarvan/src/css/zarvan.css" />
+<script src="/vendor/zarvan/src/libs/jalaali.js"></script>
+<script src="/vendor/zarvan/src/js/zarvan.js"></script>
+
+<!-- v3 — jalaali is inside zarvan.js, so there is no second tag and no order to get wrong -->
+<link rel="stylesheet" href="/vendor/zarvan/zarvan.css" />
+<script src="/vendor/zarvan/zarvan.js"></script>
+```
+
+`src/css/zarvan.css` and `src/js/zarvan.js` are still generated for development, but they are
+gitignored and are not what you deploy.
+
+## 5. Smaller things
+
+- **`Zarvan.version`** now exists, stamped at build time. Useful when a vendored copy is several
+  releases behind what a support ticket assumes.
+- **`Zarvan._internal.locale.setDefault()` is gone.** With one bundled locale it had no meaning.
+  `_internal` was never part of the public API.
+- **The font is opt-in and its URL is rewritten for `dist/`.** Load `dist/zarvan-theme-fa.css` for the
+  bundled Vazir face; the core stylesheet still forces no font.
+
+Everything else is additive. v3 has since added [dark mode](API.md#dark-mode),
+[loading on demand](API.md#loading-events-on-demand), `meta.element`, `zc-event-node` and
+`sidebarOpen`; none of them changes existing behaviour.
+
+---
+
+# v1 to v2
 
 v2 is a restructuring, not a rewrite. The API you were using still exists; what changed is every CSS
 class name, the timing of renders, and a handful of behaviours that were plainly bugs.
@@ -15,8 +110,9 @@ were doing something specific.
 applications in both directions, which is the problem that started this work. Every class is now
 `zc-`-prefixed and scoped under `.zc-calendar`.
 
-If you wrote CSS targeting the calendar, it stopped matching. The full table is in
-[CLASS-MAP.md](CLASS-MAP.md); the ones people actually styled:
+If you wrote CSS targeting the calendar, it stopped matching. The authoritative table — and a reference
+to every class the library renders today — is in
+[CLASS-MAP.md](CLASS-MAP.md#renamed-from-v1). The ones people actually styled:
 
 | v1 | v2 |
 |---|---|
@@ -217,8 +313,8 @@ Zarvan.create({ locale: { code: "fa", strings: { today: "همین حالا" } } 
 A partial locale inherits everything it does not name, and `cal.setLocale()` switches a live calendar.
 See [DEVELOPING.md](DEVELOPING.md#locales).
 
-> **v3 note:** the `en` locale that shipped in v2 has been removed — Zarvan is a Persian calendar.
-> `Zarvan.registerLocale()` is still there if you need different vocabulary.
+> **If you are going straight to v3:** the `en` locale that shipped in v2 has been removed — see
+> [v2 to v3](#v2-to-v3) above.
 
 `WEEKDAY_NAMES` and `MONTH_NAMES` are no longer module-level constants; they come from the locale.
 
@@ -234,7 +330,7 @@ What is new is that you can drop them. Remove the line from `build/manifest-js.t
 `plugins: []` to install none.
 
 **SheetJS is no longer required.** It is resolved when the export button is pressed, from
-`options.deps.xlsx` or `window.XLSX`, and warns if absent. If you were loading the 881 KB
+`options.deps.xlsx` or `window.XLSX`, and warns if absent. If you were loading the ~880 KB
 `xlsx.full.min.js` only because the library demanded it, you can now load it lazily — or not at all.
 
 ```js

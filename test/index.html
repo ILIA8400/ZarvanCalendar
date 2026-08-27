@@ -2268,6 +2268,73 @@
         [a, b].forEach(function (c) { c.destroy(); made.splice(made.indexOf(c), 1); });
       });
 
+      /* ---- sidebar initial state ---- */
+
+      test("the sidebar is closed unless asked otherwise", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        var root = c.getRoot();
+        notOk(root.classList.contains("zc-sidebar-open"), "not open");
+        ok(root.querySelector(".zc-sidebar").hasAttribute("inert"), "and inert while closed");
+        eq(root.querySelector(".zc-menu-btn").getAttribute("aria-expanded"), "false");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("sidebarOpen: true starts the calendar with the sidebar open", function () {
+        var c = make({ events: [], sidebarOpen: true, renderMode: "sync" });
+        var root = c.getRoot();
+        ok(root.classList.contains("zc-sidebar-open"), "open");
+        /* Both classes together: zc-sidebar-ready is normally added when the width transition
+           ends, and there is no transition on the first frame to wait for. */
+        ok(root.classList.contains("zc-sidebar-ready"), "and ready, so the dropdown can overflow");
+        notOk(root.querySelector(".zc-sidebar").hasAttribute("inert"), "reachable by keyboard");
+        notOk(root.querySelector(".zc-sidebar").hasAttribute("aria-hidden"), "and announced");
+        eq(root.querySelector(".zc-menu-btn").getAttribute("aria-expanded"), "true");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("an initially open sidebar still toggles normally", function () {
+        var c = make({ events: [], sidebarOpen: true, renderMode: "sync" });
+        var root = c.getRoot();
+        var seen = [];
+        c.on("onSidebarToggle", function (open) { seen.push(open); });
+
+        root.querySelector(".zc-menu-btn").click();
+        notOk(root.classList.contains("zc-sidebar-open"), "closed by the button");
+        eq(root.querySelector(".zc-menu-btn").getAttribute("aria-expanded"), "false");
+        eq(seen, [false], "and reported — construction itself emits nothing");
+
+        root.querySelector(".zc-menu-btn").click();
+        ok(root.classList.contains("zc-sidebar-open"), "and opens again");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("sidebarOpen is ignored when there is no sidebar", function () {
+        var c = make({ events: [], sidebarOpen: true, features: { sidebar: false }, renderMode: "sync" });
+        var root = c.getRoot();
+        notOk(root.querySelector(".zc-sidebar"), "no sidebar was built");
+        notOk(root.classList.contains("zc-sidebar-open"), "so nothing claims to be open");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("aria-expanded survives a header rebuild while open", function () {
+        // Regression: renderHeader() built the button with a hardcoded aria-expanded="false",
+        // so setLocale() on an open calendar left the button announcing the wrong state.
+        var c = make({ events: [], sidebarOpen: true, renderMode: "sync" });
+        var root = c.getRoot();
+        eq(root.querySelector(".zc-menu-btn").getAttribute("aria-expanded"), "true");
+
+        c.setLocale("qa");   // rebuilds the header
+
+        ok(root.classList.contains("zc-sidebar-open"), "still open");
+        eq(root.querySelector(".zc-menu-btn").getAttribute("aria-expanded"), "true", "and still says so");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
       /* ---- colour scheme ----
          Dark is a re-valuing of the colour tokens under .zc-scheme-dark, so what there is to test is
          the class: when it is stamped, where, and that it is taken away again. */

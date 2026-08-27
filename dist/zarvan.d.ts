@@ -195,6 +195,11 @@ declare namespace Zarvan {
     locale?: string | Partial<Locale>;
     /** Light by default. "auto" follows the system's prefers-color-scheme and keeps following it. */
     colorScheme?: ColorScheme;
+    /**
+     * Whether the sidebar starts open. Closed by default. Read once, at construction — the menu
+     * button toggles it from then on. Needs `features.sidebar`.
+     */
+    sidebarOpen?: boolean;
     /** "sync" renders immediately instead of batching into an animation frame. */
     renderMode?: "batched" | "sync";
     features?: Features;
