@@ -1343,8 +1343,16 @@ var Zarvan = (function () {
         // Stated up front rather than only after the first click, and pointed at what it opens.
         menuBtn.setAttribute("aria-expanded", "false");
         menuBtn.setAttribute("aria-controls", instanceId + "-sidebar");
+        /* Inlined SVG rather than the old div/pseudo-element bars: crisp rounded caps at any size,
+           and the same currentColor family as the other icons. The three <line>s keep the classes
+           the sidebar-open state hooks rotate/fade into an X. */
         menuBtn.innerHTML =
-          '<span class="zc-menu-icon" aria-hidden="true"><span></span></span>';
+          '<svg class="zc-menu-icon" viewBox="0 0 18 18" width="18" height="18" ' +
+          'aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">' +
+          '<line class="zc-menu-bar zc-menu-bar-top" x1="2" y1="4" x2="16" y2="4"/>' +
+          '<line class="zc-menu-bar zc-menu-bar-mid" x1="2" y1="9" x2="16" y2="9"/>' +
+          '<line class="zc-menu-bar zc-menu-bar-bottom" x1="2" y1="14" x2="16" y2="14"/>' +
+          "</svg>";
         menuBtn.addEventListener("click", toggleSidebar);
         right.appendChild(menuBtn);
       }
@@ -2155,12 +2163,20 @@ var Zarvan = (function () {
         TimeGrid.buildHourGutter("zc-week-gutter", metrics, formatHour)
       );
 
-      days.forEach(function (day) {
+      /* Every column is attached BEFORE any of them is filled.
+         renderColumn measures the column to decide how a pile of overlapping events is laid out, and
+         the density pass measures each event box. Rendering a column the moment it was appended meant
+         measuring it while it was still the row's only flex child, so the first day reported the full
+         width of the week and every measurement taken from it was wrong. */
+      var cols = days.map(function () {
         var col = createEl("div", "zc-week-col");
-        // Attached first: renderColumn measures the events it places.
         mainRow.appendChild(col);
+        return col;
+      });
+
+      days.forEach(function (day, i) {
         TimeGrid.renderColumn({
-          col: col,
+          col: cols[i],
           ctx: ctx,
           gdate: day.gdate,
           jdate: day.jdate,
@@ -2343,7 +2359,8 @@ var Zarvan = (function () {
                     dots.appendChild(createEl("span", "zc-year-dot " + typeClass(type)));
                   }
                 } else {
-                  // Was hardcoded to "+2" for every day, whatever the real count.
+                  // Was hardcoded to "+2" for every day, whatever the real count. The "+" stays -
+                  // a bare number here reads as a second day number stacked under the first.
                   dots.appendChild(
                     createEl("span", "zc-year-more", "+" + num(evs.length))
                   );

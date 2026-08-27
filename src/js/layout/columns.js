@@ -8,30 +8,10 @@
   var overlapsMin = Z.layoutOverlap.overlapsMin;
 
   function layoutDayEventsColumns(dayEvents) {
-    var events = dayEvents.slice().sort(function (a, b) {
-      return a.startMin - b.startMin || a.endMin - b.endMin;
-    });
-
-    var clusters = [];
-    var cluster = [];
-    var clusterMaxEnd = -1;
-
-    events.forEach(function (e) {
-      if (!cluster.length) {
-        cluster = [e];
-        clusterMaxEnd = e.endMin;
-        return;
-      }
-      if (e.startMin < clusterMaxEnd) {
-        cluster.push(e);
-        clusterMaxEnd = Math.max(clusterMaxEnd, e.endMin);
-      } else {
-        clusters.push(cluster);
-        cluster = [e];
-        clusterMaxEnd = e.endMin;
-      }
-    });
-    if (cluster.length) clusters.push(cluster);
+    // Clustering is shared with the cascade rather than kept as a second copy here: both layouts
+    // need the same "which events form one pile" answer, and the time-grid asks for it directly so
+    // it can choose between them per cluster.
+    var clusters = Z.layoutOverlap.clusterByOverlap(dayEvents);
 
     var positioned = [];
 

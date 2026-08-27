@@ -30,7 +30,12 @@
   font-size: var(--zc-font-size-lg);
 }
 
-.zc-calendar .zc-search-input:focus {
-  border-color: var(--zc-color-accent-border);
-  box-shadow: 0 0 0 2px var(--zc-color-accent-ring);
+/* Same treatment as the dropdowns: the control's own border carries the focus rather than the global
+   outline, which stacked on top of this halo as a second ring and, being offset outside a full-width
+   input, spilled past the sidebar. No pointer-focus exception here - a text field being focused by
+   click is exactly when someone wants to see where they are about to type. */
+.zc-calendar .zc-search-input:focus-visible {
+  outline: none;
+  border-color: var(--zc-color-accent);
+  box-shadow: 0 0 0 3px var(--zc-color-accent-ring);
 }

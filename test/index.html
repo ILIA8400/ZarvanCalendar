@@ -521,6 +521,41 @@
         eq(out[2].stackIndex, 0, "third event reuses stack 0");
       });
 
+      test("clusterByOverlap groups events that overlap transitively", function () {
+        // A and B overlap, B and C overlap, A and C do not - all three are still one pile.
+        var out = OVL.clusterByOverlap([
+          { startMin: 60, endMin: 120 },
+          { startMin: 110, endMin: 180 },
+          { startMin: 170, endMin: 240 },
+          { startMin: 600, endMin: 660 },
+        ]);
+        eq(out.length, 2, "one chain plus one loner");
+        eq(out[0].length, 3);
+        eq(out[1].length, 1);
+      });
+
+      test("peakConcurrency counts the busiest instant, not the pile", function () {
+        // Four events, but never more than two are live at once.
+        eq(OVL.peakConcurrency([
+          { startMin: 0, endMin: 60 },
+          { startMin: 30, endMin: 90 },
+          { startMin: 80, endMin: 140 },
+          { startMin: 130, endMin: 200 },
+        ]), 2);
+        eq(OVL.peakConcurrency([
+          { startMin: 0, endMin: 100 },
+          { startMin: 10, endMin: 100 },
+          { startMin: 20, endMin: 100 },
+        ]), 3);
+      });
+
+      test("peakConcurrency treats back-to-back events as one at a time", function () {
+        eq(OVL.peakConcurrency([
+          { startMin: 0, endMin: 60 },
+          { startMin: 60, endMin: 120 },
+        ]), 1, "the same boundary rule overlapsMin uses");
+      });
+
       test("overlapsMin is exclusive at the touching boundary", function () {
         notOk(OVL.overlapsMin({ startMin: 0, endMin: 60 }, { startMin: 60, endMin: 120 }), "back-to-back");
         ok(OVL.overlapsMin({ startMin: 0, endMin: 61 }, { startMin: 60, endMin: 120 }), "1 minute overlap");
@@ -1358,6 +1393,65 @@
         ], "columns", "inst:day");
         eq(laid.map(function (i) { return i.colIndex; }), [0, 1]);
         notOk(laid[0]._ovHas, "no conflict graph in columns mode");
+      });
+
+      test("a pile too deep for fair strips is fanned into columns instead", function () {
+        // Four at once in a 119px week column: a cascade would leave each covered event a sliver of
+        // about 20px to be seen and clicked through, so the cluster goes side by side instead.
+        var items = [
+          { startMin: 540, endMin: 660 },
+          { startMin: 570, endMin: 630 },
+          { startMin: 600, endMin: 720 },
+          { startMin: 615, endMin: 645 },
+        ];
+        var laid = TG.layoutIntervals(items, "overlap", "inst:day", 119);
+        laid.forEach(function (i) { eq(i.layout, "columns", "fanned"); });
+        eq(laid[0].colCount, 4, "one column each");
+      });
+
+      test("a shallow pile keeps the cascade, with a strip worth aiming at", function () {
+        var laid = TG.layoutIntervals([
+          { startMin: 540, endMin: 660 },
+          { startMin: 570, endMin: 630 },
+        ], "overlap", "inst:day", 119);
+        laid.forEach(function (i) { eq(i.layout, "cascade", "cascaded"); });
+        // The step is chosen in pixels now, so it does not shrink with the column: 26px of 119.
+        ok(Math.abs(laid[1].offsetPct - (26 / 119) * 100) < 0.5, "got " + laid[1].offsetPct);
+      });
+
+      test("a wide column cascades even a deep pile", function () {
+        var items = [];
+        for (var i = 0; i < 5; i++) items.push({ startMin: 540 + i, endMin: 700 });
+        TG.layoutIntervals(items, "overlap", "inst:day", 683).forEach(function (it) {
+          eq(it.layout, "cascade", "day view has room to fan sideways");
+        });
+      });
+
+      test("one crowded hour does not flatten the rest of the day", function () {
+        // The choice is per cluster, and clusters never overlap each other in time.
+        var items = [
+          { startMin: 540, endMin: 660 },
+          { startMin: 570, endMin: 630 },
+          { startMin: 600, endMin: 655 },
+          { startMin: 610, endMin: 650 },
+          { startMin: 900, endMin: 960 },
+          { startMin: 930, endMin: 990 },
+        ];
+        var laid = TG.layoutIntervals(items, "overlap", "inst:day", 119);
+        var byStart = {};
+        laid.forEach(function (i) { byStart[i.startMin] = i.layout; });
+        eq(byStart[540], "columns", "the crowded morning fans");
+        eq(byStart[900], "cascade", "the quiet afternoon still cascades");
+      });
+
+      test("without a measured column it falls back to the plain cascade", function () {
+        // A detached or display:none render measures 0; dividing by it would be worse than the
+        // original whole-day cascade.
+        var laid = TG.layoutIntervals([
+          { startMin: 60, endMin: 180 },
+          { startMin: 90, endMin: 200 },
+        ], "overlap", "inst:day", 0);
+        eq(laid[1].offsetPct, 14, "the original fixed step");
       });
 
       test("placeEvent applies the cascade in overlap mode", function () {

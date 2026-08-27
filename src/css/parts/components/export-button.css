@@ -3,6 +3,7 @@
   width: 100%;
   height: 36px;
   margin-top: var(--zc-space-3);
+  padding: 0 var(--zc-space-4);
   border: 1px solid var(--zc-color-border);
   border-radius: var(--zc-radius-lg);
   background: var(--zc-color-surface-alt);

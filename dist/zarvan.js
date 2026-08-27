@@ -1182,6 +1182,67 @@
     return a.startMin < b.endMin && b.startMin < a.endMin;
   }
 
+  /* Split a day into clusters of transitively overlapping events.
+   *
+   * A cluster is the granularity at which a layout decision has to be made: clusters never overlap
+   * each other in time, so each one can be positioned independently without the choice leaking into
+   * the rest of the day. Sorting by start means a running max-end is enough to find the boundaries. */
+  function clusterByOverlap(dayEvents) {
+    var events = dayEvents.slice().sort(function (a, b) {
+      return a.startMin - b.startMin || a.endMin - b.endMin;
+    });
+
+    var clusters = [];
+    var cluster = [];
+    var clusterMaxEnd = -1;
+
+    events.forEach(function (e) {
+      if (!cluster.length) {
+        cluster = [e];
+        clusterMaxEnd = e.endMin;
+        return;
+      }
+      if (e.startMin < clusterMaxEnd) {
+        cluster.push(e);
+        clusterMaxEnd = Math.max(clusterMaxEnd, e.endMin);
+      } else {
+        clusters.push(cluster);
+        cluster = [e];
+        clusterMaxEnd = e.endMin;
+      }
+    });
+    if (cluster.length) clusters.push(cluster);
+
+    return clusters;
+  }
+
+  /* How many events are live at the busiest instant.
+   *
+   * For intervals this is exactly the number of stack levels the cascade will use and the number of
+   * columns a column layout will produce, so it is what a caller needs in order to decide between
+   * them BEFORE laying anything out. */
+  function peakConcurrency(events) {
+    var edges = [];
+    events.forEach(function (e) {
+      edges.push({ at: e.startMin, delta: 1 });
+      edges.push({ at: e.endMin, delta: -1 });
+    });
+
+    // An end sorts before a start at the same instant: back-to-back events do not conflict, which is
+    // the same boundary rule overlapsMin uses.
+    edges.sort(function (a, b) {
+      return a.at - b.at || a.delta - b.delta;
+    });
+
+    var live = 0;
+    var peak = 0;
+    edges.forEach(function (e) {
+      live += e.delta;
+      if (live > peak) peak = live;
+    });
+    return peak;
+  }
+
   function layoutDayEventsOverlap(dayEvents, opts) {
     opts = opts || {};
     var STEP = opts.step == null ? 14 : opts.step;
@@ -1259,6 +1320,8 @@
 
   Z.layoutOverlap = {
     overlapsMin: overlapsMin,
+    clusterByOverlap: clusterByOverlap,
+    peakConcurrency: peakConcurrency,
     layoutDayEventsOverlap: layoutDayEventsOverlap,
     buildOverlapGraph: buildOverlapGraph,
   };
@@ -1274,30 +1337,10 @@
   var overlapsMin = Z.layoutOverlap.overlapsMin;
 
   function layoutDayEventsColumns(dayEvents) {
-    var events = dayEvents.slice().sort(function (a, b) {
-      return a.startMin - b.startMin || a.endMin - b.endMin;
-    });
-
-    var clusters = [];
-    var cluster = [];
-    var clusterMaxEnd = -1;
-
-    events.forEach(function (e) {
-      if (!cluster.length) {
-        cluster = [e];
-        clusterMaxEnd = e.endMin;
-        return;
-      }
-      if (e.startMin < clusterMaxEnd) {
-        cluster.push(e);
-        clusterMaxEnd = Math.max(clusterMaxEnd, e.endMin);
-      } else {
-        clusters.push(cluster);
-        cluster = [e];
-        clusterMaxEnd = e.endMin;
-      }
-    });
-    if (cluster.length) clusters.push(cluster);
+    // Clustering is shared with the cascade rather than kept as a second copy here: both layouts
+    // need the same "which events form one pile" answer, and the time-grid asks for it directly so
+    // it can choose between them per cluster.
+    var clusters = Z.layoutOverlap.clusterByOverlap(dayEvents);
 
     var positioned = [];
 
@@ -1902,22 +1945,86 @@
     });
   }
 
-  function layoutIntervals(items, mode, idPrefix) {
-    var laid =
-      mode === "overlap"
-        ? overlap.layoutDayEventsOverlap(items)
-        : columns.layoutDayEventsColumns(items);
-    if (mode === "overlap") overlap.buildOverlapGraph(laid, idPrefix);
+  /* ---- Choosing a layout per cluster ----
+   *
+   * The cascade fans a pile of events sideways: each one is inset a little further from the right and
+   * drawn over the one below, so a covered event shows only the strip that sticks out. That strip is
+   * doing two jobs at once - it is the whole click target AND everything the reader can see of the
+   * title - and it was a flat 14% of the column, which in week view is about 17px. Four events deep,
+   * every one of them but the last was a sliver of one glyph that had to be hit exactly.
+   *
+   * Two changes. The step is now chosen in PIXELS from the measured column, so the strip does not
+   * shrink just because the window did. And when a cluster is so deep that the strips would stop
+   * being usable targets, that cluster drops out of the cascade and is laid out in columns instead -
+   * side by side, nothing covered, nothing to hunt for. Shallow piles keep the compact cascade.
+   *
+   * The decision is per cluster, not per day: one crowded morning does not flatten the rest of the
+   * day, because clusters never overlap each other in time. */
+  var CASCADE_STEP_PX = 26; // the strip each covered event aims to leave exposed
+  var CASCADE_MIN_PEEK_PX = 22; // narrower than this and a strip stops being worth aiming at
+  var CASCADE_MIN_TOP_PX = 56; // whatever happens, the topmost card stays this readable
+
+  function cascadeStepPx(depth, columnWidth) {
+    if (depth < 2) return CASCADE_STEP_PX;
+    return Math.min(
+      CASCADE_STEP_PX,
+      (columnWidth - CASCADE_MIN_TOP_PX) / (depth - 1)
+    );
+  }
+
+  function layoutCluster(cluster, columnWidth) {
+    var depth = overlap.peakConcurrency(cluster);
+    var step = cascadeStepPx(depth, columnWidth);
+
+    if (depth > 1 && step < CASCADE_MIN_PEEK_PX) {
+      return columns.layoutDayEventsColumns(cluster).map(function (it) {
+        it.layout = "columns";
+        return it;
+      });
+    }
+
+    /* The cascade still works in percentages - that is what keeps it fluid when the column resizes
+       between renders - so the pixel budget is converted on the way in. */
+    return overlap
+      .layoutDayEventsOverlap(cluster, {
+        step: (step / columnWidth) * 100,
+        minWidth: (CASCADE_MIN_TOP_PX / columnWidth) * 100,
+      })
+      .map(function (it) {
+        it.layout = "cascade";
+        return it;
+      });
+  }
+
+  function layoutIntervals(items, mode, idPrefix, columnWidth) {
+    if (mode !== "overlap") return columns.layoutDayEventsColumns(items);
+
+    var laid = [];
+    if (columnWidth > 0) {
+      overlap.clusterByOverlap(items).forEach(function (cluster) {
+        laid = laid.concat(layoutCluster(cluster, columnWidth));
+      });
+    } else {
+      /* No usable measurement - a detached or display:none render, or a caller that never had a
+         column. Fall back to the original whole-day cascade rather than dividing by zero. */
+      laid = overlap.layoutDayEventsOverlap(items);
+    }
+
+    overlap.buildOverlapGraph(laid, idPrefix);
     return laid;
   }
 
-  function placeEvent(div, item, mode, m) {
+  function placeEvent(div, item, mode, m, columnWidth) {
     m = m || metrics(null);
     div.style.top = item.startMin * m.pxPerMin + "px";
     div.style.height =
       Math.max(MIN_HEIGHT, (item.endMin - item.startMin) * m.pxPerMin) + "px";
 
-    if (mode === "overlap") {
+    // The cluster's own choice wins over the view's mode, because in overlap mode a cluster too deep
+    // to cascade fairly is laid out in columns instead.
+    var lay = item.layout || (mode === "overlap" ? "cascade" : "columns");
+
+    if (lay === "cascade") {
       div.style.width = "calc(" + item.widthPct + "% - " + GAP + "px)";
       div.style.right = "calc(" + item.offsetPct + "% + " + GAP / 2 + "px)";
       div.style.zIndex = 10 + (item.stackIndex || 0);
@@ -1925,6 +2032,21 @@
       var unit = 100 / item.colCount;
       div.style.width = "calc(" + unit * item.colSpan + "% - " + GAP + "px)";
       div.style.right = "calc(" + item.colIndex * unit + "% + " + GAP / 2 + "px)";
+
+      /* Side by side keeps every event visible and easy to hit, but four of them in a week column is
+         about 23px each - wide enough to click, nowhere near wide enough to read. So each card
+         carries the geometry of the whole column, and the stylesheet floats the focused card's title
+         across all of it: pulled back out to the column's right edge, and as wide as the column.
+         It can safely cover the cards beside it because the label takes no pointer events - they
+         stay hoverable underneath, which is what lets the pointer walk along the row. */
+      if (columnWidth > 0) {
+        div.classList.add("zc-ov-fanned");
+        div.style.setProperty("--zc-ov-label-w", columnWidth - GAP + "px");
+        div.style.setProperty(
+          "--zc-ov-label-r",
+          -((columnWidth * item.colIndex * unit) / 100) + "px"
+        );
+      }
     }
   }
 
@@ -1980,10 +2102,16 @@
     });
 
     var mode = ctx.getTimeGridLayout();
+
+    /* Measured, not assumed: how wide the column actually is decides whether a pile of events can
+       cascade with strips worth aiming at or has to go side by side. One forced layout per column
+       (seven per week render), in the same class of cost as the density pass below. */
+    var colWidth = col.offsetWidth;
     var laid = layoutIntervals(
       toIntervals(timed, jday),
       mode,
-      ctx.instanceId + ":" + jdate.makeDayKey(jday)
+      ctx.instanceId + ":" + jdate.makeDayKey(jday),
+      colWidth
     );
 
     var divs = [];
@@ -1993,8 +2121,11 @@
       var div = createEl("div", "zc-event " + typeClass(ev.type));
       div.innerText = ev.title;
       div.title = ev.title;
+      // Read back by the focused card's floating label, which cannot use the text node itself
+      // because the card clips it.
+      div.dataset.zcLabel = ev.title;
 
-      placeEvent(div, item, mode, m);
+      placeEvent(div, item, mode, m, colWidth);
 
       if (mode === "overlap" && item._ovHas) {
         div.classList.add("zc-ov-conflict");
@@ -2214,14 +2345,31 @@
       else open();
     }
 
+    /* Focus moved by script counts as keyboard focus to :focus-visible. Because pointerdown calls
+       preventDefault - which is what stops the browser doing its own, pointer-flavoured focus - the
+       focus() below inherited the previous modality and lit the keyboard ring on a plain mouse
+       click. The attribute records that this focus came from a pointer; the stylesheet skips the
+       ring while it is set, and the first key press clears it so keyboard users still get one. */
+    function markPointerFocus() {
+      selected.setAttribute("data-zc-pointer-focus", "");
+    }
+
+    function clearPointerFocus() {
+      selected.removeAttribute("data-zc-pointer-focus");
+    }
+
     // pointerdown rather than click: the menu has to win the race against the outside-click handler,
     // and preventDefault keeps focus from moving off the control on mousedown.
     selected.addEventListener("pointerdown", function (e) {
       e.preventDefault();
       e.stopPropagation();
       toggle();
+      markPointerFocus();
       selected.focus();
     });
+
+    selected.addEventListener("keydown", clearPointerFocus);
+    selected.addEventListener("blur", clearPointerFocus);
 
     menu.addEventListener("pointerdown", function (e) {
       e.preventDefault();
@@ -4349,8 +4497,16 @@ var Zarvan = (function () {
         // Stated up front rather than only after the first click, and pointed at what it opens.
         menuBtn.setAttribute("aria-expanded", "false");
         menuBtn.setAttribute("aria-controls", instanceId + "-sidebar");
+        /* Inlined SVG rather than the old div/pseudo-element bars: crisp rounded caps at any size,
+           and the same currentColor family as the other icons. The three <line>s keep the classes
+           the sidebar-open state hooks rotate/fade into an X. */
         menuBtn.innerHTML =
-          '<span class="zc-menu-icon" aria-hidden="true"><span></span></span>';
+          '<svg class="zc-menu-icon" viewBox="0 0 18 18" width="18" height="18" ' +
+          'aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">' +
+          '<line class="zc-menu-bar zc-menu-bar-top" x1="2" y1="4" x2="16" y2="4"/>' +
+          '<line class="zc-menu-bar zc-menu-bar-mid" x1="2" y1="9" x2="16" y2="9"/>' +
+          '<line class="zc-menu-bar zc-menu-bar-bottom" x1="2" y1="14" x2="16" y2="14"/>' +
+          "</svg>";
         menuBtn.addEventListener("click", toggleSidebar);
         right.appendChild(menuBtn);
       }
@@ -5161,12 +5317,20 @@ var Zarvan = (function () {
         TimeGrid.buildHourGutter("zc-week-gutter", metrics, formatHour)
       );
 
-      days.forEach(function (day) {
+      /* Every column is attached BEFORE any of them is filled.
+         renderColumn measures the column to decide how a pile of overlapping events is laid out, and
+         the density pass measures each event box. Rendering a column the moment it was appended meant
+         measuring it while it was still the row's only flex child, so the first day reported the full
+         width of the week and every measurement taken from it was wrong. */
+      var cols = days.map(function () {
         var col = createEl("div", "zc-week-col");
-        // Attached first: renderColumn measures the events it places.
         mainRow.appendChild(col);
+        return col;
+      });
+
+      days.forEach(function (day, i) {
         TimeGrid.renderColumn({
-          col: col,
+          col: cols[i],
           ctx: ctx,
           gdate: day.gdate,
           jdate: day.jdate,
@@ -5349,7 +5513,8 @@ var Zarvan = (function () {
                     dots.appendChild(createEl("span", "zc-year-dot " + typeClass(type)));
                   }
                 } else {
-                  // Was hardcoded to "+2" for every day, whatever the real count.
+                  // Was hardcoded to "+2" for every day, whatever the real count. The "+" stays -
+                  // a bare number here reads as a second day number stacked under the first.
                   dots.appendChild(
                     createEl("span", "zc-year-more", "+" + num(evs.length))
                   );

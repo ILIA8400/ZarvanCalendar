@@ -98,22 +98,86 @@
     });
   }
 
-  function layoutIntervals(items, mode, idPrefix) {
-    var laid =
-      mode === "overlap"
-        ? overlap.layoutDayEventsOverlap(items)
-        : columns.layoutDayEventsColumns(items);
-    if (mode === "overlap") overlap.buildOverlapGraph(laid, idPrefix);
+  /* ---- Choosing a layout per cluster ----
+   *
+   * The cascade fans a pile of events sideways: each one is inset a little further from the right and
+   * drawn over the one below, so a covered event shows only the strip that sticks out. That strip is
+   * doing two jobs at once - it is the whole click target AND everything the reader can see of the
+   * title - and it was a flat 14% of the column, which in week view is about 17px. Four events deep,
+   * every one of them but the last was a sliver of one glyph that had to be hit exactly.
+   *
+   * Two changes. The step is now chosen in PIXELS from the measured column, so the strip does not
+   * shrink just because the window did. And when a cluster is so deep that the strips would stop
+   * being usable targets, that cluster drops out of the cascade and is laid out in columns instead -
+   * side by side, nothing covered, nothing to hunt for. Shallow piles keep the compact cascade.
+   *
+   * The decision is per cluster, not per day: one crowded morning does not flatten the rest of the
+   * day, because clusters never overlap each other in time. */
+  var CASCADE_STEP_PX = 26; // the strip each covered event aims to leave exposed
+  var CASCADE_MIN_PEEK_PX = 22; // narrower than this and a strip stops being worth aiming at
+  var CASCADE_MIN_TOP_PX = 56; // whatever happens, the topmost card stays this readable
+
+  function cascadeStepPx(depth, columnWidth) {
+    if (depth < 2) return CASCADE_STEP_PX;
+    return Math.min(
+      CASCADE_STEP_PX,
+      (columnWidth - CASCADE_MIN_TOP_PX) / (depth - 1)
+    );
+  }
+
+  function layoutCluster(cluster, columnWidth) {
+    var depth = overlap.peakConcurrency(cluster);
+    var step = cascadeStepPx(depth, columnWidth);
+
+    if (depth > 1 && step < CASCADE_MIN_PEEK_PX) {
+      return columns.layoutDayEventsColumns(cluster).map(function (it) {
+        it.layout = "columns";
+        return it;
+      });
+    }
+
+    /* The cascade still works in percentages - that is what keeps it fluid when the column resizes
+       between renders - so the pixel budget is converted on the way in. */
+    return overlap
+      .layoutDayEventsOverlap(cluster, {
+        step: (step / columnWidth) * 100,
+        minWidth: (CASCADE_MIN_TOP_PX / columnWidth) * 100,
+      })
+      .map(function (it) {
+        it.layout = "cascade";
+        return it;
+      });
+  }
+
+  function layoutIntervals(items, mode, idPrefix, columnWidth) {
+    if (mode !== "overlap") return columns.layoutDayEventsColumns(items);
+
+    var laid = [];
+    if (columnWidth > 0) {
+      overlap.clusterByOverlap(items).forEach(function (cluster) {
+        laid = laid.concat(layoutCluster(cluster, columnWidth));
+      });
+    } else {
+      /* No usable measurement - a detached or display:none render, or a caller that never had a
+         column. Fall back to the original whole-day cascade rather than dividing by zero. */
+      laid = overlap.layoutDayEventsOverlap(items);
+    }
+
+    overlap.buildOverlapGraph(laid, idPrefix);
     return laid;
   }
 
-  function placeEvent(div, item, mode, m) {
+  function placeEvent(div, item, mode, m, columnWidth) {
     m = m || metrics(null);
     div.style.top = item.startMin * m.pxPerMin + "px";
     div.style.height =
       Math.max(MIN_HEIGHT, (item.endMin - item.startMin) * m.pxPerMin) + "px";
 
-    if (mode === "overlap") {
+    // The cluster's own choice wins over the view's mode, because in overlap mode a cluster too deep
+    // to cascade fairly is laid out in columns instead.
+    var lay = item.layout || (mode === "overlap" ? "cascade" : "columns");
+
+    if (lay === "cascade") {
       div.style.width = "calc(" + item.widthPct + "% - " + GAP + "px)";
       div.style.right = "calc(" + item.offsetPct + "% + " + GAP / 2 + "px)";
       div.style.zIndex = 10 + (item.stackIndex || 0);
@@ -121,6 +185,21 @@
       var unit = 100 / item.colCount;
       div.style.width = "calc(" + unit * item.colSpan + "% - " + GAP + "px)";
       div.style.right = "calc(" + item.colIndex * unit + "% + " + GAP / 2 + "px)";
+
+      /* Side by side keeps every event visible and easy to hit, but four of them in a week column is
+         about 23px each - wide enough to click, nowhere near wide enough to read. So each card
+         carries the geometry of the whole column, and the stylesheet floats the focused card's title
+         across all of it: pulled back out to the column's right edge, and as wide as the column.
+         It can safely cover the cards beside it because the label takes no pointer events - they
+         stay hoverable underneath, which is what lets the pointer walk along the row. */
+      if (columnWidth > 0) {
+        div.classList.add("zc-ov-fanned");
+        div.style.setProperty("--zc-ov-label-w", columnWidth - GAP + "px");
+        div.style.setProperty(
+          "--zc-ov-label-r",
+          -((columnWidth * item.colIndex * unit) / 100) + "px"
+        );
+      }
     }
   }
 
@@ -176,10 +255,16 @@
     });
 
     var mode = ctx.getTimeGridLayout();
+
+    /* Measured, not assumed: how wide the column actually is decides whether a pile of events can
+       cascade with strips worth aiming at or has to go side by side. One forced layout per column
+       (seven per week render), in the same class of cost as the density pass below. */
+    var colWidth = col.offsetWidth;
     var laid = layoutIntervals(
       toIntervals(timed, jday),
       mode,
-      ctx.instanceId + ":" + jdate.makeDayKey(jday)
+      ctx.instanceId + ":" + jdate.makeDayKey(jday),
+      colWidth
     );
 
     var divs = [];
@@ -189,8 +274,11 @@
       var div = createEl("div", "zc-event " + typeClass(ev.type));
       div.innerText = ev.title;
       div.title = ev.title;
+      // Read back by the focused card's floating label, which cannot use the text node itself
+      // because the card clips it.
+      div.dataset.zcLabel = ev.title;
 
-      placeEvent(div, item, mode, m);
+      placeEvent(div, item, mode, m, colWidth);
 
       if (mode === "overlap" && item._ovHas) {
         div.classList.add("zc-ov-conflict");

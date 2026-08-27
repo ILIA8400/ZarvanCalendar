@@ -225,6 +225,7 @@
   --zc-z-highlight: 2;
   --zc-z-hour-line: 3;
   --zc-z-event: 10;
+  --zc-z-event-focus: 18;
   --zc-z-gutter: 20;
   --zc-z-now: 25;
   --zc-z-sticky: 60;
@@ -416,33 +417,16 @@
   width: 18px;
   height: 18px;
   display: block;
-  position: relative;
+  overflow: visible;
 }
 
-.zc-calendar .zc-menu-icon::before,
-.zc-calendar .zc-menu-icon::after,
-.zc-calendar .zc-menu-icon span {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: currentColor;
-  border-radius: var(--zc-radius-pill);
+.zc-calendar .zc-menu-bar {
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform-box: fill-box;
   transform-origin: 50% 50%;
   transition: transform 260ms cubic-bezier(.2, .85, .2, 1), opacity 160ms ease;
-}
-
-.zc-calendar .zc-menu-icon::before {
-  top: 1px;
-}
-
-.zc-calendar .zc-menu-icon span {
-  top: 8px;
-}
-
-.zc-calendar .zc-menu-icon::after {
-  top: 15px;
 }
 
 /* ---- Header navigation (arrows + today) ---- */
@@ -549,9 +533,24 @@
   padding: 0 var(--zc-space-4);
 }
 
-.zc-calendar .zc-dd-selected:focus,
-.zc-calendar .zc-view-dd-selected:focus {
-  box-shadow: 0 0 0 2px var(--zc-color-accent-ring);
+/* One focus indicator, not two.
+   The global ring is an outline offset outside the box; on a bordered control that already had its
+   own accent halo the two stacked into a heavy double ring, and on the wide sidebar dropdown the
+   outline escaped the panel it sits in. So these controls opt out of the outline and show focus the
+   way a form control should: their own border goes accent, with a soft ring just outside it.
+   `:not([data-zc-pointer-focus])` keeps it off a plain mouse click - see ui/dropdown.js. */
+.zc-calendar .zc-dd-selected:focus-visible:not([data-zc-pointer-focus]),
+.zc-calendar .zc-view-dd-selected:focus-visible:not([data-zc-pointer-focus]) {
+  outline: none;
+  border-color: var(--zc-color-accent);
+  box-shadow: 0 0 0 3px var(--zc-color-accent-ring);
+}
+
+/* Clicking the box focuses it so the arrow keys work from there, but a pointer should not paint a
+   keyboard ring. */
+.zc-calendar .zc-dd-selected[data-zc-pointer-focus],
+.zc-calendar .zc-view-dd-selected[data-zc-pointer-focus] {
+  outline: none;
 }
 
 .zc-calendar .zc-dd-label,
@@ -668,9 +667,14 @@
   font-size: var(--zc-font-size-lg);
 }
 
-.zc-calendar .zc-search-input:focus {
-  border-color: var(--zc-color-accent-border);
-  box-shadow: 0 0 0 2px var(--zc-color-accent-ring);
+/* Same treatment as the dropdowns: the control's own border carries the focus rather than the global
+   outline, which stacked on top of this halo as a second ring and, being offset outside a full-width
+   input, spilled past the sidebar. No pointer-focus exception here - a text field being focused by
+   click is exactly when someone wants to see where they are about to type. */
+.zc-calendar .zc-search-input:focus-visible {
+  outline: none;
+  border-color: var(--zc-color-accent);
+  box-shadow: 0 0 0 3px var(--zc-color-accent-ring);
 }
 
 /* ---- Autocomplete ---- */
@@ -709,6 +713,7 @@
   width: 100%;
   height: 36px;
   margin-top: var(--zc-space-3);
+  padding: 0 var(--zc-space-4);
   border: 1px solid var(--zc-color-border);
   border-radius: var(--zc-radius-lg);
   background: var(--zc-color-surface-alt);
@@ -1039,12 +1044,15 @@
 }
 
 .zc-calendar .zc-month-time {
+  flex: 0 0 auto;
   color: var(--zc-color-text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .zc-calendar .zc-month-title {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1232,6 +1240,10 @@
   word-break: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Without a line clamp the ellipsis above never appears: a -webkit-box just cuts the overflowing
+     line off mid-glyph, which is what made a short event look like a bar of broken characters. */
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
 .zc-calendar .zc-week-col .zc-event {
@@ -1249,6 +1261,19 @@
 .zc-calendar .zc-week-col .zc-event.zc-event-compact,
 .zc-calendar .zc-day-col .zc-event.zc-event-compact {
   font-size: var(--zc-font-size-sm);
+}
+
+/* One line, ellipsised, for any box that cannot honestly hold more.
+   Short boxes would otherwise show a second line sliced in half by the overflow; narrow ones are
+   worse, because `word-break` turns a Persian title into a vertical ladder of single glyphs. Neither
+   is readable, so both collapse to a single clipped line - the whole title stays available from the
+   element's tooltip, and from the floating label when the card is focused. */
+.zc-calendar .zc-week-col .zc-event.zc-short,
+.zc-calendar .zc-day-col .zc-event.zc-short,
+.zc-calendar .zc-week-col .zc-event.zc-event-dot,
+.zc-calendar .zc-day-col .zc-event.zc-event-dot {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 .zc-calendar .zc-week-col .zc-event.zc-short {
@@ -1350,6 +1375,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Same radius/padding as the month grid's event pill - a compact cell, not the taller day chip below. */
+.zc-calendar .zc-allday-cell .zc-event {
+  padding: 2px var(--zc-space-1);
+  border-radius: var(--zc-radius-xs);
 }
 
 .zc-calendar .zc-day-allday-list .zc-event {
@@ -1628,17 +1659,17 @@
   overflow: visible;
 }
 
-.zc-calendar.zc-sidebar-open .zc-menu-icon span {
+.zc-calendar.zc-sidebar-open .zc-menu-bar-mid {
   opacity: 0;
   transform: scaleX(.2);
 }
 
-.zc-calendar.zc-sidebar-open .zc-menu-icon::before {
-  transform: translateY(7px) rotate(45deg);
+.zc-calendar.zc-sidebar-open .zc-menu-bar-top {
+  transform: translateY(5px) rotate(45deg);
 }
 
-.zc-calendar.zc-sidebar-open .zc-menu-icon::after {
-  transform: translateY(-7px) rotate(-45deg);
+.zc-calendar.zc-sidebar-open .zc-menu-bar-bottom {
+  transform: translateY(-5px) rotate(-45deg);
 }
 
 /* ---- Day / time highlights ---- */
@@ -1676,6 +1707,38 @@
 .zc-calendar .zc-event.zc-ov-focus {
   opacity: 1;
   box-shadow: var(--zc-shadow-focus);
+}
+
+/* A pile too dense to cascade is laid out side by side instead, which keeps every event visible and
+   easy to hit but leaves each card far too narrow to read. Focusing one floats its title out across
+   the rest of the column.
+   The label is a pseudo-element with `pointer-events: none`, which is the whole point: the cards it
+   covers stay clickable, so the pointer can sweep along a pile and read one title after another
+   instead of having to leave and re-enter to reach the next. */
+.zc-calendar .zc-event.zc-ov-fanned.zc-ov-focus {
+  overflow: visible;
+  z-index: var(--zc-z-event-focus);
+}
+
+.zc-calendar .zc-event.zc-ov-fanned.zc-ov-focus::after {
+  content: attr(data-zc-label);
+  position: absolute;
+  top: -1px;
+  right: var(--zc-ov-label-r, -1px);
+  width: var(--zc-ov-label-w, 100%);
+  padding: var(--zc-space-1) var(--zc-space-2);
+  border: 1px solid var(--zc-event-border);
+  border-radius: inherit;
+  background: var(--zc-event-bg);
+  color: var(--zc-event-fg);
+  box-shadow: var(--zc-shadow-focus);
+  font-size: var(--zc-font-size-md);
+  line-height: 1.25;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 /* ---- Focus ----

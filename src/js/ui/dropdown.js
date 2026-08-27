@@ -126,14 +126,31 @@
       else open();
     }
 
+    /* Focus moved by script counts as keyboard focus to :focus-visible. Because pointerdown calls
+       preventDefault - which is what stops the browser doing its own, pointer-flavoured focus - the
+       focus() below inherited the previous modality and lit the keyboard ring on a plain mouse
+       click. The attribute records that this focus came from a pointer; the stylesheet skips the
+       ring while it is set, and the first key press clears it so keyboard users still get one. */
+    function markPointerFocus() {
+      selected.setAttribute("data-zc-pointer-focus", "");
+    }
+
+    function clearPointerFocus() {
+      selected.removeAttribute("data-zc-pointer-focus");
+    }
+
     // pointerdown rather than click: the menu has to win the race against the outside-click handler,
     // and preventDefault keeps focus from moving off the control on mousedown.
     selected.addEventListener("pointerdown", function (e) {
       e.preventDefault();
       e.stopPropagation();
       toggle();
+      markPointerFocus();
       selected.focus();
     });
+
+    selected.addEventListener("keydown", clearPointerFocus);
+    selected.addEventListener("blur", clearPointerFocus);
 
     menu.addEventListener("pointerdown", function (e) {
       e.preventDefault();

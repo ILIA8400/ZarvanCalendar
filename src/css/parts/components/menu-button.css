@@ -22,31 +22,14 @@
   width: 18px;
   height: 18px;
   display: block;
-  position: relative;
+  overflow: visible;
 }
 
-.zc-calendar .zc-menu-icon::before,
-.zc-calendar .zc-menu-icon::after,
-.zc-calendar .zc-menu-icon span {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: currentColor;
-  border-radius: var(--zc-radius-pill);
+.zc-calendar .zc-menu-bar {
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform-box: fill-box;
   transform-origin: 50% 50%;
   transition: transform 260ms cubic-bezier(.2, .85, .2, 1), opacity 160ms ease;
-}
-
-.zc-calendar .zc-menu-icon::before {
-  top: 1px;
-}
-
-.zc-calendar .zc-menu-icon span {
-  top: 8px;
-}
-
-.zc-calendar .zc-menu-icon::after {
-  top: 15px;
 }

@@ -26,9 +26,24 @@
   padding: 0 var(--zc-space-4);
 }
 
-.zc-calendar .zc-dd-selected:focus,
-.zc-calendar .zc-view-dd-selected:focus {
-  box-shadow: 0 0 0 2px var(--zc-color-accent-ring);
+/* One focus indicator, not two.
+   The global ring is an outline offset outside the box; on a bordered control that already had its
+   own accent halo the two stacked into a heavy double ring, and on the wide sidebar dropdown the
+   outline escaped the panel it sits in. So these controls opt out of the outline and show focus the
+   way a form control should: their own border goes accent, with a soft ring just outside it.
+   `:not([data-zc-pointer-focus])` keeps it off a plain mouse click - see ui/dropdown.js. */
+.zc-calendar .zc-dd-selected:focus-visible:not([data-zc-pointer-focus]),
+.zc-calendar .zc-view-dd-selected:focus-visible:not([data-zc-pointer-focus]) {
+  outline: none;
+  border-color: var(--zc-color-accent);
+  box-shadow: 0 0 0 3px var(--zc-color-accent-ring);
+}
+
+/* Clicking the box focuses it so the arrow keys work from there, but a pointer should not paint a
+   keyboard ring. */
+.zc-calendar .zc-dd-selected[data-zc-pointer-focus],
+.zc-calendar .zc-view-dd-selected[data-zc-pointer-focus] {
+  outline: none;
 }
 
 .zc-calendar .zc-dd-label,

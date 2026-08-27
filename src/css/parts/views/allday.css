@@ -75,6 +75,12 @@
   text-overflow: ellipsis;
 }
 
+/* Same radius/padding as the month grid's event pill - a compact cell, not the taller day chip below. */
+.zc-calendar .zc-allday-cell .zc-event {
+  padding: 2px var(--zc-space-1);
+  border-radius: var(--zc-radius-xs);
+}
+
 .zc-calendar .zc-day-allday-list .zc-event {
   display: inline-flex;
   align-items: center;
