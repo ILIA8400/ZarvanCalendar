@@ -394,6 +394,7 @@ cal.next(); cal.prev(); cal.today();
 
 cal.setTheme({ "color-accent": "#e11d48" });
 cal.setColorScheme("dark");
+cal.setSidebarOpen(true);
 cal.setLocale({ code: "fa", strings: { today: "همین امروز" } });
 cal.setOption("features.nowLine", false);
 
@@ -422,7 +423,7 @@ Zarvan.create({
   events: [],                 // an array, or a loader function
   locale: "fa",
   colorScheme: "auto",        // light | dark | auto        (default: light)
-  sidebarOpen: true,          // whether the sidebar starts open  (default: false)
+  sidebarOpen: true,          // whether the sidebar STARTS open  (default: false)
   renderMode: "batched",      // or "sync"
   shadow: false,
 
@@ -444,18 +445,25 @@ Zarvan.create({
 them with a visible offset, `"columns"` packs them side by side.
 
 **Hot options.** Feature flags are hot — `cal.setOption("features.views.year", false)`, dotted paths to
-any depth — and so are `view`, `locale`, `colorScheme`, `typeLabels`, `typeStyles`, `highlights` and
+any depth — and so are `view`, `locale`, `colorScheme`, `sidebarOpen`, `typeLabels`, `typeStyles`, `highlights` and
 `events`. Anything structural was consumed while the instance was being built and warns with
 `warn.optionNotHot` rather than pretending to have worked.
 
-**The sidebar's initial state.** `sidebarOpen` is read once, at construction, and is not hot. From then
-on the menu button toggles the panel as usual and `onSidebarToggle` reports each change; construction
-itself emits nothing. There is no method for opening it from code — click the button the library
-rendered:
+**The sidebar.** `sidebarOpen` sets the state the calendar is built in; construction itself emits no
+`onSidebarToggle`, because nothing toggled. After that, `setSidebarOpen()` is the programmatic half of
+the menu button — it takes the same path a click does, so it animates, moves focus and reports
+identically.
 
 ```js
-cal.getRoot().querySelector(".zc-menu-btn").click();
+cal.setSidebarOpen(true);   // returns the state in force
+cal.isSidebarOpen();        // true
+
+// Idempotent, so this is safe to call without checking first:
+window.addEventListener("resize", () => cal.setSidebarOpen(window.innerWidth > 1200));
 ```
+
+With `features.sidebar: false` there is no panel, and `setSidebarOpen(true)` returns `false` and warns
+with `warn.sidebarDisabled` rather than doing nothing quietly.
 
 ## Theming
 

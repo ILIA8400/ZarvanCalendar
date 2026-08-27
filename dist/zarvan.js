@@ -247,6 +247,7 @@
       "warn.viewDisabled": "این ویو غیرفعال است.",
       "warn.unknownView": "ویو ناشناخته است.",
       "warn.unknownColorScheme": "حالت رنگی ناشناخته است؛ روشن در نظر گرفته شد.",
+      "warn.sidebarDisabled": "نوار کناری غیرفعال است.",
       "warn.exportDisabled": "خروجی اکسل غیرفعال است.",
       "warn.xlsxMissing": "کتابخانه xlsx لود نشده است.",
       "warn.optionNotHot": "این تنظیم پس از ساخت تقویم قابل تغییر نیست.",
@@ -4904,6 +4905,29 @@ var Zarvan = (function () {
       }
     }
 
+    /* The programmatic half of the menu button. It goes through toggleSidebar() rather than setting
+       the classes itself, so a call gets the same transition, the same focus handling and the same
+       onSidebarToggle as a click - there is one path, not two that can drift.
+     *
+     * Idempotent: asking for the state it is already in does nothing and emits nothing, which is what
+     * makes it safe to call from a resize handler or a route change without checking first. */
+    function setSidebarOpen(open) {
+      var want = !!open;
+
+      if (!features.sidebar) {
+        // Silently doing nothing here would look exactly like a bug in the caller's code.
+        if (want) zWarn("warn.sidebarDisabled", { open: want });
+        return false;
+      }
+
+      if (want !== container.classList.contains("zc-sidebar-open")) toggleSidebar();
+      return isSidebarOpen();
+    }
+
+    function isSidebarOpen() {
+      return !!features.sidebar && container.classList.contains("zc-sidebar-open");
+    }
+
     function renderHeader() {
       container.innerHTML = "";
 
@@ -6284,6 +6308,7 @@ var Zarvan = (function () {
       "view",
       "locale",
       "colorScheme",
+      "sidebarOpen",
       "typeLabels",
       "typeStyles",
       "highlights",
@@ -6322,6 +6347,8 @@ var Zarvan = (function () {
           return value;
         case "colorScheme":
           return setColorScheme(value);
+        case "sidebarOpen":
+          return setSidebarOpen(value);
         case "typeLabels":
           TYPE_LABELS = value || {};
           requestRender();
@@ -6558,6 +6585,11 @@ var Zarvan = (function () {
       },
       getResolvedColorScheme: resolvedColorScheme,
       setColorScheme: setColorScheme,
+
+      /* The programmatic half of the menu button. Idempotent, and it takes the same path a click
+         does, so it animates and reports through onSidebarToggle exactly the same way. */
+      isSidebarOpen: isSidebarOpen,
+      setSidebarOpen: setSidebarOpen,
       setTypeStyles: setTypeStyles,
       getHighlights: function () {
         return (state.highlights || []).slice();

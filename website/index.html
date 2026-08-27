@@ -514,7 +514,7 @@ cal.destroy();</code></pre>
                   <tr><td><code>view</code></td><td>string</td><td><code>"month"</code></td><td><code>day</code> <code>week</code> <code>month</code> <code>year</code> <code>list</code>, or a registered view. Falls back if disabled.</td></tr>
                   <tr><td><code>locale</code></td><td>string | object</td><td><code>"fa"</code></td><td>Persian is the only bundled locale. Pass a partial one to retune its wording.</td></tr>
                   <tr><td><code>colorScheme</code></td><td>"light" | "dark" | "auto"</td><td><code>"light"</code></td><td><code>"auto"</code> follows the system and keeps following it.</td></tr>
-                  <tr><td><code>sidebarOpen</code></td><td>boolean</td><td><code>false</code></td><td>Whether the sidebar starts open. Read once, at construction.</td></tr>
+                  <tr><td><code>sidebarOpen</code></td><td>boolean</td><td><code>false</code></td><td>Whether the sidebar starts open. Change it later with <code>setSidebarOpen()</code>.</td></tr>
                   <tr><td><code>renderMode</code></td><td>"batched" | "sync"</td><td><code>"batched"</code></td><td><code>"sync"</code> renders on every change.</td></tr>
                   <tr><td><code>shadow</code></td><td>boolean</td><td><code>false</code></td><td>Render inside a shadow root.</td></tr>
                   <tr><td><code>styles</code></td><td>string | CSSStyleSheet | array</td><td>—</td><td>Shadow mode only; CSS to adopt.</td></tr>
@@ -569,20 +569,24 @@ cal.destroy();</code></pre>
               <div class="zd-demo-bar">
                 <span class="zd-demo-label">Live</span>
                 <div class="zd-controls" data-role="sidebar-open">
-                  <span class="zd-field">Rebuild the calendar with</span>
+                  <span class="zd-field">Rebuild with</span>
                   <div class="zd-btn-group">
                     <button class="zd-btn" type="button" data-sidebar-open="false">sidebarOpen: false</button>
                     <button class="zd-btn" type="button" data-sidebar-open="true">sidebarOpen: true</button>
                   </div>
+                  <span class="zd-field">…or drive the live one</span>
+                  <button class="zd-btn" type="button" data-set-sidebar="true">setSidebarOpen(true)</button>
+                  <button class="zd-btn" type="button" data-set-sidebar="false">setSidebarOpen(false)</button>
+                  <button class="zd-btn" type="button" data-role="is-open">isSidebarOpen()</button>
                 </div>
               </div>
               <div class="zd-demo-stage"><div data-mount></div></div>
               <div class="zd-log" data-log></div>
               <div class="zd-demo-note">
-                Each button destroys the calendar and constructs a new one, because this is read at
-                construction. Notice that constructing with the sidebar open emits no
-                <code>onSidebarToggle</code> — nothing toggled — but the menu button still works normally
-                afterwards.
+                The first pair destroys the calendar and constructs a new one, because that is the
+                option. The second pair drives the calendar already on screen. Notice that constructing
+                with the sidebar open emits no <code>onSidebarToggle</code> — nothing toggled — and that
+                pressing <code>setSidebarOpen(true)</code> twice reports once.
               </div>
             </div>
 
@@ -591,20 +595,39 @@ cal.destroy();</code></pre>
             </div>
 
             <p>
-              It is read once and is <strong>not</strong> hot — <code>setOption("sidebarOpen", …)</code>
-              warns with <code>warn.optionNotHot</code>. An initially-open sidebar is open in the first
-              frame rather than sliding open in front of the reader, and the option is ignored when
-              <code>features.sidebar</code> is <code>false</code>: there is no panel to open.
+              An initially-open sidebar is open in the first frame rather than sliding open in front of
+              the reader, and the option is ignored when <code>features.sidebar</code> is
+              <code>false</code>: there is no panel to open.
             </p>
 
+            <h3 id="set-sidebar-open">setSidebarOpen()</h3>
             <p>
-              There is no method for opening or closing it from code. Click the button the library
-              rendered:
+              The programmatic half of the menu button. It takes the same path a click does, so it
+              animates, moves focus and reports through <code>onSidebarToggle</code> identically — there
+              is one path, not two that can drift.
             </p>
 
             <div class="zd-code" data-lang="js">
-              <pre><code>cal.getRoot().querySelector(".zc-menu-btn").click();</code></pre>
+              <pre><code>cal.setSidebarOpen(true);    // returns the state in force
+cal.isSidebarOpen();         // true
+cal.setOption("sidebarOpen", false);   // the same thing — it is a hot option</code></pre>
             </div>
+
+            <p>
+              It is <strong>idempotent</strong>: asking for the state it is already in does nothing and
+              emits nothing, which is what makes it safe to call without checking first.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>window.addEventListener("resize", () =&gt; cal.setSidebarOpen(window.innerWidth &gt; 1200));</code></pre>
+            </div>
+
+            <p>
+              With <code>features.sidebar: false</code> there is no panel: <code>isSidebarOpen()</code>
+              is always <code>false</code>, and <code>setSidebarOpen(true)</code> returns
+              <code>false</code> and warns with <code>warn.sidebarDisabled</code> rather than doing
+              nothing quietly.
+            </p>
 
             <h2 id="hot-options">Which options are hot</h2>
             <p>
@@ -3193,7 +3216,7 @@ cal.getShadowRoot();   // the shadow root, or null in the light DOM</code></pre>
                   <tr><td><code>view</code></td><td>string</td><td><code>"month"</code></td><td>Falls back to an enabled view if this one is disabled.</td></tr>
                   <tr><td><code>locale</code></td><td>string | object</td><td><code>"fa"</code></td><td>A code, a full locale, or a partial one.</td></tr>
                   <tr><td><code>colorScheme</code></td><td>"light" | "dark" | "auto"</td><td><code>"light"</code></td><td><a href="#dark-mode">Dark mode</a>.</td></tr>
-                  <tr><td><code>sidebarOpen</code></td><td>boolean</td><td><code>false</code></td><td>Whether the sidebar starts open. Construction-only; needs <code>features.sidebar</code>.</td></tr>
+                  <tr><td><code>sidebarOpen</code></td><td>boolean</td><td><code>false</code></td><td>Whether the sidebar starts open; hot. Needs <code>features.sidebar</code>.</td></tr>
                   <tr><td><code>renderMode</code></td><td>"batched" | "sync"</td><td><code>"batched"</code></td><td><code>"sync"</code> renders on every change.</td></tr>
                   <tr><td><code>features</code></td><td>object</td><td>all on</td><td>See <a href="#configuration">Configuration</a>.</td></tr>
                   <tr><td><code>handlers</code></td><td>object</td><td><code>{}</code></td><td>Callbacks by name; the same set as <code>.on()</code>.</td></tr>
@@ -3286,6 +3309,8 @@ cal.getShadowRoot();   // the shadow root, or null in the light DOM</code></pre>
                   <button class="zd-btn" type="button" data-call="getLocale">getLocale</button>
                   <button class="zd-btn" type="button" data-call="getColorScheme">getColorScheme</button>
                   <button class="zd-btn" type="button" data-call="getResolvedColorScheme">getResolvedColorScheme</button>
+                  <button class="zd-btn" type="button" data-call="isSidebarOpen">isSidebarOpen</button>
+                  <button class="zd-btn" type="button" data-call="toggleSidebar">setSidebarOpen(toggle)</button>
                   <button class="zd-btn" type="button" data-call="getHighlights">getHighlights</button>
                   <button class="zd-btn" type="button" data-call="isLazy">isLazy</button>
                   <button class="zd-btn" type="button" data-call="isLoading">isLoading</button>
@@ -3342,7 +3367,7 @@ cal.getShadowRoot();   // the shadow root, or null in the light DOM</code></pre>
               <table class="zd-table">
                 <thead><tr><th>Method</th><th>Notes</th></tr></thead>
                 <tbody>
-                  <tr><td><code>setOption(key, value)</code></td><td>Feature flags (dotted paths work) plus <code>view</code>, <code>locale</code>, <code>colorScheme</code>, <code>typeLabels</code>, <code>typeStyles</code>, <code>highlights</code>, <code>events</code>. Anything else warns and returns <code>null</code>.</td></tr>
+                  <tr><td><code>setOption(key, value)</code></td><td>Feature flags (dotted paths work) plus <code>view</code>, <code>locale</code>, <code>colorScheme</code>, <code>sidebarOpen</code>, <code>typeLabels</code>, <code>typeStyles</code>, <code>highlights</code>, <code>events</code>. Anything else warns and returns <code>null</code>.</td></tr>
                   <tr><td><code>setTheme(tokens)</code></td><td>Bare names are namespaced; <code>null</code> clears an override.</td></tr>
                   <tr><td><code>setTypeStyles(map)</code></td><td>Replaces the whole map.</td></tr>
                   <tr><td><code>getHighlights()</code> / <code>setHighlights(list)</code></td><td></td></tr>
@@ -3350,6 +3375,8 @@ cal.getShadowRoot();   // the shadow root, or null in the light DOM</code></pre>
                   <tr><td><code>getColorScheme()</code></td><td>The setting, which may be <code>"auto"</code>.</td></tr>
                   <tr><td><code>getResolvedColorScheme()</code></td><td><code>"light"</code> or <code>"dark"</code> — what is on screen.</td></tr>
                   <tr><td><code>setColorScheme(scheme)</code></td><td>Returns the scheme in force. No re-render is needed.</td></tr>
+                  <tr><td><code>isSidebarOpen()</code></td><td>Always <code>false</code> when <code>features.sidebar</code> is off.</td></tr>
+                  <tr><td><code>setSidebarOpen(open)</code></td><td>Returns the state in force. Idempotent; takes the same path a click on the menu button does.</td></tr>
                 </tbody>
               </table>
             </div>

@@ -150,7 +150,7 @@ instructions in README.md are true. This is the one to run after any packaging c
 
 ### `test/index.html` — unit tests
 
-265 assertions across 24 suites covering every pure layer plus the UI widgets. Prints a PASS/FAIL
+269 assertions across 24 suites covering every pure layer plus the UI widgets. Prints a PASS/FAIL
 verdict with per-assertion detail. Add a case with `test("name", function () { eq(actual, expected); })`
 inside a `suite(...)`.
 
@@ -556,7 +556,7 @@ afterwards lands on the same date rather than wherever that view was last left.
 
 `setOption(key, value)` · `setTheme(tokens)` · `setTypeStyles(map)` · `setHighlights(list)` ·
 `getHighlights()` · `setLocale(l)` · `getLocale()` · `setColorScheme(s)` · `getColorScheme()` ·
-`getResolvedColorScheme()`
+`getResolvedColorScheme()` · `isSidebarOpen()` · `setSidebarOpen(open)`
 
 `setTheme` namespaces bare names, so `{ "color-accent": "#e11d48" }` and
 `{ "--zc-color-accent": "#e11d48" }` are the same. A `null` value clears an override.
@@ -571,18 +571,24 @@ duplicated into a media block that then has to be kept in step with the class; t
 moment it is not.
 
 `setOption` is deliberately narrow. Feature flags are hot (`setOption("features.nowLine", false)`);
-so are `view`, `locale`, `colorScheme`, `typeLabels`, `typeStyles`, `highlights` and `events`. Anything
-structural was consumed while the instance was being built, and warns with `warn.optionNotHot` rather
-than pretending.
+so are `view`, `locale`, `colorScheme`, `sidebarOpen`, `typeLabels`, `typeStyles`, `highlights` and
+`events`. Anything structural was consumed while the instance was being built, and warns with
+`warn.optionNotHot` rather than pretending.
 
 Feature flags are merged **into** the existing object rather than replacing it — plugins and view
 contexts hold a reference to it from construction, and swapping it out would leave every one of them
 reading a stale copy.
 
-`sidebarOpen` is one of the options that is **not** hot: it is the state the calendar is built in, read
-once, at the end of construction. `zc-sidebar-open` and `zc-sidebar-ready` are set together there
-because the second is normally added when the width transition ends and there is no transition on the
-first frame. Nothing is emitted — nothing toggled — and the menu button drives it from then on.
+`sidebarOpen` is both the state the calendar is built in and a hot option. At construction it is
+applied directly — `zc-sidebar-open` and `zc-sidebar-ready` together, because the second is normally
+added when the width transition ends and there is no transition on the first frame — and nothing is
+emitted, because nothing toggled.
+
+Afterwards it routes through `setSidebarOpen()`, which goes through `toggleSidebar()` rather than
+setting the classes itself. That is deliberate: a programmatic open gets the same transition, the same
+focus handling and the same `onSidebarToggle` as a click, so there is one path rather than two that can
+drift. It is idempotent, and with `features.sidebar: false` it warns with `warn.sidebarDisabled` rather
+than doing nothing quietly.
 
 **Bus**
 

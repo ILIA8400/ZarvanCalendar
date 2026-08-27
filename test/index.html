@@ -2320,6 +2320,73 @@
         made.splice(made.indexOf(c), 1);
       });
 
+      test("setSidebarOpen() opens and closes, and reports through the bus", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        var root = c.getRoot();
+        var seen = [];
+        c.on("onSidebarToggle", function (open) { seen.push(open); });
+
+        notOk(c.isSidebarOpen(), "starts closed");
+
+        eq(c.setSidebarOpen(true), true, "returns the state in force");
+        ok(c.isSidebarOpen(), "open");
+        ok(root.classList.contains("zc-sidebar-open"));
+        eq(root.querySelector(".zc-menu-btn").getAttribute("aria-expanded"), "true");
+
+        eq(c.setSidebarOpen(false), false);
+        notOk(c.isSidebarOpen(), "closed again");
+        eq(seen, [true, false], "one report per real change");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("setSidebarOpen() is idempotent", function () {
+        // Safe to call from a resize handler or a route change without checking first.
+        var c = make({ events: [], sidebarOpen: true, renderMode: "sync" });
+        var seen = [];
+        c.on("onSidebarToggle", function (open) { seen.push(open); });
+
+        c.setSidebarOpen(true);
+        c.setSidebarOpen(true);
+        eq(seen, [], "asking for the state it is already in emits nothing");
+        ok(c.isSidebarOpen(), "and changes nothing");
+
+        c.setSidebarOpen(false);
+        eq(seen, [false], "a real change still reports");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("setSidebarOpen() warns when there is no sidebar", function () {
+        var warned = [];
+        var c = make({
+          events: [],
+          features: { sidebar: false },
+          renderMode: "sync",
+          handlers: { onWarn: function (p) { warned.push(p.code); } },
+        });
+
+        eq(c.setSidebarOpen(true), false, "reports what is actually true");
+        eq(warned, ["warn.sidebarDisabled"], "rather than doing nothing quietly");
+        notOk(c.isSidebarOpen());
+
+        // Closing a sidebar that does not exist is already the case; nothing to report.
+        c.setSidebarOpen(false);
+        eq(warned.length, 1);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("sidebarOpen is a hot option", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        eq(c.setOption("sidebarOpen", true), true);
+        ok(c.isSidebarOpen());
+        eq(c.setOption("sidebarOpen", false), false);
+        notOk(c.isSidebarOpen());
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
       test("aria-expanded survives a header rebuild while open", function () {
         // Regression: renderHeader() built the button with a hardcoded aria-expanded="false",
         // so setLocale() on an open calendar left the button announcing the wrong state.

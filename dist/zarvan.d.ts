@@ -196,8 +196,8 @@ declare namespace Zarvan {
     /** Light by default. "auto" follows the system's prefers-color-scheme and keeps following it. */
     colorScheme?: ColorScheme;
     /**
-     * Whether the sidebar starts open. Closed by default. Read once, at construction — the menu
-     * button toggles it from then on. Needs `features.sidebar`.
+     * Whether the sidebar starts open. Closed by default. Needs `features.sidebar`; change it later
+     * with `setSidebarOpen()`.
      */
     sidebarOpen?: boolean;
     /** "sync" renders immediately instead of batching into an animation frame. */
@@ -405,6 +405,14 @@ declare namespace Zarvan {
     getResolvedColorScheme(): ResolvedColorScheme;
     /** Returns the scheme in force. Emits onColorSchemeChange; no re-render is needed. */
     setColorScheme(scheme: ColorScheme): ColorScheme;
+    /** Whether the sidebar is open. Always false when `features.sidebar` is off. */
+    isSidebarOpen(): boolean;
+    /**
+     * Opens or closes the sidebar, returning the state in force. Idempotent — asking for the state it
+     * is already in does nothing and emits nothing. Takes the same path a click on the menu button
+     * does, so it animates and reports through `onSidebarToggle` identically.
+     */
+    setSidebarOpen(open: boolean): boolean;
     setTypeStyles(map: Record<string, TypeStyle>): void;
     getHighlights(): HighlightRule[];
     setHighlights(list: HighlightRule[]): void;

@@ -11,15 +11,31 @@
   Zarvan.create({ selector: "#calendar", sidebarOpen: true });
   ```
 
-  Read once, at construction, and deliberately not hot: `setOption("sidebarOpen", …)` warns with
-  `warn.optionNotHot` rather than pretending. From then on the menu button toggles the panel exactly
-  as before, and `onSidebarToggle` reports each change — construction itself emits nothing, because
-  nothing toggled, and `onInit` is the callback that reports construction.
+  It is also a hot option, so `setOption("sidebarOpen", true)` works and is the same call as
+  `setSidebarOpen(true)` below. Construction itself emits no `onSidebarToggle` — nothing toggled, and
+  `onInit` is the callback that reports construction.
 
   `zc-sidebar-open` and `zc-sidebar-ready` are set together and before the first paint. The second is
   normally added when the width transition ends; there is no transition to wait for here, so the panel
   is simply open in the first frame rather than sliding open in front of the reader on load. The option
   is ignored when `features.sidebar` is `false` — there is no panel to open.
+
+- **`setSidebarOpen(open)` and `isSidebarOpen()`.** The programmatic half of the menu button, and the
+  reason `sidebarOpen` is a hot option rather than construction-only.
+
+  ```js
+  cal.setSidebarOpen(true);    // returns the state in force
+  cal.isSidebarOpen();         // true
+  ```
+
+  It goes through the same internal toggle a click does, so a programmatic open gets the same
+  transition, the same focus handling and the same `onSidebarToggle` — one path rather than two that
+  can drift. Idempotent: asking for the state it is already in does nothing and emits nothing, which
+  is what makes it safe to call from a resize handler or a route change without checking first.
+
+  With `features.sidebar: false` there is no panel, so `isSidebarOpen()` is always `false` and
+  `setSidebarOpen(true)` returns `false` and warns with the new `warn.sidebarDisabled` code — silently
+  doing nothing there would look exactly like a bug in the caller.
 
 - **The documentation site, `website/`.** 28 sections, each pairing prose and an API table with a live
   calendar the reader can drive. Open `website/index.html` — no server, no build step, no network. Every

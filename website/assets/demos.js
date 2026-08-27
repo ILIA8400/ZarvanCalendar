@@ -319,8 +319,19 @@
     }));
 
     buildSidebarDemo(false);
+
     d.click("[data-sidebar-open]", function (btn) {
       buildSidebarDemo(btn.dataset.sidebarOpen === "true");
+    });
+
+    // The other half: driving the calendar that is already on screen.
+    d.click("[data-set-sidebar]", function (btn) {
+      var want = btn.dataset.setSidebar === "true";
+      sidebarLog.write("setSidebarOpen(" + want + ")", "returned " + sidebarCal.setSidebarOpen(want));
+    });
+
+    d.click("[data-role=is-open]", function () {
+      sidebarLog.write("isSidebarOpen()", String(sidebarCal.isSidebarOpen()));
     });
   });
 
@@ -1309,6 +1320,11 @@
       getLocale: function () { return cal.getLocale(); },
       getColorScheme: function () { return cal.getColorScheme(); },
       getResolvedColorScheme: function () { return cal.getResolvedColorScheme(); },
+      isSidebarOpen: function () { return String(cal.isSidebarOpen()); },
+      toggleSidebar: function () {
+        // Idempotent, so flipping it is the honest way to demonstrate both directions.
+        return "now " + cal.setSidebarOpen(!cal.isSidebarOpen());
+      },
       getHighlights: function () { return cal.getHighlights().length + " rules"; },
       isLazy: function () { return String(cal.isLazy()); },
       isLoading: function () { return String(cal.isLoading()); },

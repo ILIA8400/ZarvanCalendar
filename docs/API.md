@@ -41,7 +41,7 @@ change is batched into one animation frame unless you pass `renderMode: "sync"`.
 | `view` | string | `"month"` | `day` `week` `month` `year` `list`, or a registered view. Falls back if disabled. |
 | `locale` | string \| object | `"fa"` | Persian is the only bundled locale. Pass a partial one to retune its wording — see [Wording and numerals](#wording-and-numerals). |
 | `colorScheme` | `"light"` \| `"dark"` \| `"auto"` | `"light"` | `"auto"` follows the system's `prefers-color-scheme` and keeps following it. See [Dark mode](#dark-mode). |
-| `sidebarOpen` | boolean | `false` | Whether the sidebar starts open. Read once, at construction. Needs `features.sidebar`. |
+| `sidebarOpen` | boolean | `false` | Whether the sidebar starts open. Needs `features.sidebar`; change it later with [`setSidebarOpen()`](#configuration). |
 | `renderMode` | `"batched"` \| `"sync"` | `"batched"` | `"sync"` renders on every change. |
 | `shadow` | boolean | `false` | Render inside a shadow root. |
 | `styles` | string \| CSSStyleSheet \| array | — | Shadow mode only; CSS to adopt. |
@@ -61,27 +61,39 @@ change is batched into one animation frame unless you pass `renderMode: "sync"`.
 `validation.onInvalid` is `"drop"` (default) or `"keep"`; kept events are flagged `_invalid`.
 `validation.autoFix` repairs an `end` that falls strictly before `start`.
 
-### The sidebar's initial state
+### The sidebar
 
-The sidebar is collapsed unless you ask for it open:
+Collapsed unless you ask for it open:
 
 ```js
 Zarvan.create({ selector: "#calendar", sidebarOpen: true });
 ```
 
-It is read once, at construction, and is **not** a hot option — `setOption("sidebarOpen", …)` warns
-with `warn.optionNotHot`. From then on the menu button toggles it exactly as it always has, and
-`onSidebarToggle` reports each change. Construction itself emits nothing: nothing toggled, and
-`onInit` is the callback that reports construction.
+An initially-open sidebar is open in the first frame rather than sliding open in front of the reader.
+Construction emits no `onSidebarToggle` — nothing toggled, and `onInit` is the callback that reports
+construction.
 
-An initially-open sidebar is open in the first frame rather than sliding open in front of the reader,
-and it is ignored when `features.sidebar` is `false` — there is no panel to open.
-
-There is no method for opening or closing it from code. Click the button the library rendered:
+After that, `setSidebarOpen()` is the programmatic half of the menu button:
 
 ```js
-cal.getRoot().querySelector(".zc-menu-btn").click();
+cal.setSidebarOpen(true);    // returns the state in force
+cal.isSidebarOpen();         // true
+cal.setOption("sidebarOpen", false);   // the same thing; it is a hot option
 ```
+
+It takes the same path a click does, so it animates, moves focus and reports through
+`onSidebarToggle` identically — there is one path, not two that can drift.
+
+It is **idempotent**: asking for the state it is already in does nothing and emits nothing, which is
+what makes it safe to call from a resize handler or a route change without checking first.
+
+```js
+window.addEventListener("resize", () => cal.setSidebarOpen(window.innerWidth > 1200));
+```
+
+With `features.sidebar: false` there is no panel: `isSidebarOpen()` is always `false`, and
+`setSidebarOpen(true)` returns `false` and warns with `warn.sidebarDisabled` rather than doing nothing
+quietly.
 
 ### `features`
 
@@ -223,11 +235,13 @@ anything heavier.
 
 | Method | Notes |
 |---|---|
-| `setOption(key, value)` | Feature flags plus `view`, `locale`, `colorScheme`, `typeLabels`, `typeStyles`, `highlights`, `events`. Anything else warns. |
+| `setOption(key, value)` | Feature flags plus `view`, `locale`, `colorScheme`, `sidebarOpen`, `typeLabels`, `typeStyles`, `highlights`, `events`. Anything else warns. |
 | `setTheme(tokens)` | Bare names are namespaced; `null` clears an override. |
 | `getColorScheme()` | The setting, which may be `"auto"`. |
 | `getResolvedColorScheme()` | `"light"` or `"dark"` — what is on screen. |
 | `setColorScheme(scheme)` | Returns the scheme in force. Emits `onColorSchemeChange`; no re-render is needed. |
+| `isSidebarOpen()` | Always `false` when `features.sidebar` is off. |
+| `setSidebarOpen(open)` | Returns the state in force. Idempotent; takes the same path a click on the menu button does. |
 | `setTypeStyles(map)` | |
 | `getHighlights()` / `setHighlights(list)` | |
 | `getLocale()` / `setLocale(l)` | Rebuilds the header, emits `onLocaleChange`. |
