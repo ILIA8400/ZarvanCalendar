@@ -1,5 +1,5 @@
 /**
- * Zarvan Calendar v3.0.2 - TypeScript definitions.
+ * Zarvan Calendar v3.0.3 - TypeScript definitions.
  *
  * Zarvan is loaded with a <script> tag and lives on `window`, so this file declares GLOBALS. It
  * deliberately contains no `import` and no `export`: adding either would turn it into a module and the

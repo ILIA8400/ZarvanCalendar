@@ -1,5 +1,62 @@
 # Changelog
 
+## 3.0.3
+
+Overlapping events in week and day view, the focus ring on the sidebar controls, and a round of icon
+and layout fixes. No API changes.
+
+### Changed
+
+- **Overlapping events no longer hide each other.** The cascade gave every covered event a strip of a
+  flat 14% of the column — about 17px in week view — and that one sliver had to serve as both the
+  click target and everything you could read of the title. Four events deep, three of them were a
+  single glyph you had to hit exactly. Two changes: the step is now chosen in **pixels** from the
+  measured column, so it does not shrink with the window; and a cluster too deep for every strip to
+  stay usable is laid out in **columns** instead — side by side, nothing covered, nothing to hunt for.
+  The decision is made per cluster, so one crowded morning does not flatten the rest of the day, and a
+  wide day-view column keeps the compact cascade throughout.
+- **Focusing an event still dims the rest, and now does something useful with it.** A card in a fanned
+  cluster is about 23px wide — easy to click, impossible to read — so focusing one floats its title
+  across the whole column. The label is a pseudo-element with `pointer-events: none`, which is the
+  point: the cards it covers stay hoverable, so the pointer can walk along a pile reading one title
+  after another instead of leaving and re-entering to reach the next.
+- **Focus is shown on the control instead of around it.** Both dropdowns and the search input carried
+  their own accent halo *and* the global focus outline, which stacked into a heavy double ring; on the
+  full-width search input the outline also spilled past the sidebar it sits in. They now opt out of
+  the outline and show focus the way a form control should — their own border goes accent, with a soft
+  ring just outside it. The global `--zc-focus-ring` is unchanged and still governs everything else.
+- **Short and narrow event boxes clamp to one ellipsised line.** `text-overflow: ellipsis` was inert:
+  a `-webkit-box` with no line clamp just slices the overflowing line off mid-glyph, and in a narrow
+  card `word-break` turned a Persian title into a vertical ladder of single glyphs.
+- **The hamburger icon is inlined SVG** rather than a div and two pseudo-elements — crisp rounded caps
+  at any size, and the same `currentColor` family as the other icons. The open/close morph to an X is
+  unchanged.
+- Clustering was duplicated between the cascade and the column layout; it is now one shared function
+  (`clusterByOverlap`), alongside a new `peakConcurrency` helper. Both are pure and internal.
+
+### Fixed
+
+- **Week view measured its first column as the entire row.** Each column was rendered the moment it
+  was appended, while it was still the row's only flex child, so every measurement taken from it was
+  wrong — which is why the `zc-event-compact` and `zc-event-dot` density classes never fired there.
+  All seven columns are now attached before any of them is filled.
+- **A plain mouse click painted the keyboard focus ring on the dropdowns.** The box focuses itself
+  from `pointerdown` after `preventDefault()` — which is what stops the browser doing its own,
+  pointer-flavoured focus — so the scripted `focus()` inherited the previous modality and
+  `:focus-visible` matched. Pointer-driven focus is now marked and skips the ring; the first key press
+  clears the mark, so keyboard users still get one.
+- **Week view's all-day pills had squarer corners and tighter text than every other event.** They now
+  match the month grid's radius and padding.
+- **The month view's event time could collide with the title.** The time is no longer allowed to
+  shrink below its content, and the title absorbs the squeeze and ellipsises.
+- **The year view's "+N" badge reported a hardcoded count.** It reports the real number of events.
+- The Excel export button had no horizontal padding, so its label sat against the right edge.
+
+### Testing
+
+- 8 new assertions covering the per-cluster layout choice, the fallback when no measurement is
+  available, and the two new pure helpers — 240 in total, up from 232.
+
 ## 3.0.2
 
 Repository hygiene. No library code changed; `dist/zarvan.js` and `dist/zarvan.css` are byte-identical

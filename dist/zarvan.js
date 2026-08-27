@@ -1,5 +1,5 @@
 /*!
- * Zarvan Calendar v3.0.2 - a Jalali (Persian) calendar for the web.
+ * Zarvan Calendar v3.0.3 - a Jalali (Persian) calendar for the web.
  *
  * GENERATED FILE - do not edit. Built by build/build.ps1 (or build.sh, or build.mjs).
  *
@@ -3166,7 +3166,7 @@ var Zarvan = (function () {
   /* Replaced at build time from package.json by build/build.{mjs,sh,ps1}. A vendored copy of this
      file is often several releases behind whatever a support ticket assumes, so the running build
      says which one it is: Zarvan.version. */
-  var VERSION = "3.0.2";
+  var VERSION = "3.0.3";
 
   // ------------------------- Internal modules -------------------------
   // Extracted, independently unit-tested layers (see src/js/{core,calendar,data,layout,highlights}/

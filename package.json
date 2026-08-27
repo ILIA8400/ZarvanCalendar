@@ -1,6 +1,6 @@
 {
   "name": "zarvan-calendar",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "A Jalali (Persian) calendar UI for the web — month, week, day, year and list views, recurring events, filtering and Excel export. Right-to-left and Persian by design. No build step, no framework, no runtime dependencies.",
   "keywords": [
     "calendar",
