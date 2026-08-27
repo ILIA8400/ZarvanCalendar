@@ -32,7 +32,8 @@ change is batched into one animation frame unless you pass `renderMode: "sync"`.
 | Option | Type | Default | Notes |
 |---|---|---|---|
 | `selector` | string \| Element | — | Required. |
-| `events` | array | `[]` | See [Events](#events-data). |
+| `events` | array \| function | `[]` | An array, or a function asked for one range at a time — see [Loading events on demand](#loading-events-on-demand). |
+| `eventCacheLimit` | number | `12` | How many fetched ranges to remember. Lazy sources only. |
 | `view` | string | `"month"` | `day` `week` `month` `year` `list`, or a registered view. Falls back if disabled. |
 | `locale` | string \| object | `"fa"` | Persian is the only bundled locale. Pass a partial one to retune its wording — see [Wording and numerals](#wording-and-numerals). |
 | `renderMode` | `"batched"` \| `"sync"` | `"batched"` | `"sync"` renders on every change. |
@@ -115,6 +116,51 @@ from Saturday (`0`); `until` is inclusive; `count` caps occurrences within the q
 All `when` clauses must match. Later rules override earlier ones. `when` may be omitted and its keys
 written at the top level.
 
+### Loading events on demand
+
+An array keeps every event in memory for the life of the page. Pass a **function** and the calendar
+asks for one visible range at a time:
+
+```js
+Zarvan.create({
+  selector: "#calendar",
+  events: async ({ startG, endG, startJ, endJ, view }) => {
+    return fetchEventsFromServer(startG, endG);   // array, or a promise of one
+  },
+});
+```
+
+| Field | Type | |
+|---|---|---|
+| `startG` / `endG` | `Date` | Gregorian, inclusive — what a backend speaks. |
+| `startJ` / `endJ` | `{ jy, jm, jd }` | The same bounds in Jalali. |
+| `view` | string | The view being drawn. |
+
+**When it asks.** On the visible range changing: navigation, and switching view. A re-render that
+leaves the range where it is — filtering, searching, a local edit — does not re-request.
+
+**What it remembers.** Fetched ranges are cached (`eventCacheLimit`, default 12), so paging back and
+forth does not re-request. Two asks for the same range share one call.
+
+**Out-of-order answers.** Every request carries a generation; a result that is no longer current is
+discarded. Paging forward twice quickly cannot leave the slower request's events on screen.
+
+**What comes back replaces what was loaded.** The source is the authority for the range it was asked
+about. Merging would accumulate events from ranges the reader has navigated away from — in memory, in
+`getEvents()`, and in the Excel export.
+
+**Local edits.** `addEvent` / `updateEvent` / `removeEvent` show immediately and are not overwritten
+on the visible range. They drop the cache, so navigating away and back reloads from the source.
+Persist them through your own API; call `refetchEvents()` when you want the source's version now.
+
+**Failures.** A rejected load leaves what is on screen alone rather than blanking the calendar,
+reports through `onEventsLoadError` and `onError`, and is not cached — returning to that range tries
+again. A load still in flight when `destroy()` runs is ignored.
+
+While any load is outstanding the container carries `zc-is-loading`, which draws a hairline progress
+bar across the top of the grid (suppressed under `prefers-reduced-motion`). Style that class for
+anything heavier.
+
 ---
 
 ## Instance methods
@@ -125,10 +171,13 @@ written at the top level.
 |---|---|---|
 | `getEvents()` | array | A copy. The event objects are shared — treat them as read-only. |
 | `getEventById(id)` | object \| null | |
-| `setEvents(list)` | array | Replaces everything. |
+| `setEvents(list)` | array | Replaces everything. Pass a **function** to switch to [loading on demand](#loading-events-on-demand); pass an array to switch back. |
 | `addEvent(ev)` | object \| null | Returns the **normalised** stored event; `null` if rejected. |
 | `updateEvent(id, patch)` | object \| null | Merges and re-validates. A rejected patch changes nothing. |
 | `removeEvent(id)` | object \| null | Returns what was removed. |
+| `refetchEvents()` | boolean | Reloads the visible range, ignoring the cache. `false` when `events` is an array. |
+| `isLazy()` | boolean | Whether events come from a function. |
+| `isLoading()` | boolean | Whether a load is outstanding. |
 
 ### Navigation
 
@@ -185,7 +234,22 @@ as well as `handlers`; the listener table is cleared after the second, not befor
 `onEventDblClick` · `onEventHover` · `onEventLeave` · `onEventContextMenu` · `onEventFocus` ·
 `onEventBlur`
 
-Event callbacks receive `(event, meta, ctx)` where `meta` is `{view, gdate, jdate, isAllDay, domEvent}`.
+Event callbacks receive `(event, meta, ctx)` where `meta` is
+`{view, gdate, jdate, isAllDay, domEvent, element}`.
+
+`meta.element` is the node the event was drawn as. Prefer it over `domEvent.currentTarget`, which is
+the same node but only while the event is being dispatched, and over `domEvent.target`, which is a
+*child* in some views. Every event node also carries the `zc-event-node` class. Any re-render replaces
+the node, so do not hold on to it across navigation or a data change.
+
+`onEventsChange.type` is `"set"` · `"add"` · `"update"` · `"remove"`, or `"load"` when a lazy source
+has answered.
+
+**Loading** — `onEventsLoadStart` `{startG,endG,view}` · `onEventsLoadEnd` `{events,startG,endG,view}`
+· `onEventsLoadError` `{error,startG,endG,view}`
+
+These fire only when `events` is a function. See
+[Loading events on demand](#loading-events-on-demand).
 
 **Interaction** — `onDayNumberClick` `{gdate,jdate,view}` · `onWeekHeaderDayClick` ·
 `onMoreEventsClick` `{date,events,view}` · `onModalOpen` · `onModalClose` · `onSidebarToggle` ·

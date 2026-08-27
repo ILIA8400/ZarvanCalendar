@@ -1845,6 +1845,204 @@
   };
 })(this.ZarvanInternal = this.ZarvanInternal || {});
 
+/* Zarvan / data/source - the event source: an array, or a function asked for one range at a time.
+ *
+ * `events: [...]` keeps every event in memory forever, which is fine for a few hundred and hopeless
+ * for a few years of history. `events: fn` inverts that: the calendar says which range it is showing
+ * and the consumer returns just those events.
+ *
+ *   events: async ({ startG, endG }) => fetchFromServer(startG, endG)
+ *
+ * No DOM in here, and no calendar knowledge beyond a Gregorian range. What this module owns is the
+ * three things that make an async source correct rather than merely working:
+ *
+ *   1. Ordering. Navigating quickly fires several loads; they can come back in any order. Every
+ *      request carries a generation, and a result whose generation is no longer current is dropped.
+ *      Without it, paging forward twice quickly can leave the first page's events on screen.
+ *   2. Duplication. Two requests for the same range - a re-render, a view that shares a range -
+ *      share one promise rather than hitting the network twice.
+ *   3. Repetition. Ranges already fetched are remembered, so paging back and forth does not refetch.
+ *      The cache is capped, because a user paging through a year should not accumulate one.
+ *
+ * The cache is keyed on the exact range, deliberately: it answers "have I asked this before", not
+ * "do I have these events somewhere", which would mean interval-union bookkeeping and a merge whose
+ * de-duplication rules nobody could predict. A miss costs one request; a wrong merge costs trust. */
+(function (Z) {
+  "use strict";
+  var g = Z.gregorian;
+
+  var DEFAULT_CACHE_LIMIT = 12;
+
+  function rangeKey(startG, endG) {
+    return g.gDateStart(startG).getTime() + ":" + g.gDateStart(endG).getTime();
+  }
+
+  function createEventSource(opts) {
+    opts = opts || {};
+
+    var loader = null; // the consumer's function, or null while the source is a plain array
+    var limit = opts.cacheLimit > 0 ? opts.cacheLimit : DEFAULT_CACHE_LIMIT;
+
+    /* Bumped by every request. A result carrying an older generation lost the race and is thrown
+       away - which is the whole reason a fast click through three months cannot end up showing the
+       events of whichever request happened to be slowest. */
+    var generation = 0;
+    var appliedKey = null; // the range whose events are currently applied
+    var inflight = {}; // key -> promise, so concurrent asks for one range share a fetch
+    var cache = []; // [{ key, events }], oldest first
+    var disposed = false;
+    var busy = 0;
+
+    function cacheGet(key) {
+      for (var i = 0; i < cache.length; i++) {
+        if (cache[i].key === key) return cache[i];
+      }
+      return null;
+    }
+
+    function cachePut(key, events) {
+      var hit = cacheGet(key);
+      if (hit) {
+        hit.events = events;
+        return;
+      }
+      cache.push({ key: key, events: events });
+      while (cache.length > limit) cache.shift();
+    }
+
+    function apply(events, range, key, fromCache) {
+      appliedKey = key;
+      if (opts.onApply) opts.onApply(events, range, { cached: !!fromCache });
+    }
+
+    function settle(range) {
+      busy = Math.max(0, busy - 1);
+      if (busy === 0 && opts.onIdle) opts.onIdle(range);
+    }
+
+    /* Ask for a range.
+     *
+     * Returns true when something was applied or a load was started, false when the answer was
+     * already on screen. `force` skips the cache, which is what refetch() and every local mutation
+     * need - the cache remembers answers, and a mutation makes the old answer wrong. */
+    function request(range, force) {
+      if (disposed || !loader) return false;
+      if (!range || !range.startG || !range.endG) return false;
+
+      var key = rangeKey(range.startG, range.endG);
+
+      // Already showing this range and nothing has invalidated it.
+      if (!force && key === appliedKey) return false;
+
+      var mine = ++generation;
+
+      if (!force) {
+        var hit = cacheGet(key);
+        if (hit) {
+          apply(hit.events, range, key, true);
+          return true;
+        }
+      }
+
+      if (opts.onStart) opts.onStart(range);
+      busy++;
+
+      var pending = inflight[key];
+
+      if (!pending || force) {
+        /* Promise.resolve wraps whatever came back, so a function that returns a plain array is
+           handled by the same path as one that returns a promise - and always asynchronously, so a
+           source can never re-enter a render that is still running. */
+        pending = Promise.resolve()
+          .then(function () {
+            return loader(range);
+          })
+          .then(function (events) {
+            return Array.isArray(events) ? events : [];
+          });
+        inflight[key] = pending;
+      }
+
+      pending.then(
+        function (events) {
+          delete inflight[key];
+          if (disposed) return;
+
+          // Cache even a superseded result: it was a real answer for a real range.
+          cachePut(key, events);
+
+          if (mine !== generation) {
+            settle(range);
+            return; // a newer request has taken over; this one is history
+          }
+
+          apply(events, range, key, false);
+          if (opts.onLoad) opts.onLoad(events, range);
+          settle(range);
+        },
+        function (err) {
+          delete inflight[key];
+          if (disposed) return;
+
+          // A failed range is not cached, so the next visit tries again.
+          if (mine === generation && opts.onError) opts.onError(err, range);
+          settle(range);
+        }
+      );
+
+      return true;
+    }
+
+    return {
+      /** Swap the source. A function turns lazy loading on; anything else turns it off. */
+      setLoader: function (fn) {
+        loader = typeof fn === "function" ? fn : null;
+        cache.length = 0;
+        appliedKey = null;
+        inflight = {};
+        generation++;
+        return !!loader;
+      },
+
+      isLazy: function () {
+        return !!loader;
+      },
+
+      request: request,
+
+      /* Forget remembered answers WITHOUT re-asking for the one on screen.
+       *
+       * This is what a local add, update or remove needs. Those edits make every cached answer
+       * wrong, so the cache has to go - but clearing `appliedKey` too would make the very next
+       * render reload the current range, and the range that comes back is the server's, which does
+       * not have the edit in it yet. The edit would appear to undo itself a frame after it was made.
+       *
+       * So: future navigation gets fresh data, the visible range keeps the edit, and a consumer who
+       * wants the server's version now asks for it with refetchEvents(). */
+      invalidate: function () {
+        cache.length = 0;
+      },
+
+      /** True while at least one load is outstanding. */
+      isBusy: function () {
+        return busy > 0;
+      },
+
+      dispose: function () {
+        disposed = true;
+        cache.length = 0;
+        inflight = {};
+        loader = null;
+      },
+    };
+  }
+
+  Z.dataSource = {
+    rangeKey: rangeKey,
+    createEventSource: createEventSource,
+  };
+})(this.ZarvanInternal = this.ZarvanInternal || {});
+
 /* Zarvan / views/timegrid - the engine behind the week and day views.
  *
  * Week and day are the same thing at different widths: a vertical 24-hour grid of day columns, an
@@ -3213,7 +3411,8 @@ var Zarvan = (function () {
     eventInVisibleRange = Z.dataEvents.eventInVisibleRange;
 
   var organizeEvents = Z.dataOrganize.organizeEvents,
-    expandRecurringForRange = Z.dataRecurrence.expandRecurringForRange;
+    expandRecurringForRange = Z.dataRecurrence.expandRecurringForRange,
+    createEventSource = Z.dataSource.createEventSource;
 
   var layoutDayEventsOverlap = Z.layoutOverlap.layoutDayEventsOverlap,
     layoutDayEventsColumns = Z.layoutColumns.layoutDayEventsColumns;
@@ -3438,7 +3637,13 @@ var Zarvan = (function () {
     };
 
     if (!isViewEnabled(state.view)) state.view = firstEnabledView();
-    state.baseEvents = normalizeEvents(options.events || []);
+
+    /* A function means lazy loading, and there is nothing to normalise yet: the first load is fired
+       by the first render, which is the first moment there is a visible range to ask about. */
+    state.baseEvents =
+      typeof options.events === "function"
+        ? []
+        : normalizeEvents(options.events || []);
 
     // DOM references, re-populated by renderHeader()
     var sidebarEl = null;
@@ -3456,6 +3661,100 @@ var Zarvan = (function () {
 
     var _lastRange = null;
     var _lastActiveDate = null;
+
+    /* ---- The event source ----
+     *
+     * data/source owns the awkward parts - which result is still current, which range has already
+     * been asked for, which fetches are in flight. What is left here is only what to DO with an
+     * answer, and how the calendar shows that it is waiting for one. */
+    var eventSource = createEventSource({
+      cacheLimit: options.eventCacheLimit,
+
+      onStart: function (range) {
+        syncLoadingState();
+        emit("onEventsLoadStart", {
+          startG: new Date(range.startG),
+          endG: new Date(range.endG),
+          view: state.view,
+        });
+      },
+
+      /* A fetched range REPLACES what was loaded rather than merging into it.
+         A lazy source is the authority for the range it was asked about, and merging would quietly
+         accumulate events from months the reader has long since navigated away from - in memory, in
+         getEvents(), and in the Excel export. Replacing keeps "what is loaded" equal to "what is on
+         screen", which is the only rule that stays true as the calendar is used. */
+      onApply: function (events) {
+        state.baseEvents = normalizeEvents(events);
+        renderTypeStyles();
+        emit("onEventsChange", {
+          type: "load",
+          event: null,
+          events: state.baseEvents,
+        });
+        requestRender();
+      },
+
+      onLoad: function (events, range) {
+        emit("onEventsLoadEnd", {
+          events: state.baseEvents,
+          startG: new Date(range.startG),
+          endG: new Date(range.endG),
+          view: state.view,
+        });
+      },
+
+      /* A failed range leaves whatever was on screen alone. Blanking the calendar because one
+         request timed out is a worse answer than showing slightly stale events, and the range is not
+         cached, so simply navigating back to it tries again. */
+      onError: function (err, range) {
+        emit("onEventsLoadError", {
+          error: err,
+          startG: new Date(range.startG),
+          endG: new Date(range.endG),
+          view: state.view,
+        });
+        zError(err);
+      },
+
+      onIdle: function () {
+        syncLoadingState();
+      },
+    });
+
+    function syncLoadingState() {
+      if (!container || !container.classList) return;
+      container.classList.toggle("zc-is-loading", eventSource.isBusy());
+    }
+
+    /* Called by every render. The manager decides whether that means a fetch, a cache hit or
+       nothing at all, so this can stay unconditional - a filter change re-renders without the range
+       moving, and asking for a range already applied is free. */
+    function syncEventSource(force) {
+      if (!eventSource.isLazy()) return false;
+      return eventSource.request(lazyRange(), force);
+    }
+
+    /* What the consumer's function is handed. Gregorian for the boundary - that is what a backend
+       speaks - plus the Jalali equivalents, because this is a Jalali calendar and converting them
+       back by hand would be the first thing every consumer wrote. */
+    function lazyRange() {
+      var rg = getVisibleRangeG();
+      if (!rg || !rg.startG || !rg.endG) return null;
+
+      var startG = gDateStart(rg.startG);
+      var endG = gDateStart(rg.endG);
+
+      return {
+        startG: startG,
+        endG: endG,
+        startJ: jal.fromGDate(startG),
+        endJ: jal.fromGDate(endG),
+        view: state.view,
+      };
+    }
+
+    if (typeof options.events === "function") eventSource.setLoader(options.events);
 
     /* How many all-day pills the week and day strips show before collapsing into "+N more". The
        month view does not use it: it measures what actually fits in a cell. */
@@ -4998,6 +5297,11 @@ var Zarvan = (function () {
 
       emitRangeChangeIfNeeded();
 
+      /* Ask the source for whatever range this render is about to draw. Nothing is awaited: the
+         render proceeds with what is already loaded, and a result arriving later schedules its own
+         render. That is what keeps navigation responsive instead of blocking on the network. */
+      syncEventSource();
+
       // refresh data
       var rg = getVisibleRangeG();
       var expandedForAC = expandRecurringForRange(
@@ -5720,16 +6024,43 @@ var Zarvan = (function () {
     }
 
     // --------------------------- Public API ---------------------------
+    /* Takes an array, as it always has, or a function - which swaps the calendar over to loading one
+       range at a time. Passing an array again turns lazy loading back off. */
     function setEvents(events) {
+      if (typeof events === "function") {
+        /* setLoader forgets which range is applied, so the render that announceEvents schedules asks
+           the new source for the visible range. Requesting here as well would be a second, duplicate
+           load in sync render mode, where that render has already happened by the time we return. */
+        eventSource.setLoader(events);
+        state.baseEvents = [];
+        emit("onEventsSet", state.baseEvents);
+        announceEvents("set", null);
+        return state.baseEvents;
+      }
+
+      eventSource.setLoader(null);
       state.baseEvents = normalizeEvents(Array.isArray(events) ? events : []);
       emit("onEventsSet", state.baseEvents);
       announceEvents("set", null);
       return state.baseEvents;
     }
 
+    /* Load the visible range again, cache and all. For when something changed on the server that the
+       calendar has no way of knowing about. */
+    function refetchEvents() {
+      if (!eventSource.isLazy()) return false;
+      eventSource.invalidate();
+      return syncEventSource(true);
+    }
+
     /* Every mutation ends here: re-derive the type colours (a new type may have appeared, or the last
-       event of a type may have gone), tell listeners what happened, and schedule one render. */
+       event of a type may have gone), tell listeners what happened, and schedule one render.
+     *
+     * It also drops the range cache. The cache remembers what the source answered, and a local add,
+     * update or remove makes that answer wrong - without this, navigating away and back would serve
+     * the stale answer from before the edit and the edit would appear to have been undone. */
     function announceEvents(kind, event) {
+      if (kind !== "set") eventSource.invalidate();
       renderTypeStyles();
       emit("onEventsChange", {
         type: kind,
@@ -5908,6 +6239,11 @@ var Zarvan = (function () {
       renderStore.dispose();
       instanceStore.dispose();
 
+      /* A load already on its way cannot be recalled, so the source is told to ignore whatever comes
+         back. Without this, a fetch outstanding at the moment of destroy() would resolve into a
+         calendar that no longer has a container to render into. */
+      eventSource.dispose();
+
       typeStyleTag = null;
       modal = null;
 
@@ -6017,6 +6353,18 @@ var Zarvan = (function () {
       addEvent: addEvent,
       updateEvent: updateEvent,
       removeEvent: removeEvent,
+
+      // ---- lazy loading ----
+      /** Load the visible range again, ignoring the cache. False when the source is a plain array. */
+      refetchEvents: refetchEvents,
+      /** Whether events come from a function rather than an array. */
+      isLazy: function () {
+        return eventSource.isLazy();
+      },
+      /** Whether a load is outstanding right now. */
+      isLoading: function () {
+        return eventSource.isBusy();
+      },
 
       // ---- navigation ----
       getView: function () {

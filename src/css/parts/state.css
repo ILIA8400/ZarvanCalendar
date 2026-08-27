@@ -181,6 +181,45 @@
   outline-offset: 1px;
 }
 
+/* ---- Loading ----
+   Set while a lazy source has a load outstanding, and removed when the last one settles.
+   A hairline running across the top of the body, and nothing else: navigation already redraws the
+   grid, and dimming or blanking it on every page turn would make a fast source look slower than it
+   is. Consumers who want a heavier treatment have the class to hang it on. */
+.zc-calendar.zc-is-loading .zc-body::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  z-index: var(--zc-z-sticky-week);
+  background: linear-gradient(
+    to left,
+    transparent,
+    var(--zc-color-accent),
+    transparent
+  );
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: zc-loading-sweep 1.1s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes zc-loading-sweep {
+  from { background-position: 140% 0; }
+  to { background-position: -40% 0; }
+}
+
+/* A sweeping bar is decoration; the class alone still says "busy". */
+@media (prefers-reduced-motion: reduce) {
+  .zc-calendar.zc-is-loading .zc-body::after {
+    animation: none;
+    background: var(--zc-color-accent-weak);
+    background-size: 100% 100%;
+  }
+}
+
 /* ---- Hidden ----
    Declared last on purpose: .zc-modal-overlay sets display:flex, so at equal specificity this must
    come after it, and .zc-modal-overlay.zc-hidden (0,2,0) out-ranks it outright. */

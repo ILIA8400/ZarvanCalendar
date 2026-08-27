@@ -4,6 +4,48 @@
 
 ### Added
 
+- **`events` can be a function, and the calendar loads one visible range at a time.** An array keeps
+  every event in memory for the life of the page, which is fine for hundreds and hopeless for years
+  of history.
+
+  ```js
+  events: async ({ startG, endG }) => fetchEventsFromServer(startG, endG)
+  ```
+
+  The range arrives as Gregorian `Date`s — what a backend speaks — plus the Jalali equivalents and
+  the view being drawn. Loads are triggered by the visible range changing: navigation and view
+  switches. A re-render that leaves the range alone — filtering, searching, a local edit — does not
+  re-request.
+
+  The three things that make an async source correct rather than merely working are handled in
+  `data/source.js`:
+
+  - **Ordering.** Every request carries a generation and a result whose generation is no longer
+    current is dropped. Without it, paging forward twice quickly can leave the first page's events on
+    screen because that request happened to be the slowest.
+  - **De-duplication.** Two asks for one range share a single call.
+  - **Repetition.** Fetched ranges are remembered in a capped cache (`eventCacheLimit`, default 12),
+    so paging back and forth does not re-request.
+
+  What comes back **replaces** what was loaded — the source is the authority for the range it was
+  asked about. Merging would quietly accumulate events from months the reader navigated away from, in
+  memory, in `getEvents()` and in the Excel export. Local mutations show immediately and are *not*
+  clobbered: they drop the cache so future navigation is fresh, but deliberately do not reload the
+  visible range, because the server's answer does not have the edit in it yet and the edit would
+  appear to undo itself.
+
+  A failed range leaves what is on screen alone rather than blanking the calendar, and is not cached,
+  so returning to it tries again. A load still in flight when `destroy()` runs is ignored rather than
+  resolving into a torn-down calendar.
+
+  New API: `refetchEvents()`, `isLazy()`, `isLoading()`, and `setEvents()` now also accepts a
+  function to swap the source at runtime. New callbacks: `onEventsLoadStart`, `onEventsLoadEnd`,
+  `onEventsLoadError`. `onEventsChange` gained a `"load"` type. While any load is outstanding the
+  container carries `zc-is-loading`, which draws a hairline progress bar — motion suppressed under
+  `prefers-reduced-motion`.
+
+  Passing an array behaves exactly as before.
+
 - **`meta.element` on every event callback** — the node the event was drawn as, for `onEventClick`,
   `onEventDblClick`, `onEventHover`, `onEventLeave`, `onEventContextMenu` and the focus callbacks.
   Anchor a popover to it. It is better than the two things a consumer previously had to reach for:

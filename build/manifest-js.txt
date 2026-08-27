@@ -30,12 +30,13 @@ calendar/jalali.js
 layout/overlap.js
 layout/columns.js
 
-# --- data: events -> normalize/recurrence/organize/filter ---
+# --- data: events -> normalize/recurrence/organize/filter, plus the source that supplies them ---
 data/events.js
 data/normalize.js
 data/recurrence.js
 data/organize.js
 data/filter.js
+data/source.js
 
 # --- views: shared rendering engines ---
 views/timegrid.js

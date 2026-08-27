@@ -159,9 +159,33 @@ declare namespace Zarvan {
     color?: string;
   }
 
+  /** The range a lazy source is asked about. Gregorian for your backend, Jalali because this is one. */
+  interface EventRange {
+    startG: Date;
+    endG: Date;
+    startJ: JDate;
+    endJ: JDate;
+    view: ViewName;
+  }
+
+  /**
+   * Asked for one visible range at a time. Return the events for it, or a promise of them.
+   *
+   *   events: async ({ startG, endG }) => fetchFromServer(startG, endG)
+   *
+   * Called when the visible range changes — navigation and view switches — and not for re-renders
+   * that leave the range where it is. Ranges already fetched are served from a capped cache, so
+   * paging back and forth does not re-request. What comes back REPLACES what was loaded: the source
+   * is the authority for the range it was asked about.
+   */
+  type EventLoader = (range: EventRange) => CalendarEvent[] | Promise<CalendarEvent[]>;
+
   interface Options {
     selector: string | HTMLElement;
-    events?: CalendarEvent[];
+    /** Every event up front, or a function asked for one range at a time. */
+    events?: CalendarEvent[] | EventLoader;
+    /** How many fetched ranges to remember. Default 12. */
+    eventCacheLimit?: number;
     view?: ViewName;
     /** A code, a full locale, or a partial one naming the locale it extends. */
     locale?: string | Partial<Locale>;
@@ -245,9 +269,31 @@ declare namespace Zarvan {
     // data
     onEventsSet?: Handler<CalendarEvent[]>;
     onEventsChange?: Handler<{
-      type: "set" | "add" | "update" | "remove";
+      /** "load" is a lazy source answering; the rest are local mutations. */
+      type: "set" | "add" | "update" | "remove" | "load";
       event: CalendarEvent | null;
       events: CalendarEvent[];
+    }>;
+
+    // lazy loading — only fire when `events` is a function
+    /** A range is being fetched. The container also carries `zc-is-loading` while any load is out. */
+    onEventsLoadStart?: Handler<{ startG: Date; endG: Date; view: ViewName }>;
+    /** A range arrived and was applied. */
+    onEventsLoadEnd?: Handler<{
+      events: CalendarEvent[];
+      startG: Date;
+      endG: Date;
+      view: ViewName;
+    }>;
+    /**
+     * A range failed. Whatever was on screen is left alone rather than blanked, and the range is not
+     * cached, so returning to it tries again. Also reported through `onError`.
+     */
+    onEventsLoadError?: Handler<{
+      error: unknown;
+      startG: Date;
+      endG: Date;
+      view: ViewName;
     }>;
 
     // event interaction
@@ -295,7 +341,18 @@ declare namespace Zarvan {
     /** A copy of the list. The event objects are shared - treat them as read-only. */
     getEvents(): CalendarEvent[];
     getEventById(id: string | number): CalendarEvent | null;
-    setEvents(list: CalendarEvent[]): CalendarEvent[];
+    /**
+     * Replace the events, or swap the source itself: pass a function to switch to loading one range
+     * at a time, pass an array to switch back. Returns what is loaded now, which for a function is
+     * empty until the first load lands.
+     */
+    setEvents(list: CalendarEvent[] | EventLoader): CalendarEvent[];
+    /** Reload the visible range, ignoring the cache. False when `events` is an array. */
+    refetchEvents(): boolean;
+    /** Whether events come from a function rather than an array. */
+    isLazy(): boolean;
+    /** Whether a load is outstanding right now. */
+    isLoading(): boolean;
     /** Returns the normalised stored event, or null if validation rejected it. */
     addEvent(event: CalendarEvent): CalendarEvent | null;
     updateEvent(id: string | number, patch: Partial<CalendarEvent>): CalendarEvent | null;

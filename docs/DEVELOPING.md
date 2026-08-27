@@ -21,6 +21,7 @@ src/js/
 ├─ data/recurrence.js   expand repeats over a range
 ├─ data/organize.js     bucket events into a per-day map
 ├─ data/filter.js       type + free-text filtering
+├─ data/source.js       where events come from: an array, or a function asked per range
 ├─ core/hooks.js        named extension points
 ├─ core/shadow.js       optional Shadow DOM mounting + style adoption
 ├─ core/plugins.js      plugin registry
@@ -42,6 +43,12 @@ Each module is a classic IIFE that registers a namespace on a shared `ZarvanInte
 `build/manifest-js.txt` must follow the dependency graph — a module may only use namespaces registered
 by files listed above it. `main.js` comes last and aliases everything it needs to the names the render
 code already used, so the view code reads unchanged.
+
+`data/source.js` is the one module that is stateful rather than pure, because what it owns is timing:
+which answer is still current, which range has already been asked for, which fetches are in flight. It
+holds no DOM and no calendar knowledge beyond a Gregorian range — `main.js` supplies the range and
+decides what to do with a result. The generation counter in there is load-bearing: without it, paging
+forward twice quickly can leave the slower request's events on screen.
 
 After the shell IIFE runs, `ZarvanInternal` is deleted from `window` and re-exported as
 `Zarvan._internal` — unstable, and there only so the test page can reach the pure layers.
@@ -140,12 +147,27 @@ instructions in README.md are true. This is the one to run after any packaging c
 
 ### `test/index.html` — unit tests
 
-232 assertions across 23 suites covering every pure layer plus the UI widgets. Prints a PASS/FAIL
+253 assertions across 24 suites covering every pure layer plus the UI widgets. Prints a PASS/FAIL
 verdict with per-assertion detail. Add a case with `test("name", function () { eq(actual, expected); })`
 inside a `suite(...)`.
 
-The runner is ~40 lines at the top of the file and has no dependencies, on purpose: a contributor should
-not have to install anything to run or extend the tests.
+A case may **return a promise**, which is what the lazy event source needs — there is no synchronous
+way to assert on something that arrives a round trip later. The case is recorded in order immediately
+and filled in when it settles; the report waits for all of them. `after(ms)` returns a promise for
+waiting on a fake server:
+
+```js
+test("loads the visible range", function () {
+  var c = Zarvan.create({ selector: host, events: fakeServer.load });
+  return after(60).then(function () { eq(fakeServer.calls.length, 1); c.destroy(); });
+});
+```
+
+An async case outlives the synchronous sweep, so it must create and destroy its own host rather than
+relying on a suite's shared teardown.
+
+The runner is ~60 lines at the top of the file and has no dependencies, on purpose: a contributor
+should not have to install anything to run or extend the tests.
 
 ### `test/host-hostile.html` — CSS isolation
 

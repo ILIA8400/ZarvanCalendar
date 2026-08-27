@@ -85,9 +85,34 @@
       catch (e) { current.cases.push({ name: "suite threw", ok: false, detail: String(e && e.stack || e) }); failed++; }
     }
 
+    /* A test may return a promise, which is what lazy loading needs: there is no synchronous way to
+       assert on something that arrives a network round trip later. The case is recorded in order
+       straight away and filled in when it settles; the report waits for `pending` to drain. */
+    var pending = [];
+
     function test(name, fn) {
-      try { fn(); current.cases.push({ name: name, ok: true }); passed++; }
-      catch (e) { current.cases.push({ name: name, ok: false, detail: String(e && e.message || e) }); failed++; }
+      var slot = { name: name, ok: true };
+      current.cases.push(slot);
+
+      function fell(e) {
+        slot.ok = false;
+        slot.detail = String((e && (e.message || e.stack)) || e);
+        failed++;
+      }
+
+      try {
+        var out = fn();
+        if (out && typeof out.then === "function") {
+          pending.push(out.then(function () { passed++; }, fell));
+          return;
+        }
+        passed++;
+      } catch (e) { fell(e); }
+    }
+
+    /** Settles after `ms`, so an async test can wait for a fake server without a fixed sleep everywhere. */
+    function after(ms) {
+      return new Promise(function (r) { setTimeout(r, ms); });
     }
 
     function fail(msg) { throw new Error(msg); }
@@ -3047,9 +3072,225 @@
       document.getElementById("sandbox").innerHTML = "";
     });
 
+    // ------------------------------------------------------- lazy event source
+    suite("lazy events", function () {
+      /* Its own hosts and its own teardown: these cases outlive the synchronous sweep, so they
+         cannot be cleaned up by the integration suite's `made` list. */
+      function lazyHost() {
+        var el = document.createElement("div");
+        document.getElementById("sandbox").appendChild(el);
+        return el;
+      }
+
+      /* A fake server. Records the Jalali start of every range it is asked for, and answers after
+         `delay(n)` ms with one event named after that range - so which range's answer is on screen
+         is visible from the event titles alone. */
+      function server(delay) {
+        var calls = [];
+        function jk(g) {
+          var j = JAL.fromGDate(g);
+          return j.jy + "-" + j.jm + "-" + j.jd;
+        }
+        return {
+          calls: calls,
+          load: function (range) {
+            var k = jk(range.startG);
+            calls.push(k);
+            var ms = typeof delay === "function" ? delay(calls.length - 1) : (delay || 0);
+            return new Promise(function (res) {
+              setTimeout(function () {
+                res([{ id: k, title: "from " + k, start: k + "T09:00", end: k + "T10:00" }]);
+              }, ms);
+            });
+          },
+        };
+      }
+
+      function titles(c) {
+        return c.getEvents().map(function (e) { return e.title; });
+      }
+
+      test("an array source is untouched: synchronous, and not lazy", function () {
+        var host = lazyHost();
+        var c = Zarvan.create({
+          selector: host, renderMode: "sync",
+          events: [{ id: 1, title: "static", start: "1405-06-05T09:00" }],
+        });
+        notOk(c.isLazy(), "not lazy");
+        eq(c.getEvents().length, 1, "present the moment create() returns");
+        notOk(c.refetchEvents(), "nothing to refetch");
+        c.destroy(); host.remove();
+      });
+
+      test("a function source loads the visible range", function () {
+        var host = lazyHost(), s = server(5);
+        var c = Zarvan.create({ selector: host, view: "month", renderMode: "sync", events: s.load });
+        ok(c.isLazy(), "lazy");
+        eq(c.getEvents().length, 0, "nothing yet - the load has not resolved");
+
+        return after(60).then(function () {
+          eq(s.calls.length, 1, "asked once");
+          eq(titles(c), ["from " + s.calls[0]], "and applied what came back");
+          c.destroy(); host.remove();
+        });
+      });
+
+      test("navigating loads the new range, and only the new range", function () {
+        var host = lazyHost(), s = server(5);
+        var c = Zarvan.create({ selector: host, view: "month", renderMode: "sync", events: s.load });
+
+        return after(60).then(function () {
+          eq(s.calls.length, 1);
+          c.next();
+          return after(60);
+        }).then(function () {
+          eq(s.calls.length, 2, "one more for the new month");
+          notOk(s.calls[0] === s.calls[1], "a different range");
+          c.destroy(); host.remove();
+        });
+      });
+
+      test("going back to a loaded range does not ask again", function () {
+        var host = lazyHost(), s = server(5);
+        var c = Zarvan.create({ selector: host, view: "month", renderMode: "sync", events: s.load });
+
+        return after(60).then(function () {
+          c.next();
+          return after(60);
+        }).then(function () {
+          c.prev();
+          return after(60);
+        }).then(function () {
+          eq(s.calls.length, 2, "two ranges seen, two requests");
+          eq(titles(c), ["from " + s.calls[0]], "and the first range's events are back");
+          c.destroy(); host.remove();
+        });
+      });
+
+      test("a re-render is not a navigation", function () {
+        // Filtering, searching and every data change re-render without the range moving.
+        var host = lazyHost(), s = server(5);
+        var c = Zarvan.create({ selector: host, view: "month", renderMode: "sync", events: s.load });
+
+        return after(60).then(function () {
+          c.refresh(); c.refresh(); c.refresh();
+          return after(60);
+        }).then(function () {
+          eq(s.calls.length, 1, "still one request");
+          c.destroy(); host.remove();
+        });
+      });
+
+      test("a slow answer never overwrites a newer one", function () {
+        /* The failure this guards: page forward twice, the first request is slow, it lands last and
+           leaves the calendar showing a range the reader has already left. */
+        var host = lazyHost();
+        var s = server(function (n) { return n === 1 ? 200 : 10; }); // the middle request is slow
+        var c = Zarvan.create({ selector: host, view: "month", renderMode: "sync", events: s.load });
+
+        return after(60).then(function () {
+          c.next();          // slow
+          return after(15);
+        }).then(function () {
+          c.next();          // fast, resolves first
+          return after(320); // long enough for the slow one to land too
+        }).then(function () {
+          eq(s.calls.length, 3);
+          eq(titles(c), ["from " + s.calls[2]], "showing the range actually navigated to");
+          c.destroy(); host.remove();
+        });
+      });
+
+      test("a failed range keeps what is on screen, and is tried again on return", function () {
+        var host = lazyHost(), calls = [], fail = false, errors = [];
+        var c = Zarvan.create({
+          selector: host, view: "month", renderMode: "sync",
+          events: function (range) {
+            var j = JAL.fromGDate(range.startG);
+            var k = j.jy + "-" + j.jm + "-" + j.jd;
+            calls.push(k);
+            if (fail) return Promise.reject(new Error("boom"));
+            return Promise.resolve([{ id: k, title: "from " + k, start: k + "T09:00" }]);
+          },
+          handlers: { onEventsLoadError: function (p) { errors.push(p.error.message); } },
+        });
+
+        return after(40).then(function () {
+          var before = titles(c);
+          fail = true;
+          c.next();
+          return after(40).then(function () {
+            eq(titles(c), before, "the old events are still there, not blanked");
+            eq(errors, ["boom"], "and the failure was reported");
+
+            fail = false;
+            c.prev();
+            return after(40);
+          }).then(function () {
+            var n = calls.length;
+            c.next(); // the range that failed - must not be cached
+            return after(40).then(function () {
+              ok(calls.length > n, "asked again rather than serving a failure from cache");
+              ok(titles(c).length === 1, "and this time it loaded");
+              c.destroy(); host.remove();
+            });
+          });
+        });
+      });
+
+      test("a local edit is not undone by the source", function () {
+        /* addEvent drops the range cache, but must NOT cause the visible range to reload - the
+           server's answer does not have the edit in it yet. */
+        var host = lazyHost(), s = server(5);
+        var c = Zarvan.create({ selector: host, view: "month", renderMode: "sync", events: s.load });
+
+        return after(60).then(function () {
+          c.addEvent({ id: "local", title: "mine", start: "1405-06-05T11:00" });
+          return after(60);
+        }).then(function () {
+          ok(titles(c).indexOf("mine") !== -1, "still there a render later");
+          eq(s.calls.length, 1, "and no reload was triggered by the edit");
+          c.destroy(); host.remove();
+        });
+      });
+
+      test("destroy() ignores a load already on its way", function () {
+        var host = lazyHost(), s = server(80);
+        var c = Zarvan.create({ selector: host, view: "month", renderMode: "sync", events: s.load });
+        doesNotThrow(function () { c.destroy(); }, "destroy during a load");
+        host.remove();
+        // The real assertion is that nothing throws when it lands into a torn-down calendar.
+        return after(140).then(function () { ok(true, "the late answer landed harmlessly"); });
+      });
+
+      test("setEvents swaps between a function and an array", function () {
+        var host = lazyHost(), s = server(5);
+        var c = Zarvan.create({
+          selector: host, renderMode: "sync",
+          events: [{ id: 1, title: "static", start: "1405-06-05T09:00" }],
+        });
+        notOk(c.isLazy(), "starts static");
+
+        c.setEvents(s.load);
+        ok(c.isLazy(), "now lazy");
+
+        return after(60).then(function () {
+          eq(s.calls.length, 1, "and it asked straight away");
+          c.setEvents([{ id: 2, title: "static again", start: "1405-06-05T09:00" }]);
+          notOk(c.isLazy(), "back to static");
+          eq(titles(c), ["static again"]);
+          return after(40);
+        }).then(function () {
+          eq(s.calls.length, 1, "and the old source is not asked again");
+          c.destroy(); host.remove();
+        });
+      });
+    });
+
     /* ================================================================== */
 
-    (function render() {
+    // Async cases finish after the synchronous sweep, so the report waits for them.
+    Promise.all(pending).then(function render() {
       var out = document.getElementById("out");
       var html = "";
       results.forEach(function (s) {
@@ -3069,7 +3310,7 @@
       v.textContent = failed === 0
         ? "PASS — " + passed + " assertions across " + results.length + " suites"
         : "FAIL — " + failed + " failed, " + passed + " passed";
-    })();
+    });
   </script>
 </body>
 

@@ -169,6 +169,44 @@ Zero-padding is optional — `"1405-6-2"` and `"1405-06-02"` are the same date.
 
 `repeat.freq` is `"daily"`, `"weekly"` or `"monthly"`. `byWeekday` counts from Saturday (`0`).
 
+## Loading events on demand
+
+An array means every event lives in memory, which is fine for hundreds and hopeless for years of
+history. Pass a **function** instead and the calendar asks for one visible range at a time:
+
+```js
+Zarvan.create({
+  selector: "#calendar",
+  events: async ({ startG, endG }) => fetchEventsFromServer(startG, endG),
+});
+```
+
+You get `startG` / `endG` as Gregorian `Date`s — what a backend speaks — plus `startJ` / `endJ` as
+Jalali objects, and the `view` being drawn.
+
+It asks when the visible range changes: navigating, and switching view. Re-renders that leave the
+range alone — filtering, searching, editing — do not re-request. Ranges already fetched come from a
+capped cache, so paging back and forth costs nothing, and two requests for the same range share one
+call. A slow answer that lands after a newer one is discarded rather than overwriting it.
+
+What comes back **replaces** what was loaded: the source is the authority for the range it was asked
+about. Local `addEvent` / `updateEvent` / `removeEvent` show immediately and survive on the current
+range; they drop the cache, so navigating away and back reloads from the source. Persist them through
+your own API, and call `cal.refetchEvents()` when you want the server's version now.
+
+A failed range leaves whatever is on screen alone rather than blanking the calendar, reports through
+`onEventsLoadError` (and `onError`), and is not cached — so returning to it tries again.
+
+```js
+cal.isLazy();          // events came from a function
+cal.isLoading();       // a load is outstanding
+cal.refetchEvents();   // reload the visible range, ignoring the cache
+cal.setEvents(fn);     // swap the source; pass an array to go back to static
+```
+
+While any load is outstanding the container carries `zc-is-loading`, which draws a hairline progress
+bar across the top of the grid. Style that class if you want something heavier.
+
 ## Common tasks
 
 ```js
