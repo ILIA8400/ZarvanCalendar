@@ -9,8 +9,9 @@
 # --- reset: neutralise the host's base styles (lowest specificity, must come first) ---
 parts/reset.css
 
-# --- tokens: the whole theming surface ---
+# --- tokens: the whole theming surface, then the dark re-valuing of its colours ---
 parts/tokens.css
+parts/theme-dark.css
 
 # --- base: root box, typography, container declaration ---
 parts/base.css

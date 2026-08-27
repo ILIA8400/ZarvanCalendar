@@ -61,13 +61,13 @@
   border-radius: 50%;
   font-size: var(--zc-font-size-2xl);
   font-weight: bold;
-  color: #333;
+  color: var(--zc-color-text);
   cursor: pointer;
   transition: background var(--zc-transition-fast), color var(--zc-transition-fast);
 }
 
 .zc-calendar .zc-week-col-head .zc-day-num:hover {
-  background: #e7e7e7;
+  background: var(--zc-color-active-veil);
   color: var(--zc-color-text);
 }
 

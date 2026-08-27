@@ -24,7 +24,7 @@
   justify-content: center;
   margin: 0 auto;
   background: var(--zc-color-accent);
-  color: #fff;
+  color: var(--zc-color-on-accent);
 }
 
 .zc-calendar .zc-week-col-head.zc-is-today {
@@ -46,7 +46,7 @@
 /* ---- Selected / active ---- */
 .zc-calendar .zc-mini-day.zc-is-selected {
   background: var(--zc-color-accent);
-  color: #fff;
+  color: var(--zc-color-on-accent);
   font-weight: 700;
 }
 
@@ -117,7 +117,7 @@
 }
 
 .zc-calendar .zc-event.zc-ov-conflict {
-  border: 1px solid #000;
+  border: 1px solid var(--zc-color-conflict-border);
 }
 
 .zc-calendar .zc-event.zc-ov-dim {

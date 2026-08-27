@@ -2268,6 +2268,118 @@
         [a, b].forEach(function (c) { c.destroy(); made.splice(made.indexOf(c), 1); });
       });
 
+      /* ---- colour scheme ----
+         Dark is a re-valuing of the colour tokens under .zc-scheme-dark, so what there is to test is
+         the class: when it is stamped, where, and that it is taken away again. */
+
+      test("the colour scheme is light unless asked otherwise", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        eq(c.getColorScheme(), "light");
+        eq(c.getResolvedColorScheme(), "light");
+        notOk(c.getRoot().classList.contains("zc-scheme-dark"), "no dark class");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("colorScheme: 'dark' is stamped before the first render", function () {
+        var c = make({ events: [], colorScheme: "dark", renderMode: "sync" });
+        ok(c.getRoot().classList.contains("zc-scheme-dark"), "dark class present");
+        eq(c.getColorScheme(), "dark");
+        eq(c.getResolvedColorScheme(), "dark");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("setColorScheme() toggles the class and reports through onColorSchemeChange", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        var seen = [];
+        c.on("onColorSchemeChange", function (p) { seen.push(p); });
+
+        eq(c.setColorScheme("dark"), "dark", "returns the scheme in force");
+        ok(c.getRoot().classList.contains("zc-scheme-dark"), "class added");
+        eq(seen.length, 1, "one change reported");
+        eq(seen[0].scheme, "dark");
+        eq(seen[0].resolved, "dark");
+        eq(seen[0].source, "api");
+
+        // Unchanged is not a change: setting the same scheme again must not report one.
+        c.setColorScheme("dark");
+        eq(seen.length, 1, "no second report");
+
+        c.setColorScheme("light");
+        notOk(c.getRoot().classList.contains("zc-scheme-dark"), "class removed");
+        eq(seen.length, 2);
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("'auto' resolves to light or dark, never to itself", function () {
+        var c = make({ events: [], colorScheme: "auto", renderMode: "sync" });
+        eq(c.getColorScheme(), "auto", "the setting is kept as given");
+
+        var resolved = c.getResolvedColorScheme();
+        ok(resolved === "light" || resolved === "dark", "resolved to " + resolved);
+        eq(
+          c.getRoot().classList.contains("zc-scheme-dark"),
+          resolved === "dark",
+          "the class agrees with the resolved scheme"
+        );
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("an unknown colour scheme warns and falls back to light", function () {
+        var warned = [];
+        var c = make({
+          events: [],
+          colorScheme: "midnight",
+          renderMode: "sync",
+          handlers: { onWarn: function (p) { warned.push(p.code); } },
+        });
+        eq(c.getColorScheme(), "light");
+        eq(warned, ["warn.unknownColorScheme"], "warned through the bus");
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("colorScheme is a hot option", function () {
+        var c = make({ events: [], renderMode: "sync" });
+        eq(c.setOption("colorScheme", "dark"), "dark");
+        ok(c.getRoot().classList.contains("zc-scheme-dark"));
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
+      test("the modal overlay carries the scheme, and destroy() takes the class back off", function () {
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var evs = [];
+        for (var i = 0; i < 40; i++) {
+          var hh = String(Math.floor(i / 2)).padStart(2, "0");
+          evs.push({ title: "e" + i, start: D + "T" + hh + ":" + (i % 2 ? "30" : "00"), end: D + "T" + hh + ":" + (i % 2 ? "30" : "00") });
+        }
+        var c = make({ events: evs, colorScheme: "dark", view: "month", renderMode: "sync" });
+        var root = c.getRoot();
+
+        var more = root.querySelector(".zc-more-btn");
+        ok(more, "a more button was rendered");
+        more.click();
+
+        /* The overlay is appended to <body>, not to the calendar, so it inherits nothing from the
+           container and has to be stamped in its own right. */
+        var overlay = document.querySelector('.zc-modal-overlay[data-zc-id="' + root.dataset.zcId + '"]');
+        ok(overlay, "overlay exists");
+        ok(overlay.classList.contains("zc-scheme-dark"), "overlay carries the scheme");
+
+        c.setColorScheme("light");
+        notOk(overlay.classList.contains("zc-scheme-dark"), "overlay follows a later change");
+
+        c.setColorScheme("dark");
+        c.destroy();
+        notOk(root.classList.contains("zc-scheme-dark"), "class removed on destroy");
+        made.splice(made.indexOf(c), 1);
+      });
+
       test("a partial locale overrides one string and inherits the rest", function () {
         var c = make({
           events: [],

@@ -47,6 +47,11 @@ Phase 6 (`TimeGridView`) merges both into `zc-timegrid-col`.
 | `has-events` | `zc-has-events` |
 | `open` | `zc-is-open` |
 
+`zc-scheme-dark` is new rather than renamed. The controller stamps it on the `.zc-calendar` element —
+and, separately, on the modal overlay, which is appended to `<body>` and so inherits nothing from the
+calendar — and it carries nothing but re-valued colour tokens. Setting it by hand works if you would
+rather not go through `colorScheme` / `setColorScheme()`, but then `"auto"` is yours to track.
+
 ## Elements that changed shape
 
 | Element | Was | Is |
@@ -120,7 +125,7 @@ What ships instead is a specificity contract:
 
 To restyle the calendar, in order of preference:
 
-1. **Override a token** — `.zc-calendar { --zc-color-accent: #e11d48; }`. 73 tokens cover colour,
+1. **Override a token** — `.zc-calendar { --zc-color-accent: #e11d48; }`. 85 tokens cover colour,
    spacing, radius, typography, elevation, structure and the z-index scale. This is the supported path
    and the only one that will keep working in `shadow: true` mode.
 2. **Write a (0,2,0) or higher selector** — `.zc-calendar .zc-day-cell { background: #fafafa; }`.

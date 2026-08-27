@@ -40,7 +40,7 @@
 }
 
 .zc-calendar .zc-mini-nav button:hover {
-  background: #f3f3f3;
+  background: var(--zc-color-hover-veil);
 }
 
 .zc-calendar .zc-mini-nav button:active {

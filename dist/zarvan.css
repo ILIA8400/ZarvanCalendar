@@ -10,6 +10,7 @@
  * Section order (later wins on ties):
  *   reset      scoped normalisation that neutralises the host base styles
  *   tokens     design tokens (custom properties) - the whole theming surface
+ *   dark       the same colour tokens re-valued under .zc-scheme-dark
  *   base       calendar root, typography, container declaration
  *   layout     shell: header / content / sidebar / body
  *   components reusable widgets: buttons, dropdown, modal, autocomplete, mini-calendar, event chrome
@@ -134,6 +135,10 @@
   --zc-color-accent-border: #cfd8ff;
 
   /* --- colour: surfaces --- */
+  /* The ground the calendar paints behind itself. Transparent by default, so a calendar dropped into
+     a page with its own background keeps showing it; the dark scheme sets it, because a dark widget
+     on a light page cannot leave its padding to the host. */
+  --zc-color-canvas: transparent;
   --zc-color-surface: #fff;
   --zc-color-surface-alt: #fafafa;
   --zc-color-surface-sunken: #f7f7f7;
@@ -154,13 +159,23 @@
   --zc-color-border-softer: #e5e7eb;
   --zc-color-border-menu: #e6e6e6;
   --zc-color-border-faint: #f0f2f5;
+  /* Drawn against a surface rather than between two of them - the outline of a raised control. */
+  --zc-color-border-strong: rgba(0, 0, 0, .22);
+  --zc-color-border-stronger: rgba(0, 0, 0, .30);
 
   /* --- colour: semantic --- */
   --zc-color-now: #ea4335;
+  /* Ink for anything sitting ON --zc-color-accent: the today pill, the selected mini-calendar day. */
+  --zc-color-on-accent: #fff;
   --zc-color-hover-veil: rgba(0, 0, 0, .06);
   --zc-color-active-veil: rgba(0, 0, 0, .10);
+  --zc-color-scrim: rgba(0, 0, 0, .35);
+  --zc-color-conflict-border: #000;
   --zc-color-scrollbar: rgba(0, 0, 0, .22);
   --zc-color-scrollbar-hover: rgba(0, 0, 0, .32);
+  /* The inset that makes the scrollbar thumb narrower than its track. It is a border, not a gap, so
+     it has to be painted the colour of whatever the scrollbar sits on. */
+  --zc-color-scrollbar-gutter: rgba(255, 255, 255, .85);
   /* The reset clears `outline` so the host's focus styling cannot leak in; this is what replaces
      it. Set it to `none` to suppress the calendar's focus ring altogether. */
   --zc-focus-ring: 2px solid var(--zc-color-accent);
@@ -206,6 +221,8 @@
   --zc-shadow-menu: 0 8px 24px rgba(0, 0, 0, .12);
   --zc-shadow-modal: 0 4px 16px rgba(0, 0, 0, .2);
   --zc-shadow-focus: 0 6px 18px rgba(0, 0, 0, .18);
+  --zc-shadow-button: 0 1px 2px rgba(0, 0, 0, .06);
+  --zc-shadow-button-focus: 0 0 0 3px rgba(0, 0, 0, .12);
 
   /* --- structure --- */
   --zc-max-width: 1100px;
@@ -239,6 +256,93 @@
 }
 
 /* ============================================================================
+ DARK SCHEME - the same tokens, re-valued
+ ============================================================================
+ Nothing structural lives here either. This file only re-values the colour tokens declared in
+ tokens.css, so every rule in the stylesheet goes dark without knowing that dark mode exists.
+
+ It is applied by a class, not by a media query. `colorScheme: "auto"` is resolved in JS - the
+ controller watches prefers-color-scheme and toggles this one class - which keeps the palette written
+ once instead of duplicated into a media block that then has to be kept in step with it.
+
+ The class is stamped on .zc-calendar and, separately, on the modal overlay: the overlay is appended
+ to <body> rather than to the calendar, so it is not a descendant and inherits nothing.
+
+ Specificity is (0,2,0) against tokens.css's (0,1,0), so these win wherever both apply, and inline
+ properties written by setTheme() still win over both.
+
+ Ink on accent inverts here. In light mode the accent is a mid blue carrying white text; on a dark
+ ground that same blue is too dark to read against, so the accent lightens and everything placed on
+ it - the today pill, the selected day, an untyped event - takes dark ink instead.
+ ========================================================================= */
+.zc-calendar.zc-scheme-dark,
+.zc-modal-overlay.zc-scheme-dark {
+  /* Tells the browser to draw its own chrome - native scrollbars, form controls, the caret - dark.
+     Without it the search box keeps a white field and a light scrollbar sits beside the grid. */
+  color-scheme: dark;
+
+  /* --- colour: brand --- */
+  --zc-color-accent: #8ab4f8;
+  --zc-color-accent-weak: #24344d;
+  --zc-color-accent-tint: #1e2a3d;
+  --zc-color-accent-tint-alt: #202c40;
+  --zc-color-accent-ring: rgba(138, 180, 248, .28);
+  --zc-color-accent-border: #3c5a86;
+
+  /* --- colour: surfaces --- */
+  --zc-color-canvas: #131417;
+  --zc-color-surface: #1b1c1f;
+  --zc-color-surface-alt: #202125;
+  --zc-color-surface-sunken: #17181b;
+  --zc-color-surface-gutter: #232428;
+  --zc-color-surface-header: #202125;
+
+  /* --- colour: text --- */
+  --zc-color-text: #e3e3e6;
+  --zc-color-text-strong: #f5f5f7;
+  --zc-color-text-muted: #a8abb3;
+  --zc-color-text-subtle: #9aa0a6;
+  --zc-color-text-faint: #8b9096;
+  --zc-color-text-icon: #c9ccd1;
+
+  /* --- colour: lines --- */
+  --zc-color-border: #34363b;
+  --zc-color-border-soft: #2c2e33;
+  --zc-color-border-softer: #303238;
+  --zc-color-border-menu: #35373d;
+  --zc-color-border-faint: #292b2f;
+  --zc-color-border-strong: rgba(255, 255, 255, .24);
+  --zc-color-border-stronger: rgba(255, 255, 255, .34);
+
+  /* --- colour: semantic --- */
+  --zc-color-now: #f28b82;
+  --zc-color-on-accent: #10223d;
+  --zc-color-hover-veil: rgba(255, 255, 255, .07);
+  --zc-color-active-veil: rgba(255, 255, 255, .12);
+  --zc-color-scrim: rgba(0, 0, 0, .6);
+  --zc-color-conflict-border: #fff;
+  --zc-color-scrollbar: rgba(255, 255, 255, .24);
+  --zc-color-scrollbar-hover: rgba(255, 255, 255, .36);
+  --zc-color-scrollbar-gutter: rgba(23, 24, 27, .85);
+  --zc-focus-ring: 2px solid var(--zc-color-accent);
+
+  /* --- event chrome --- */
+  /* Only the default. A type with its own colours in `typeStyles` keeps them in both schemes; pass a
+     dark-scheme palette to setTypeStyles() if those colours do not survive the change of ground. */
+  --zc-event-bg: var(--zc-color-accent);
+  --zc-event-fg: var(--zc-color-on-accent);
+  --zc-event-border: rgba(0, 0, 0, .35);
+
+  /* --- elevation --- */
+  /* A shadow is a hole in the light, so on a dark ground it has to be far deeper to read at all. */
+  --zc-shadow-menu: 0 8px 24px rgba(0, 0, 0, .5);
+  --zc-shadow-modal: 0 4px 16px rgba(0, 0, 0, .6);
+  --zc-shadow-focus: 0 6px 18px rgba(0, 0, 0, .55);
+  --zc-shadow-button: 0 1px 2px rgba(0, 0, 0, .4);
+  --zc-shadow-button-focus: 0 0 0 3px rgba(255, 255, 255, .16);
+}
+
+/* ============================================================================
  BASE
  ========================================================================= */
 .zc-calendar,
@@ -252,6 +356,9 @@
   width: 100%;
   max-width: var(--zc-max-width);
   margin: 20px auto;
+  /* Transparent in the light scheme, so this is a no-op for a host that was relying on the page
+     showing through the body's padding. The dark scheme gives it a value. */
+  background: var(--zc-color-canvas);
   color: var(--zc-color-text);
   font-size: var(--zc-font-size-xl);
   line-height: var(--zc-line-height);
@@ -374,7 +481,7 @@
 .zc-calendar .zc-dd-menu::-webkit-scrollbar-thumb {
   background: var(--zc-color-scrollbar);
   border-radius: var(--zc-radius-pill);
-  border: 3px solid rgba(255, 255, 255, .85);
+  border: 3px solid var(--zc-color-scrollbar-gutter);
 }
 
 .zc-calendar .zc-body::-webkit-scrollbar-thumb:hover,
@@ -481,28 +588,28 @@
 .zc-calendar .zc-today {
   min-width: 70px;
   padding: 0 14px;
-  border: 1px solid rgba(0, 0, 0, .22);
+  border: 1px solid var(--zc-color-border-strong);
   border-radius: var(--zc-radius-pill);
   background: var(--zc-color-surface);
-  color: #111;
+  color: var(--zc-color-text-strong);
   font-size: var(--zc-font-size-lg);
   font-weight: 700;
   letter-spacing: .2px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+  box-shadow: var(--zc-shadow-button);
 }
 
 .zc-calendar .zc-today:hover {
-  background: rgba(0, 0, 0, .04);
-  border-color: rgba(0, 0, 0, .30);
+  background: var(--zc-color-hover-veil);
+  border-color: var(--zc-color-border-stronger);
 }
 
 .zc-calendar .zc-today:active {
-  background: rgba(0, 0, 0, .08);
+  background: var(--zc-color-active-veil);
   transform: scale(.99);
 }
 
 .zc-calendar .zc-today:focus-visible {
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .06);
+  box-shadow: var(--zc-shadow-button-focus), var(--zc-shadow-button);
 }
 
 /* ---- Dropdown, shared shape by the type filter and the view switcher ---- */
@@ -769,7 +876,7 @@
 }
 
 .zc-calendar .zc-mini-nav button:hover {
-  background: #f3f3f3;
+  background: var(--zc-color-hover-veil);
 }
 
 .zc-calendar .zc-mini-nav button:active {
@@ -831,7 +938,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, .35);
+  background: var(--zc-color-scrim);
   z-index: var(--zc-z-modal);
 }
 
@@ -1121,13 +1228,13 @@
   border-radius: 50%;
   font-size: var(--zc-font-size-2xl);
   font-weight: bold;
-  color: #333;
+  color: var(--zc-color-text);
   cursor: pointer;
   transition: background var(--zc-transition-fast), color var(--zc-transition-fast);
 }
 
 .zc-calendar .zc-week-col-head .zc-day-num:hover {
-  background: #e7e7e7;
+  background: var(--zc-color-active-veil);
   color: var(--zc-color-text);
 }
 
@@ -1193,7 +1300,7 @@
   margin-right: var(--zc-space-4);
   border-radius: var(--zc-radius-pill);
   background: var(--zc-color-accent);
-  color: #fff;
+  color: var(--zc-color-on-accent);
   font-size: var(--zc-font-size-md);
   font-weight: 700;
 }
@@ -1440,7 +1547,7 @@
 .zc-calendar .zc-year-month-header {
   padding: var(--zc-space-4);
   background: var(--zc-color-surface-header);
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--zc-color-border-faint);
   font-size: var(--zc-font-size-lg);
   font-weight: 800;
 }
@@ -1604,7 +1711,7 @@
   justify-content: center;
   margin: 0 auto;
   background: var(--zc-color-accent);
-  color: #fff;
+  color: var(--zc-color-on-accent);
 }
 
 .zc-calendar .zc-week-col-head.zc-is-today {
@@ -1626,7 +1733,7 @@
 /* ---- Selected / active ---- */
 .zc-calendar .zc-mini-day.zc-is-selected {
   background: var(--zc-color-accent);
-  color: #fff;
+  color: var(--zc-color-on-accent);
   font-weight: 700;
 }
 
@@ -1697,7 +1804,7 @@
 }
 
 .zc-calendar .zc-event.zc-ov-conflict {
-  border: 1px solid #000;
+  border: 1px solid var(--zc-color-conflict-border);
 }
 
 .zc-calendar .zc-event.zc-ov-dim {

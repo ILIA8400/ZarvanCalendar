@@ -5,6 +5,7 @@
 - [Events (data)](#events-data)
 - [Instance methods](#instance-methods)
 - [Callbacks](#callbacks)
+- [Dark mode](#dark-mode)
 - [Static methods](#static-methods)
 
 ---
@@ -36,6 +37,7 @@ change is batched into one animation frame unless you pass `renderMode: "sync"`.
 | `eventCacheLimit` | number | `12` | How many fetched ranges to remember. Lazy sources only. |
 | `view` | string | `"month"` | `day` `week` `month` `year` `list`, or a registered view. Falls back if disabled. |
 | `locale` | string \| object | `"fa"` | Persian is the only bundled locale. Pass a partial one to retune its wording — see [Wording and numerals](#wording-and-numerals). |
+| `colorScheme` | `"light"` \| `"dark"` \| `"auto"` | `"light"` | `"auto"` follows the system's `prefers-color-scheme` and keeps following it. See [Dark mode](#dark-mode). |
 | `renderMode` | `"batched"` \| `"sync"` | `"batched"` | `"sync"` renders on every change. |
 | `shadow` | boolean | `false` | Render inside a shadow root. |
 | `styles` | string \| CSSStyleSheet \| array | — | Shadow mode only; CSS to adopt. |
@@ -195,8 +197,11 @@ anything heavier.
 
 | Method | Notes |
 |---|---|
-| `setOption(key, value)` | Feature flags plus `view`, `locale`, `typeLabels`, `typeStyles`, `highlights`, `events`. Anything else warns. |
+| `setOption(key, value)` | Feature flags plus `view`, `locale`, `colorScheme`, `typeLabels`, `typeStyles`, `highlights`, `events`. Anything else warns. |
 | `setTheme(tokens)` | Bare names are namespaced; `null` clears an override. |
+| `getColorScheme()` | The setting, which may be `"auto"`. |
+| `getResolvedColorScheme()` | `"light"` or `"dark"` — what is on screen. |
+| `setColorScheme(scheme)` | Returns the scheme in force. Emits `onColorSchemeChange`; no re-render is needed. |
 | `setTypeStyles(map)` | |
 | `getHighlights()` / `setHighlights(list)` | |
 | `getLocale()` / `setLocale(l)` | Rebuilds the header, emits `onLocaleChange`. |
@@ -259,9 +264,48 @@ These fire only when `events` is a function. See
 **Export** — `onExportStart` `{view,fileName}` · `onExportEnd` `{view,fileName,count}` ·
 `onExportError`
 
-**Diagnostics** — `onWarn` `{code,message,extra}` · `onError` · `onLocaleChange` `{code}`
+**Diagnostics** — `onWarn` `{code,message,extra}` · `onError` · `onLocaleChange` `{code}` ·
+`onColorSchemeChange` `{scheme,resolved,source}`
 
 Switch on `p.code` in `onWarn`; `p.message` is localised and will change with the locale.
+
+---
+
+## Dark mode
+
+```js
+const cal = Zarvan.create({ selector: "#cal", colorScheme: "auto" });
+```
+
+`"light"` (the default), `"dark"`, or `"auto"`. Dark is not a second stylesheet: it re-values the
+colour tokens under a `zc-scheme-dark` class, so anything you have themed through tokens keeps
+working, and so does `shadow: true`.
+
+`"auto"` is resolved in JS rather than by a media query, which means the calendar keeps following the
+system for as long as it is set — flip the OS to dark and the calendar goes dark, no reload. The
+scheme in force is on `getResolvedColorScheme()`, never `"auto"`:
+
+```js
+cal.setColorScheme("dark");
+cal.getColorScheme();          // "dark"
+cal.getResolvedColorScheme();  // "dark"
+
+cal.on("onColorSchemeChange", (p) => {
+  // p.source is "api" when you changed it, "system" when the OS did
+  document.body.classList.toggle("dark", p.resolved === "dark");
+});
+```
+
+Two things do **not** follow the scheme, both deliberately:
+
+- **`typeStyles` colours.** They are yours, and a brand colour is not the library's to reinterpret.
+  Give the dark scheme its own set from an `onColorSchemeChange` listener if a colour does not
+  survive the change of ground. Types with no entry take the accent, which does follow.
+- **Tokens written by `setTheme()`.** Those land as inline custom properties, so they win in both
+  schemes. Set them per scheme if they need to differ.
+
+The calendar paints its own background in dark mode (`--zc-color-canvas`), because a dark widget
+cannot leave its padding to a light host page. In light mode that token is `transparent`, as before.
 
 ---
 

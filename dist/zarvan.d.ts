@@ -31,6 +31,10 @@ declare namespace Zarvan {
 
   type ViewName = "day" | "week" | "month" | "year" | "list" | (string & {});
 
+  /** The setting. What is on screen is always "light" or "dark"; "auto" defers to the system. */
+  type ColorScheme = "light" | "dark" | "auto";
+  type ResolvedColorScheme = "light" | "dark";
+
   // ---------------------------------------------------------------- events
 
   interface Repeat {
@@ -189,6 +193,8 @@ declare namespace Zarvan {
     view?: ViewName;
     /** A code, a full locale, or a partial one naming the locale it extends. */
     locale?: string | Partial<Locale>;
+    /** Light by default. "auto" follows the system's prefers-color-scheme and keeps following it. */
+    colorScheme?: ColorScheme;
     /** "sync" renders immediately instead of batching into an animation frame. */
     renderMode?: "batched" | "sync";
     features?: Features;
@@ -327,6 +333,12 @@ declare namespace Zarvan {
     onWarn?: Handler<{ code: string; message: string; extra?: unknown }>;
     onError?: Handler<Error>;
     onLocaleChange?: Handler<{ code: string }>;
+    /** `source` is "api" when setColorScheme/setOption changed it, "system" when the OS did. */
+    onColorSchemeChange?: Handler<{
+      scheme: ColorScheme;
+      resolved: ResolvedColorScheme;
+      source: "api" | "system";
+    }>;
 
     [name: string]: unknown;
   }
@@ -377,11 +389,17 @@ declare namespace Zarvan {
     goToday(): void;
 
     // ---- configuration
-    /** Feature flags (dotted paths work: "features.views.year") plus view, locale, typeLabels,
-     *  typeStyles, highlights, events. Anything else warns through onWarn and returns null. */
+    /** Feature flags (dotted paths work: "features.views.year") plus view, locale, colorScheme,
+     *  typeLabels, typeStyles, highlights, events. Anything else warns through onWarn and returns null. */
     setOption(key: string, value: unknown): unknown;
     /** Bare names are namespaced: "color-accent" === "--zc-color-accent". null clears an override. */
     setTheme(tokens: Record<string, string | null>): string;
+    /** The setting, which may be "auto". */
+    getColorScheme(): ColorScheme;
+    /** What is on screen right now. */
+    getResolvedColorScheme(): ResolvedColorScheme;
+    /** Returns the scheme in force. Emits onColorSchemeChange; no re-render is needed. */
+    setColorScheme(scheme: ColorScheme): ColorScheme;
     setTypeStyles(map: Record<string, TypeStyle>): void;
     getHighlights(): HighlightRule[];
     setHighlights(list: HighlightRule[]): void;
@@ -524,6 +542,8 @@ declare namespace Zarvan {
     headerTitle(): string;
 
     getContainer(): HTMLElement;
+    /** Resolved, never "auto". */
+    getColorScheme(): ResolvedColorScheme;
     getEvents(): CalendarEvent[];
     getHighlights(): HighlightRule[];
     getVisibleRange(): GRange;

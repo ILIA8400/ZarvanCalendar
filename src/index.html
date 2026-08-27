@@ -11,10 +11,39 @@
     .cal-wrap {
       margin: 30px auto;
     }
+
+    /* The demo page follows the calendar, so the two do not disagree about the ground. */
+    body {
+      margin: 0;
+      background: #fff;
+      color: #202124;
+      transition: background .2s ease, color .2s ease;
+    }
+
+    body.is-dark {
+      background: #131417;
+      color: #e3e3e6;
+    }
+
+    .scheme-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      font: 13px/1 system-ui, sans-serif;
+    }
   </style>
 </head>
 
 <body>
+
+  <div class="scheme-bar">
+    <span>حالت رنگی:</span>
+    <button type="button" data-scheme="light">روشن</button>
+    <button type="button" data-scheme="dark">تیره</button>
+    <button type="button" data-scheme="auto">خودکار</button>
+  </div>
 
   <div class="cal-wrap">
     <div id="calendar1"></div>
@@ -208,6 +237,25 @@
 
     });
     const cal2 = Zarvan.create({ selector: "#calendar2", events: events2 });
+
+    // --- حالت روشن / تیره / خودکار ---
+    function paintPage(resolved) {
+      document.body.classList.toggle("is-dark", resolved === "dark");
+    }
+
+    cal.on("onColorSchemeChange", (p) => {
+      console.log("color scheme", p.scheme, "->", p.resolved, `(${p.source})`);
+      paintPage(p.resolved);
+    });
+
+    document.querySelectorAll(".scheme-bar button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        cal.setColorScheme(btn.dataset.scheme);
+        cal2.setColorScheme(btn.dataset.scheme);
+        // setColorScheme is a no-op when the scheme is unchanged, so paint from the resolved value.
+        paintPage(cal.getResolvedColorScheme());
+      });
+    });
 
     // cal2.setView("week");
   </script>

@@ -12,6 +12,9 @@
   width: 100%;
   max-width: var(--zc-max-width);
   margin: 20px auto;
+  /* Transparent in the light scheme, so this is a no-op for a host that was relying on the page
+     showing through the body's padding. The dark scheme gives it a value. */
+  background: var(--zc-color-canvas);
   color: var(--zc-color-text);
   font-size: var(--zc-font-size-xl);
   line-height: var(--zc-line-height);

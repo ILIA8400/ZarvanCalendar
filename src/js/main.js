@@ -310,6 +310,103 @@ var Zarvan = (function () {
     var _lastRange = null;
     var _lastActiveDate = null;
 
+    /* ---- Colour scheme ----
+     *
+     * `colorScheme: "light" | "dark" | "auto"`, defaulting to light so an existing calendar looks
+     * exactly as it did. Dark is a re-valuing of the colour tokens under one class - see
+     * src/css/parts/theme-dark.css - so nothing here knows what any of the colours are.
+     *
+     * "auto" is resolved in JS rather than by a `@media (prefers-color-scheme: dark)` block in the
+     * stylesheet. Either would work; this way the dark palette is written once and the media block
+     * cannot drift out of step with the class it duplicates.
+     *
+     * The class is stamped on the container and, separately, on the modal overlay, because the
+     * overlay is appended to <body> rather than to the calendar: it is not a descendant, so it
+     * inherits none of the container's custom properties. */
+    var COLOR_SCHEMES = ["light", "dark", "auto"];
+    var DARK_CLASS = "zc-scheme-dark";
+
+    var darkQuery =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
+
+    var colorScheme = normalizeColorScheme(options.colorScheme);
+    var schemeWatch = null;
+
+    function normalizeColorScheme(value) {
+      if (value == null) return "light";
+      var s = String(value).toLowerCase();
+      if (COLOR_SCHEMES.indexOf(s) < 0) {
+        zWarn("warn.unknownColorScheme", { value: value, allowed: COLOR_SCHEMES });
+        return "light";
+      }
+      return s;
+    }
+
+    /* What is actually on screen: "auto" collapses to whatever the system is asking for right now.
+       With no matchMedia to ask - an old browser, or a JSDOM-style test environment - "auto" reads
+       as light rather than throwing. */
+    function resolvedColorScheme() {
+      if (colorScheme !== "auto") return colorScheme;
+      return darkQuery && darkQuery.matches ? "dark" : "light";
+    }
+
+    function stampColorScheme() {
+      var dark = resolvedColorScheme() === "dark";
+      container.classList.toggle(DARK_CLASS, dark);
+      if (modal && modal.el) modal.el.classList.toggle(DARK_CLASS, dark);
+    }
+
+    /* Attached only while "auto" is in force. Outside it the system preference is not a question the
+       calendar is asking, and a listener left behind would keep answering it. */
+    function watchSystemColorScheme() {
+      if (schemeWatch) {
+        schemeWatch();
+        schemeWatch = null;
+      }
+      if (colorScheme !== "auto" || !darkQuery) return;
+
+      function onSystemChange() {
+        stampColorScheme();
+        emitColorSchemeChange("system");
+      }
+
+      // The modern spelling; Safari before 14 has only the deprecated addListener/removeListener.
+      if (typeof darkQuery.addEventListener === "function") {
+        schemeWatch = instanceStore.addListener(darkQuery, "change", onSystemChange);
+      } else if (typeof darkQuery.addListener === "function") {
+        darkQuery.addListener(onSystemChange);
+        schemeWatch = instanceStore.add(function () {
+          darkQuery.removeListener(onSystemChange);
+        });
+      }
+    }
+
+    function emitColorSchemeChange(source) {
+      emit("onColorSchemeChange", {
+        scheme: colorScheme,
+        resolved: resolvedColorScheme(),
+        source: source,
+      });
+    }
+
+    /* No render: the scheme is entirely a matter of which custom properties apply, and the DOM the
+       calendar has already drawn is the same DOM either way. */
+    function setColorScheme(next) {
+      var normalized = normalizeColorScheme(next);
+      if (normalized === colorScheme) return colorScheme;
+
+      colorScheme = normalized;
+      stampColorScheme();
+      watchSystemColorScheme();
+      emitColorSchemeChange("api");
+      return colorScheme;
+    }
+
+    stampColorScheme();
+    watchSystemColorScheme();
+
     /* ---- The event source ----
      *
      * data/source owns the awkward parts - which result is still current, which range has already
@@ -1326,6 +1423,8 @@ var Zarvan = (function () {
           emit("onModalClose", info);
         },
       });
+      // The overlay lives outside the container, so it needs the scheme class of its own.
+      stampColorScheme();
       return modal;
     }
 
@@ -2821,7 +2920,15 @@ var Zarvan = (function () {
 
     /* A deliberately narrow setter. Feature flags are hot; anything structural is not, because it was
        consumed while the instance was being built. Unknown keys warn rather than failing silently. */
-    var HOT_OPTIONS = ["view", "locale", "typeLabels", "typeStyles", "highlights", "events"];
+    var HOT_OPTIONS = [
+      "view",
+      "locale",
+      "colorScheme",
+      "typeLabels",
+      "typeStyles",
+      "highlights",
+      "events",
+    ];
 
     function setOption(key, value) {
       if (key === "features" || key.indexOf("features.") === 0) {
@@ -2853,6 +2960,8 @@ var Zarvan = (function () {
         case "locale":
           api.setLocale(value);
           return value;
+        case "colorScheme":
+          return setColorScheme(value);
         case "typeLabels":
           TYPE_LABELS = value || {};
           requestRender();
@@ -2896,7 +3005,7 @@ var Zarvan = (function () {
       modal = null;
 
       container.innerHTML = "";
-      container.classList.remove("zc-sidebar-open", "zc-sidebar-ready", "zc-calendar");
+      container.classList.remove("zc-sidebar-open", "zc-sidebar-ready", "zc-calendar", DARK_CLASS);
       container.removeAttribute("dir");
       container.removeAttribute("lang");
       delete container.dataset.zcId;
@@ -2950,6 +3059,8 @@ var Zarvan = (function () {
       getContainer: function () {
         return container;
       },
+      // "light" or "dark" - resolved, never "auto", so a plugin can pick a colour without asking twice.
+      getColorScheme: resolvedColorScheme,
       getEvents: function () {
         return state.baseEvents;
       },
@@ -3062,6 +3173,16 @@ var Zarvan = (function () {
       // ---- configuration ----
       setOption: setOption,
       setTheme: setTheme,
+
+      /* The setting, which may be "auto"; getResolvedColorScheme() is what is actually on screen.
+         setTheme() is the other half of theming and stays independent of this: token overrides written
+         there are inline, so they win in both schemes. Pass a token twice - once per scheme - or set
+         it from an onColorSchemeChange listener if it needs to differ between them. */
+      getColorScheme: function () {
+        return colorScheme;
+      },
+      getResolvedColorScheme: resolvedColorScheme,
+      setColorScheme: setColorScheme,
       setTypeStyles: setTypeStyles,
       getHighlights: function () {
         return (state.highlights || []).slice();

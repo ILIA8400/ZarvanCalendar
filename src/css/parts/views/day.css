@@ -35,7 +35,7 @@
   margin-right: var(--zc-space-4);
   border-radius: var(--zc-radius-pill);
   background: var(--zc-color-accent);
-  color: #fff;
+  color: var(--zc-color-on-accent);
   font-size: var(--zc-font-size-md);
   font-weight: 700;
 }

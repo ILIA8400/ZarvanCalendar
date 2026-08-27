@@ -23,7 +23,7 @@
 .zc-calendar .zc-year-month-header {
   padding: var(--zc-space-4);
   background: var(--zc-color-surface-header);
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--zc-color-border-faint);
   font-size: var(--zc-font-size-lg);
   font-weight: 800;
 }

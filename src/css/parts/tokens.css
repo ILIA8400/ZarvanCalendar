@@ -15,6 +15,10 @@
   --zc-color-accent-border: #cfd8ff;
 
   /* --- colour: surfaces --- */
+  /* The ground the calendar paints behind itself. Transparent by default, so a calendar dropped into
+     a page with its own background keeps showing it; the dark scheme sets it, because a dark widget
+     on a light page cannot leave its padding to the host. */
+  --zc-color-canvas: transparent;
   --zc-color-surface: #fff;
   --zc-color-surface-alt: #fafafa;
   --zc-color-surface-sunken: #f7f7f7;
@@ -35,13 +39,23 @@
   --zc-color-border-softer: #e5e7eb;
   --zc-color-border-menu: #e6e6e6;
   --zc-color-border-faint: #f0f2f5;
+  /* Drawn against a surface rather than between two of them - the outline of a raised control. */
+  --zc-color-border-strong: rgba(0, 0, 0, .22);
+  --zc-color-border-stronger: rgba(0, 0, 0, .30);
 
   /* --- colour: semantic --- */
   --zc-color-now: #ea4335;
+  /* Ink for anything sitting ON --zc-color-accent: the today pill, the selected mini-calendar day. */
+  --zc-color-on-accent: #fff;
   --zc-color-hover-veil: rgba(0, 0, 0, .06);
   --zc-color-active-veil: rgba(0, 0, 0, .10);
+  --zc-color-scrim: rgba(0, 0, 0, .35);
+  --zc-color-conflict-border: #000;
   --zc-color-scrollbar: rgba(0, 0, 0, .22);
   --zc-color-scrollbar-hover: rgba(0, 0, 0, .32);
+  /* The inset that makes the scrollbar thumb narrower than its track. It is a border, not a gap, so
+     it has to be painted the colour of whatever the scrollbar sits on. */
+  --zc-color-scrollbar-gutter: rgba(255, 255, 255, .85);
   /* The reset clears `outline` so the host's focus styling cannot leak in; this is what replaces
      it. Set it to `none` to suppress the calendar's focus ring altogether. */
   --zc-focus-ring: 2px solid var(--zc-color-accent);
@@ -87,6 +101,8 @@
   --zc-shadow-menu: 0 8px 24px rgba(0, 0, 0, .12);
   --zc-shadow-modal: 0 4px 16px rgba(0, 0, 0, .2);
   --zc-shadow-focus: 0 6px 18px rgba(0, 0, 0, .18);
+  --zc-shadow-button: 0 1px 2px rgba(0, 0, 0, .06);
+  --zc-shadow-button-focus: 0 0 0 3px rgba(0, 0, 0, .12);
 
   /* --- structure --- */
   --zc-max-width: 1100px;

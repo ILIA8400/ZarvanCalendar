@@ -24,7 +24,7 @@
 .zc-calendar .zc-dd-menu::-webkit-scrollbar-thumb {
   background: var(--zc-color-scrollbar);
   border-radius: var(--zc-radius-pill);
-  border: 3px solid rgba(255, 255, 255, .85);
+  border: 3px solid var(--zc-color-scrollbar-gutter);
 }
 
 .zc-calendar .zc-body::-webkit-scrollbar-thumb:hover,

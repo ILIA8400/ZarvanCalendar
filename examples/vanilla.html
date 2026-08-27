@@ -118,6 +118,9 @@
       <button data-act="theme-rose">theme: rose</button>
       <button data-act="theme-slate">theme: slate</button>
       <button data-act="theme-reset">theme: reset</button>
+      <button data-act="scheme-light">scheme: light</button>
+      <button data-act="scheme-dark">scheme: dark</button>
+      <button data-act="scheme-auto">scheme: auto</button>
       <button data-act="locale-custom">wording: custom</button>
       <button data-act="locale-fa">wording: default</button>
       <button data-act="digits-latin">digits: latin</button>
@@ -204,6 +207,9 @@
         onFiltersChange: function (p) { log("onFiltersChange", JSON.stringify({ type: p.type, q: p.q })); },
         onMoreEventsClick: function (p) { log("onMoreEventsClick", p.events.length + " events"); },
         onExportEnd: function (p) { log("onExportEnd", p.count + " rows → " + p.fileName); },
+        onColorSchemeChange: function (p) {
+          log("onColorSchemeChange", p.scheme + " → " + p.resolved + " (" + p.source + ")");
+        },
         onWarn: function (p) { log("onWarn", p.code + " — " + p.message); },
       },
     });
@@ -284,6 +290,15 @@
       "theme-reset": function () {
         cal.setTheme({ "color-accent": null, "color-accent-weak": null, "radius-lg": null });
         log("setTheme", "reset");
+      },
+
+      /* Light / dark / follow-the-system. Dark is the same colour tokens re-valued, so a setTheme()
+         override above survives the switch - it is written inline and wins in either scheme. */
+      "scheme-light": function () { cal.setColorScheme("light"); log("setColorScheme", "light"); },
+      "scheme-dark": function () { cal.setColorScheme("dark"); log("setColorScheme", "dark"); },
+      "scheme-auto": function () {
+        cal.setColorScheme("auto");
+        log("setColorScheme", "auto, currently " + cal.getResolvedColorScheme());
       },
 
       /* Zarvan ships one locale, Persian. You retune its wording by passing a partial locale -

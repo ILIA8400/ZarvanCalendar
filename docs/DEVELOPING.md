@@ -61,6 +61,7 @@ After the shell IIFE runs, `ZarvanInternal` is deleted from `window` and re-expo
 src/css/parts/
 ├─ reset.css          scoped normalisation (lowest specificity, must stay first)
 ├─ tokens.css         every design token — the whole theming surface
+├─ theme-dark.css     the same colour tokens re-valued under .zc-scheme-dark
 ├─ base.css           root box, typography, container declaration
 ├─ layout/            header, shell, scrollbars
 ├─ components/        menu-button, nav, dropdown, filters, autocomplete,
@@ -487,14 +488,25 @@ afterwards lands on the same date rather than wherever that view was last left.
 **Configuration**
 
 `setOption(key, value)` · `setTheme(tokens)` · `setTypeStyles(map)` · `setHighlights(list)` ·
-`getHighlights()` · `setLocale(l)` · `getLocale()`
+`getHighlights()` · `setLocale(l)` · `getLocale()` · `setColorScheme(s)` · `getColorScheme()` ·
+`getResolvedColorScheme()`
 
 `setTheme` namespaces bare names, so `{ "color-accent": "#e11d48" }` and
 `{ "--zc-color-accent": "#e11d48" }` are the same. A `null` value clears an override.
 
+`setColorScheme` is the other half of theming and stays separate from it: it takes `"light"`,
+`"dark"` or `"auto"` and only toggles the `zc-scheme-dark` class, because dark mode is a re-valuing of
+the colour tokens (`parts/theme-dark.css`) rather than a second stylesheet. Nothing re-renders — the
+DOM is the same either way. `"auto"` is resolved here rather than in a
+`@media (prefers-color-scheme: dark)` block so the dark palette is written once instead of
+duplicated into a media block that then has to be kept in step with the class; the controller keeps a
+`matchMedia` listener on the instance store for as long as `"auto"` is in force, and drops it the
+moment it is not.
+
 `setOption` is deliberately narrow. Feature flags are hot (`setOption("features.nowLine", false)`);
-so are `view`, `locale`, `typeLabels`, `typeStyles`, `highlights` and `events`. Anything structural was
-consumed while the instance was being built, and warns with `warn.optionNotHot` rather than pretending.
+so are `view`, `locale`, `colorScheme`, `typeLabels`, `typeStyles`, `highlights` and `events`. Anything
+structural was consumed while the instance was being built, and warns with `warn.optionNotHot` rather
+than pretending.
 
 Feature flags are merged **into** the existing object rather than replacing it — plugins and view
 contexts hold a reference to it from construction, and swapping it out would leave every one of them

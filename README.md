@@ -34,9 +34,11 @@ fetched at runtime.
   ([`test/host-hostile.html`](test/host-hostile.html)) that embeds the calendar in a deliberately
   aggressive page and asserts that nothing leaks in. For hosts that fight dirty, `shadow: true` closes
   the last gap.
-- **Themed by tokens, not overrides.** 75 CSS custom properties cover colour, spacing, radius,
+- **Themed by tokens, not overrides.** 85 CSS custom properties cover colour, spacing, radius,
   typography, elevation, structure and the z-index scale. You retheme by setting variables, not by
   winning specificity fights. There is not one `!important` in the stylesheet.
+- **Light and dark.** `colorScheme: "auto"` follows the system and keeps following it. Dark is the same
+  tokens re-valued, not a second stylesheet, so whatever you have themed goes with it.
 - **Responsive to itself.** Layout is driven by container queries, so a calendar in a 700px column
   behaves like a 700px calendar even on a 1600px screen.
 - **Operable from the keyboard.** Every clickable thing is reachable and activatable, the day grids use
@@ -247,6 +249,27 @@ Full reference: **[docs/API.md](docs/API.md)**.
 
 Or at runtime — `cal.setTheme({ "color-accent": "#e11d48" })`. Tokens are the supported path, and the
 only one that keeps working in `shadow: true` mode.
+
+### Dark mode
+
+```js
+Zarvan.create({ selector: "#cal", colorScheme: "auto" });   // "light" | "dark" | "auto"
+```
+
+Dark is the same tokens re-valued under a `zc-scheme-dark` class, not a second stylesheet — so a
+calendar you have already themed goes dark with everything else. `"auto"` is resolved in JS rather
+than by a media query, so it keeps following the system for as long as it is set: flip the OS to dark
+and the calendar follows without a reload.
+
+```js
+cal.setColorScheme("dark");
+cal.getResolvedColorScheme();   // "light" | "dark" — never "auto"
+cal.on("onColorSchemeChange", (p) => document.body.classList.toggle("dark", p.resolved === "dark"));
+```
+
+Your `typeStyles` colours are left alone in both schemes, on the grounds that a brand colour is not
+the library's to reinterpret; set them per scheme from `onColorSchemeChange` if one does not survive
+the change of ground. Full detail in [docs/API.md](docs/API.md#dark-mode).
 
 If you need to go further than tokens, override with a selector of specificity (0,2,0) or higher:
 

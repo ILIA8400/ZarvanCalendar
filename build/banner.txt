@@ -10,6 +10,7 @@
  * Section order (later wins on ties):
  *   reset      scoped normalisation that neutralises the host base styles
  *   tokens     design tokens (custom properties) - the whole theming surface
+ *   dark       the same colour tokens re-valued under .zc-scheme-dark
  *   base       calendar root, typography, container declaration
  *   layout     shell: header / content / sidebar / body
  *   components reusable widgets: buttons, dropdown, modal, autocomplete, mini-calendar, event chrome

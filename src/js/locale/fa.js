@@ -86,6 +86,7 @@
       // --- warnings, keyed by the code emitted alongside them ---
       "warn.viewDisabled": "این ویو غیرفعال است.",
       "warn.unknownView": "ویو ناشناخته است.",
+      "warn.unknownColorScheme": "حالت رنگی ناشناخته است؛ روشن در نظر گرفته شد.",
       "warn.exportDisabled": "خروجی اکسل غیرفعال است.",
       "warn.xlsxMissing": "کتابخانه xlsx لود نشده است.",
       "warn.optionNotHot": "این تنظیم پس از ساخت تقویم قابل تغییر نیست.",

@@ -1,0 +1,86 @@
+/* ============================================================================
+ DARK SCHEME - the same tokens, re-valued
+ ============================================================================
+ Nothing structural lives here either. This file only re-values the colour tokens declared in
+ tokens.css, so every rule in the stylesheet goes dark without knowing that dark mode exists.
+
+ It is applied by a class, not by a media query. `colorScheme: "auto"` is resolved in JS - the
+ controller watches prefers-color-scheme and toggles this one class - which keeps the palette written
+ once instead of duplicated into a media block that then has to be kept in step with it.
+
+ The class is stamped on .zc-calendar and, separately, on the modal overlay: the overlay is appended
+ to <body> rather than to the calendar, so it is not a descendant and inherits nothing.
+
+ Specificity is (0,2,0) against tokens.css's (0,1,0), so these win wherever both apply, and inline
+ properties written by setTheme() still win over both.
+
+ Ink on accent inverts here. In light mode the accent is a mid blue carrying white text; on a dark
+ ground that same blue is too dark to read against, so the accent lightens and everything placed on
+ it - the today pill, the selected day, an untyped event - takes dark ink instead.
+ ========================================================================= */
+.zc-calendar.zc-scheme-dark,
+.zc-modal-overlay.zc-scheme-dark {
+  /* Tells the browser to draw its own chrome - native scrollbars, form controls, the caret - dark.
+     Without it the search box keeps a white field and a light scrollbar sits beside the grid. */
+  color-scheme: dark;
+
+  /* --- colour: brand --- */
+  --zc-color-accent: #8ab4f8;
+  --zc-color-accent-weak: #24344d;
+  --zc-color-accent-tint: #1e2a3d;
+  --zc-color-accent-tint-alt: #202c40;
+  --zc-color-accent-ring: rgba(138, 180, 248, .28);
+  --zc-color-accent-border: #3c5a86;
+
+  /* --- colour: surfaces --- */
+  --zc-color-canvas: #131417;
+  --zc-color-surface: #1b1c1f;
+  --zc-color-surface-alt: #202125;
+  --zc-color-surface-sunken: #17181b;
+  --zc-color-surface-gutter: #232428;
+  --zc-color-surface-header: #202125;
+
+  /* --- colour: text --- */
+  --zc-color-text: #e3e3e6;
+  --zc-color-text-strong: #f5f5f7;
+  --zc-color-text-muted: #a8abb3;
+  --zc-color-text-subtle: #9aa0a6;
+  --zc-color-text-faint: #8b9096;
+  --zc-color-text-icon: #c9ccd1;
+
+  /* --- colour: lines --- */
+  --zc-color-border: #34363b;
+  --zc-color-border-soft: #2c2e33;
+  --zc-color-border-softer: #303238;
+  --zc-color-border-menu: #35373d;
+  --zc-color-border-faint: #292b2f;
+  --zc-color-border-strong: rgba(255, 255, 255, .24);
+  --zc-color-border-stronger: rgba(255, 255, 255, .34);
+
+  /* --- colour: semantic --- */
+  --zc-color-now: #f28b82;
+  --zc-color-on-accent: #10223d;
+  --zc-color-hover-veil: rgba(255, 255, 255, .07);
+  --zc-color-active-veil: rgba(255, 255, 255, .12);
+  --zc-color-scrim: rgba(0, 0, 0, .6);
+  --zc-color-conflict-border: #fff;
+  --zc-color-scrollbar: rgba(255, 255, 255, .24);
+  --zc-color-scrollbar-hover: rgba(255, 255, 255, .36);
+  --zc-color-scrollbar-gutter: rgba(23, 24, 27, .85);
+  --zc-focus-ring: 2px solid var(--zc-color-accent);
+
+  /* --- event chrome --- */
+  /* Only the default. A type with its own colours in `typeStyles` keeps them in both schemes; pass a
+     dark-scheme palette to setTypeStyles() if those colours do not survive the change of ground. */
+  --zc-event-bg: var(--zc-color-accent);
+  --zc-event-fg: var(--zc-color-on-accent);
+  --zc-event-border: rgba(0, 0, 0, .35);
+
+  /* --- elevation --- */
+  /* A shadow is a hole in the light, so on a dark ground it has to be far deeper to read at all. */
+  --zc-shadow-menu: 0 8px 24px rgba(0, 0, 0, .5);
+  --zc-shadow-modal: 0 4px 16px rgba(0, 0, 0, .6);
+  --zc-shadow-focus: 0 6px 18px rgba(0, 0, 0, .55);
+  --zc-shadow-button: 0 1px 2px rgba(0, 0, 0, .4);
+  --zc-shadow-button-focus: 0 0 0 3px rgba(255, 255, 255, .16);
+}

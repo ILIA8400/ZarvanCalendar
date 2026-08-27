@@ -4,6 +4,49 @@
 
 ### Added
 
+- **Dark mode.** `colorScheme: "light" | "dark" | "auto"`, defaulting to `"light"`, so an existing
+  calendar looks exactly as it did.
+
+  ```js
+  Zarvan.create({ selector: "#cal", colorScheme: "auto" });
+  ```
+
+  Dark is not a second stylesheet. `src/css/parts/theme-dark.css` re-values the colour tokens under a
+  `zc-scheme-dark` class and declares nothing structural, so every rule in the stylesheet goes dark
+  without knowing that dark mode exists — and a calendar already themed through tokens goes with it.
+  Specificity is (0,2,0) against tokens.css's (0,1,0), so the dark values win where both apply and
+  inline properties written by `setTheme()` still win over both.
+
+  `"auto"` is resolved in JS rather than by a `@media (prefers-color-scheme: dark)` block. Either
+  would work; this way the dark palette is written once instead of duplicated into a media block that
+  then has to be kept in step with the class, and `"auto"` keeps *following* the system rather than
+  being sampled at construction — flip the OS to dark and the calendar follows, no reload. The
+  `matchMedia` listener is attached only while `"auto"` is in force and is registered on the instance
+  store, so `destroy()` takes it with everything else.
+
+  The scheme class is stamped on `.zc-calendar` and, separately, on the modal overlay: that overlay is
+  appended to `<body>` rather than to the calendar, so it is not a descendant and inherits none of the
+  container's custom properties.
+
+  New API: `setColorScheme(s)`, `getColorScheme()` (the setting, which may be `"auto"`) and
+  `getResolvedColorScheme()` (what is on screen, never `"auto"`). `colorScheme` is a hot option, so
+  `setOption("colorScheme", "dark")` works too. New callback: `onColorSchemeChange`
+  `{scheme, resolved, source}`, where `source` is `"api"` or `"system"`. Changing the scheme does not
+  re-render — the DOM is the same either way. A plugin can read the resolved scheme from
+  `ctx.getColorScheme()`.
+
+  Two things deliberately do **not** follow the scheme: colours you set in `typeStyles`, because a
+  brand colour is not the library's to reinterpret, and tokens written by `setTheme()`, because those
+  are inline and win in both. Set either per scheme from an `onColorSchemeChange` listener.
+
+  Nine tokens were added on the way, all with their existing light values, so that the last hardcoded
+  colours in the parts had somewhere to go: `--zc-color-canvas`, `--zc-color-on-accent`,
+  `--zc-color-scrim`, `--zc-color-conflict-border`, `--zc-color-border-strong`,
+  `--zc-color-border-stronger`, `--zc-color-scrollbar-gutter`, `--zc-shadow-button` and
+  `--zc-shadow-button-focus`. `--zc-color-canvas` is `transparent` in light — the calendar's padding
+  keeps showing the host page exactly as before — and painted in dark, because a dark widget cannot
+  leave its ground to a light host.
+
 - **`events` can be a function, and the calendar loads one visible range at a time.** An array keeps
   every event in memory for the life of the page, which is fine for hundreds and hopeless for years
   of history.
@@ -65,6 +108,22 @@
 
   The year view still has no per-event nodes: it draws dots and a `+N` badge, and clicking a day
   emits `onDayNumberClick`, not `onEventClick`.
+
+### Changed
+
+- **The last hardcoded colours in the stylesheet parts now go through tokens** — the "today" button's
+  border, ink and shadows, the modal scrim, the mini-calendar's hover, the week header day number and
+  its hover, the year month-header rule, the scrollbar thumb's inset, the conflict outline and the
+  three places that painted white ink on the accent. They had to be tokens for dark mode to reach
+  them at all.
+
+  Four of them landed on the nearest existing semantic token rather than a new one of their own,
+  which moves them by a shade or two in light mode: the mini-calendar's `#f3f3f3` hover and the today
+  button's 4% veil both become `--zc-color-hover-veil` (6%), the week header day number's `#333`
+  becomes `--zc-color-text` (`#202124`), its `#e7e7e7` hover becomes `--zc-color-active-veil`
+  (`#e6e6e6` over white), and the year month-header's `#eef0f3` rule becomes
+  `--zc-color-border-faint` (`#f0f2f5`). Sub-perceptual, and worth it to keep the token surface from
+  growing a near-duplicate for each.
 
 ## 3.0.3
 
