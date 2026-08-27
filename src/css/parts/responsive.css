@@ -107,10 +107,18 @@
    * in the wide layout and - the part that matters - on the same side the sidebar opens from. It
    * carries the menu button, and a hamburger on the opposite edge from the panel it opens is a
    * pointer in the wrong direction. */
+  /* The title gets a row to itself, so it starts where the reading does - at the right, directly
+   * above the menu button below it.
+   *
+   * `direction` is set back to rtl here because the shared rule in header.css flips these three
+   * wrappers to ltr, which is a grouping default for clusters that hold several controls in a fixed
+   * visual order. .zc-center holds exactly one child, so all that override did was decide which edge
+   * a lone title is packed against - and in an ltr box that edge is the left one. */
   .zc-calendar .zc-center {
     order: 0;
     flex: 1 1 100%;
-    justify-content: space-between;
+    direction: rtl;
+    justify-content: flex-start;
   }
 
   .zc-calendar .zc-right {

@@ -2387,17 +2387,26 @@
         made.splice(made.indexOf(c), 1);
       });
 
-      test("the menu button stays on the right when the header wraps", function () {
-        /* Regression: below the 768px container query the header wraps to two rows, and the two
-           control clusters were ordered .zc-left then .zc-right. The header is `direction: rtl`, so
-           the LOWER order sits at the right edge - which put the hamburger on the far left while the
-           sidebar it opens slides in from the right. */
+      test("the title and menu button stay on the right when the header wraps", function () {
+        /* Two regressions, one root cause: this is a right-to-left header, and both bugs came from a
+           rule whose direction-dependent meaning was the opposite of how it read.
+
+           1. The control clusters were ordered .zc-left then .zc-right. The header is
+              `direction: rtl`, so the LOWER order sits at the RIGHT - which put the hamburger on the
+              far left while the sidebar it opens slides in from the right.
+
+           2. .zc-center is flipped to `direction: ltr` by the shared wrapper rule and had
+              `justify-content: space-between`. With a single child that packs at main-start, and in
+              an ltr box main-start is the LEFT - so the title sat on the left.
+
+           Asserted as geometry rather than as declarations: what matters is where they land. */
         var c = make({ events: [], renderMode: "sync" });
         var root = c.getRoot();
         root.style.width = "600px";
 
         var header = root.querySelector(".zc-header");
         var menu = root.querySelector(".zc-menu-btn");
+        var title = root.querySelector(".zc-title");
 
         // Force layout so the container query has resolved before anything is read.
         header.getBoundingClientRect();
@@ -2408,8 +2417,18 @@
 
         var hb = header.getBoundingClientRect();
         var mb = menu.getBoundingClientRect();
-        ok(mb.left > (hb.left + hb.right) / 2, "menu button is in the right half of the header");
+        var tb = title.getBoundingClientRect();
+        var middle = (hb.left + hb.right) / 2;
+
+        ok(mb.left > middle, "menu button is in the right half of the header");
         ok(hb.right - mb.right < 20, "and sits against the right edge, where the sidebar opens");
+
+        ok(tb.left > middle, "the title is in the right half too");
+        ok(hb.right - tb.right < 20, "and against the same edge");
+        ok(tb.top < mb.top, "on the row above the menu button");
+
+        // The two are flush with each other, not merely both "somewhere on the right".
+        ok(Math.abs((hb.right - tb.right) - (hb.right - mb.right)) < 2, "sharing one right margin");
 
         root.style.width = "";
         c.destroy();

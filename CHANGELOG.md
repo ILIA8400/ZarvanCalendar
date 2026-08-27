@@ -149,15 +149,24 @@
 
 ### Fixed
 
-- **The menu button jumped to the left edge on narrow calendars.** Below the 768px container query the
-  header wraps to two rows, and the two control clusters were ordered `.zc-left` then `.zc-right`. The
-  header is `direction: rtl`, so the *lower* order sits at the right edge — which put the hamburger on
-  the far left while the sidebar it opens slides in from the right: a control pointing away from the
-  thing it controls. The orders are swapped, so the cluster carrying the menu button and the view
-  switcher stays on the right at every width, exactly where it is in the wide layout.
+- **The header wrapped left-aligned on narrow calendars.** Below the 768px container query the header
+  wraps to two rows, and both the title and the menu button ended up on the wrong side of a
+  right-to-left header. Two rules, one root cause — each read as the opposite of what it did:
 
-  There is a regression test for it, and it asserts the geometry rather than the declaration: the
-  button has to land in the right half of the header, against the edge the panel opens from.
+  - The control clusters were ordered `.zc-left` then `.zc-right`. The header is `direction: rtl`, so
+    the *lower* order sits at the right edge; that put the hamburger on the far left while the sidebar
+    it opens slides in from the right, a control pointing away from the thing it controls.
+  - `.zc-center` is flipped to `direction: ltr` by the shared wrapper rule in `header.css` — a grouping
+    default for clusters holding several controls in a fixed visual order — and carried
+    `justify-content: space-between`. With a single child that packs at main-start, and in an ltr box
+    main-start is the *left*, so the title sat on the left.
+
+  The orders are swapped and `.zc-center` is set back to `direction: rtl` with `flex-start`, so the
+  title starts where the reading does. Both now sit against the right edge sharing one margin, with the
+  title directly above the menu button. The wide layout is untouched: the title stays centred there.
+
+  The regression test asserts geometry rather than declarations — where the two actually land, and that
+  their right margins match to within a pixel.
 
 - **`aria-expanded` on the menu button went stale after a header rebuild.** `renderHeader()` built the
   button with a hardcoded `aria-expanded="false"`, so `setLocale()` — or any feature change — on a
