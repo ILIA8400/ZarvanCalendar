@@ -25,6 +25,10 @@ fetched at runtime.
 </script>
 ```
 
+**Documentation:** open **[`website/index.html`](website/index.html)** in a browser. Every feature has a
+live, interactive calendar beside its explanation and its code. It needs no server and no network —
+double-clicking the file works.
+
 ---
 
 ## Why you might pick it
@@ -110,7 +114,8 @@ through `onWarn` and nothing else changes.
 | `build/` | The three build runners and their manifests. |
 | `test/` | Self-verifying harnesses. Worth running if you fork. |
 | `examples/` | Worth reading — `vanilla.html` drives every API method live — but not shipping. |
-| `docs/` | The reference. Read it here on GitHub. |
+| `docs/` | The written reference. Read it here on GitHub. |
+| `website/` | The documentation site — every feature explained beside a live, interactive calendar. Open `website/index.html`. |
 | `fonts/` | The source font. Already copied into `dist/fonts/` for you. |
 
 ## TypeScript
@@ -233,7 +238,8 @@ cal.on("onEventClick", function (ev, meta) {
 Renders are batched into one animation frame, so a change is not in the DOM on the very next line.
 Call `cal.refresh()` when you need it now, or pass `renderMode: "sync"`.
 
-Full reference: **[docs/API.md](docs/API.md)**.
+Full reference: **[docs/API.md](docs/API.md)**, or the documentation site — open
+**[`website/index.html`](website/index.html)** in a browser and every feature has a live calendar beside it.
 
 ## Theming
 

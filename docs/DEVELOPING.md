@@ -178,6 +178,52 @@ stylesheet's rules. Use `npm run serve` (or any static server) to get the full s
 
 `src/index.html` is the general demo — two instances, all five views, filters, export, recurrence.
 
+## The documentation site
+
+`website/` is the documentation site: 28 sections, each pairing prose and an API table with a **live
+calendar** the reader can drive. Open `website/index.html` — it needs no server and no network.
+
+```
+website/
+├─ index.html        every section, inline. One page, no fetch, so file:// works.
+└─ assets/
+   ├─ docs.css       the site's own stylesheet; every class is zd- prefixed
+   ├─ docs.js        routing, search, syntax highlighting, copy buttons, theme
+   └─ demos.js       one factory per section — the live calendars
+```
+
+Three rules it is built to, and worth keeping:
+
+- **No CDN, no webfont, no build step.** The syntax highlighter is ~90 lines in `docs.js` rather than
+  a dependency, precisely so the page opens with no network. The only requests it makes are for
+  `dist/` and its own two asset files.
+- **Demos use the public API only.** Nothing reaches into `Zarvan._internal`. If a demo works, the
+  documented API works — which is what makes the site a test of the documentation rather than a
+  parallel description of it.
+- **Every demo returns a teardown.** A section's demo is built when it is opened and destroyed when
+  the reader leaves, so navigating the site exercises `destroy()` a few dozen times per visit.
+
+Sections are plain `<section class="zd-section" id="section-NAME">` elements with `data-title`,
+`data-group` and `data-keywords`; the sidebar, the search index, the "on this page" list and the
+previous/next pager are all derived from the document at load, so adding a section means adding the
+markup and one sidebar link.
+
+To add a demo, put `[data-mount]` in the section and register a factory in `demos.js`:
+
+```js
+demo("my-section", function (d) {
+  var cal = d.calendar("[data-mount]", { view: "month", events: sampleEvents() });
+  d.click("[data-role=go]", function () { cal.next(); });
+});
+```
+
+`d.calendar()` creates one that follows the site's theme and is destroyed automatically; `d.on`,
+`d.click` and `d.add` register anything else that has to be undone.
+
+The site deliberately documents **only what exists**. It has no Timeline or Resource view section,
+because the library has five views and neither of those is one of them — the resource timeline under
+*Custom views* is an example built on `registerView()`, and is labelled as such.
+
 ## Lifetimes: the disposable stores
 
 Nothing that outlives a statement is tracked by hand. Every document-level listener, interval, timer,

@@ -1,0 +1,3663 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zarvan Calendar — documentation</title>
+  <meta name="description"
+    content="Zarvan Calendar — a Jalali (Persian) calendar UI for the web. Month, week, day, year and list views, recurring events, filtering, highlighting and Excel export. No framework, no build step, no runtime dependencies." />
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- The library, exactly as a consumer loads it. Nothing on this page comes from a CDN. -->
+  <link rel="stylesheet" href="../dist/zarvan.css" />
+  <link rel="stylesheet" href="../dist/zarvan-theme-fa.css" />
+
+  <!-- The documentation site's own stylesheet. Shares no selectors with the library. -->
+  <link rel="stylesheet" href="assets/docs.css" />
+
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234f46e5'/><text x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>Z</text></svg>" />
+</head>
+
+<body>
+
+  <div class="zd-shell">
+
+    <!-- ==================================================================== header -->
+    <header class="zd-header">
+      <button id="zd-menu" class="zd-icon-btn zd-menu-toggle" type="button" aria-label="Toggle navigation">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+          aria-hidden="true">
+          <path d="M2 4h12M2 8h12M2 12h12" />
+        </svg>
+      </button>
+
+      <a class="zd-brand" href="#introduction">
+        <span class="zd-mark" aria-hidden="true">Z</span>
+        <span>Zarvan Calendar</span>
+      </a>
+      <span class="zd-version" id="zd-version">v—</span>
+
+      <span class="zd-header-spacer"></span>
+
+      <div class="zd-search-wrap">
+        <svg class="zd-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"
+          aria-hidden="true">
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="M10.5 10.5L14 14" stroke-linecap="round" />
+        </svg>
+        <input id="zd-search" class="zd-search" type="search" placeholder="Search the docs…"
+          autocomplete="off" spellcheck="false" aria-label="Search the documentation" />
+        <span class="zd-kbd-hint">/</span>
+        <div id="zd-results" class="zd-results" hidden></div>
+      </div>
+
+      <button id="zd-theme" class="zd-icon-btn" type="button" aria-label="Switch theme">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M13.5 9.2A5.6 5.6 0 1 1 6.8 2.5a4.9 4.9 0 0 0 6.7 6.7z" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- ==================================================================== sidebar -->
+    <nav class="zd-sidebar" aria-label="Documentation">
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">Getting started</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#introduction">Introduction</a></li>
+          <li><a class="zd-nav-link" href="#installation">Installation</a></li>
+          <li><a class="zd-nav-link" href="#basic-usage">Basic usage</a></li>
+          <li><a class="zd-nav-link" href="#configuration">Configuration</a></li>
+        </ul>
+      </div>
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">Views</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#views">The five views</a></li>
+          <li><a class="zd-nav-link" href="#views-timegrid">Time-grid layout</a></li>
+        </ul>
+      </div>
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">Events</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#events-data">The event object</a></li>
+          <li><a class="zd-nav-link" href="#events-recurring">Recurring events</a></li>
+          <li><a class="zd-nav-link" href="#events-types">Types and colours</a></li>
+          <li><a class="zd-nav-link" href="#events-interaction">Clicks and callbacks</a></li>
+          <li><a class="zd-nav-link" href="#events-crud">Add, update, remove</a></li>
+          <li><a class="zd-nav-link" href="#events-lazy">Loading on demand</a></li>
+        </ul>
+      </div>
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">Interaction</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#navigation">Navigation</a></li>
+          <li><a class="zd-nav-link" href="#filters">Search and filters</a></li>
+          <li><a class="zd-nav-link" href="#highlights">Highlights and holidays</a></li>
+        </ul>
+      </div>
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">Appearance</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#theming">Theming with tokens</a></li>
+          <li><a class="zd-nav-link" href="#dark-mode">Dark mode</a></li>
+        </ul>
+      </div>
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">Persian by design</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#localization">Wording and numerals</a></li>
+          <li><a class="zd-nav-link" href="#jalali">Jalali dates</a></li>
+        </ul>
+      </div>
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">Extending</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#export">Excel export</a></li>
+          <li><a class="zd-nav-link" href="#plugins">Plugins</a></li>
+          <li><a class="zd-nav-link" href="#custom-views">Custom views</a></li>
+          <li><a class="zd-nav-link" href="#shadow-dom">Shadow DOM</a></li>
+          <li><a class="zd-nav-link" href="#accessibility">Accessibility</a></li>
+        </ul>
+      </div>
+
+      <div class="zd-nav-group">
+        <p class="zd-nav-title">API reference</p>
+        <ul class="zd-nav-list">
+          <li><a class="zd-nav-link" href="#api-options">Options</a></li>
+          <li><a class="zd-nav-link" href="#api-methods">Methods</a></li>
+          <li><a class="zd-nav-link" href="#api-callbacks">Callbacks</a></li>
+          <li><a class="zd-nav-link" href="#api-tokens">Design tokens</a></li>
+        </ul>
+      </div>
+
+    </nav>
+
+    <!-- ==================================================================== main -->
+    <main class="zd-main">
+      <div class="zd-page">
+        <div class="zd-article">
+          <!-- ============================================================ introduction -->
+          <section id="section-introduction" class="zd-section" data-title="Introduction"
+            data-group="Getting started"
+            data-keywords="intro overview why jalali persian shamsi calendar library vanilla no dependencies">
+
+            <div class="zd-hero">
+              <p class="zd-eyebrow">Zarvan Calendar</p>
+              <h1>A Jalali calendar UI that survives your app.</h1>
+              <p class="zd-lede">
+                Month, week, day, year and list views. Recurring events, filtering, highlighting and Excel
+                export. Persian and right-to-left by design — no framework, no build step, no runtime
+                dependencies, and nothing fetched at runtime.
+              </p>
+              <div class="zd-badges">
+                <span class="zd-badge">Vanilla JavaScript</span>
+                <span class="zd-badge">Zero dependencies</span>
+                <span class="zd-badge">Script tag, no build step</span>
+                <span class="zd-badge">MIT</span>
+                <span class="zd-badge">TypeScript definitions</span>
+              </div>
+            </div>
+
+            <div class="zd-demo" data-demo="introduction">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <span class="zd-field">Real library, real events — open the menu, switch views, click anything.</span>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+            </div>
+
+            <h2 id="what-it-is">What it is</h2>
+            <p>
+              Zarvan is a calendar <em>interface</em> for the web, written for the Jalali (Persian) calendar
+              from the ground up. It is not a Gregorian calendar with a locale bolted on: the date arithmetic,
+              the week that starts on Saturday, the right-to-left layout and the Persian numerals are the
+              default path, not a branch you can get wrong.
+            </p>
+            <p>
+              You load it with a <code>&lt;script&gt;</code> tag and it lives on <code>window.Zarvan</code>.
+              There is no bundler step, no module graph, and no package to resolve at runtime.
+            </p>
+
+            <h2 id="why">Why you might pick it</h2>
+
+            <div class="zd-cards">
+              <a class="zd-card" href="#shadow-dom">
+                <h3>It survives your app's CSS</h3>
+                <p>Every class is <code>zc-</code>-prefixed and scoped, with a reset that neutralises the host's
+                  global rules. For hosts that fight dirty, <code>shadow: true</code> closes the last gap.</p>
+              </a>
+              <a class="zd-card" href="#theming">
+                <h3>Themed by tokens</h3>
+                <p>85 CSS custom properties cover colour, spacing, radius, typography, elevation and structure.
+                  You retheme by setting variables, not by winning specificity fights.</p>
+              </a>
+              <a class="zd-card" href="#dark-mode">
+                <h3>Light and dark</h3>
+                <p><code>colorScheme: "auto"</code> follows the system and keeps following it. Dark is the same
+                  tokens re-valued, so whatever you themed goes with it.</p>
+              </a>
+              <a class="zd-card" href="#accessibility">
+                <h3>Operable from the keyboard</h3>
+                <p>Roving tab stops in the day grids, a modal that traps focus, and a collapsed sidebar that is
+                  <code>inert</code> rather than an invisible detour through the tab order.</p>
+              </a>
+              <a class="zd-card" href="#events-lazy">
+                <h3>Loads what it shows</h3>
+                <p>Pass a function instead of an array and the calendar asks for one visible range at a time,
+                  with ordering, de-duplication and caching handled for you.</p>
+              </a>
+              <a class="zd-card" href="#custom-views">
+                <h3>Extensible without forking</h3>
+                <p>Views and plugins are registered, not hardcoded. Highlighting, the now indicator and Excel
+                  export are themselves plugins.</p>
+              </a>
+            </div>
+
+            <h2 id="thirty-seconds">The whole thing in thirty seconds</h2>
+
+            <div class="zd-code" data-lang="html">
+              <div class="zd-code-head"><span>index.html</span><span class="zd-code-lang">html</span></div>
+              <pre><code>&lt;link rel="stylesheet" href="/vendor/zarvan/zarvan.css" /&gt;
+&lt;script src="/vendor/zarvan/zarvan.js"&gt;&lt;/script&gt;
+
+&lt;div id="calendar"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  Zarvan.create({
+    selector: "#calendar",
+    events: [
+      { id: 1, title: "جلسه طراحی", start: "1405-06-02T09:00", end: "1405-06-02T10:30", type: "meeting" },
+      { id: 2, title: "تعطیل", start: "1405-06-05", allDay: true, type: "holiday" },
+    ],
+  });
+&lt;/script&gt;</code></pre>
+            </div>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">About this site</span>
+              <p>
+                Every calendar you see here is a real instance of the library, created through the public API
+                and torn down with <code>destroy()</code> when you navigate away. Nothing is a screenshot, and
+                nothing is loaded from a CDN — this page works with no network at all.
+              </p>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ installation -->
+          <section id="section-installation" class="zd-section" data-title="Installation"
+            data-group="Getting started"
+            data-keywords="install setup download npm cdn script tag typescript dist files vendor">
+
+            <p class="zd-eyebrow">Getting started</p>
+            <h1>Installation</h1>
+            <p class="zd-lede">
+              Everything a consumer needs is in <code>dist/</code>. Copy the folder into wherever you serve
+              static assets from and you are done — there is nothing to build, resolve or bundle.
+            </p>
+
+            <h2 id="files">What is in dist/</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead>
+                  <tr><th>File</th><th>Needed</th><th>What it is</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>zarvan.js</code></td><td>required</td>
+                    <td>The library, with the jalaali date maths already inside it. One tag, no load order to get wrong.</td>
+                  </tr>
+                  <tr>
+                    <td><code>zarvan.css</code></td><td>required</td>
+                    <td>The stylesheet. No <code>url()</code>, no font, no asset references.</td>
+                  </tr>
+                  <tr>
+                    <td><code>zarvan.d.ts</code></td><td>optional</td>
+                    <td>TypeScript definitions for the <code>Zarvan</code> global.</td>
+                  </tr>
+                  <tr>
+                    <td><code>zarvan-theme-fa.css</code> + <code>fonts/</code></td><td>optional</td>
+                    <td>Registers the bundled Vazir face. The core CSS forces no font of its own.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="two-tags">Two tags</h2>
+
+            <div class="zd-code" data-lang="html">
+              <pre><code>&lt;link rel="stylesheet" href="/vendor/zarvan/zarvan.css" /&gt;
+&lt;link rel="stylesheet" href="/vendor/zarvan/zarvan-theme-fa.css" /&gt;   &lt;!-- optional --&gt;
+&lt;script src="/vendor/zarvan/zarvan.js"&gt;&lt;/script&gt;</code></pre>
+            </div>
+
+            <p><code>Zarvan.version</code> reports the build you deployed.</p>
+
+            <h2 id="pinning">Pinning it as a dependency</h2>
+            <p>
+              Zarvan is a <code>&lt;script&gt;</code>-tag library that lives on <code>window</code>. It is
+              deliberately <strong>not</strong> an ES module or a CommonJS module, and its
+              <code>package.json</code> declares no <code>main</code> or <code>exports</code> rather than
+              claim otherwise. Pin a tag or a commit SHA and copy the folder across in a build step:
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <div class="zd-code-head"><span>package.json</span><span class="zd-code-lang">json</span></div>
+              <pre><code>"dependencies": {
+  "zarvan-calendar": "git+ssh://git@github.com/your-org/ZarvanCalendar.git#v3.0.3"
+}</code></pre>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <div class="zd-code-head"><span>scripts/copy-zarvan.mjs</span><span class="zd-code-lang">js</span></div>
+              <pre><code>import { cpSync } from "node:fs";
+cpSync("node_modules/zarvan-calendar/dist", "public/vendor/zarvan", { recursive: true });</code></pre>
+            </div>
+
+            <p>
+              Vendoring the folder straight into your own tree works just as well, and for a private fork it is
+              usually simpler: no git-dependency auth in CI, and your SBOM tooling sees real files.
+            </p>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Do not import it</span>
+              <p>
+                <code>import Zarvan from "zarvan-calendar"</code> will fail. There is no module entry point on
+                purpose — declaring one would produce a confusing runtime failure instead of an honest one.
+                Load the script tag and read <code>window.Zarvan</code>.
+              </p>
+            </div>
+
+            <h2 id="typescript">TypeScript</h2>
+            <p>
+              <code>dist/zarvan.d.ts</code> declares the <code>Zarvan</code> and <code>jalaali</code> globals.
+              It contains no <code>import</code> or <code>export</code> on purpose: either would turn it into a
+              module and the globals would stop being visible.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <div class="zd-code-head"><span>tsconfig.json</span><span class="zd-code-lang">jsonc</span></div>
+              <pre><code>{ "include": ["src/**/*", "vendor/zarvan/zarvan.d.ts"] }</code></pre>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const cal = Zarvan.create({ selector: "#calendar", events: [] });
+cal.setView("week");                    // ViewName is checked
+cal.on("onEventClick", (ev, meta) =&gt; console.log(ev.title, meta.jdate?.jy));</code></pre>
+            </div>
+
+            <h2 id="excel-dep">The one optional dependency</h2>
+            <p>
+              The Excel export needs SheetJS, and it is neither bundled nor vendored. It is resolved when the
+              export button is pressed — from <code>options.deps.xlsx</code> or <code>window.XLSX</code>.
+              Without it the button reports through <code>onWarn</code> and nothing else changes. See
+              <a href="#export">Excel export</a>.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ basic usage -->
+          <section id="section-basic-usage" class="zd-section" data-title="Basic usage"
+            data-group="Getting started"
+            data-keywords="create selector events first calendar quickstart destroy refresh render sync">
+
+            <p class="zd-eyebrow">Getting started</p>
+            <h1>Basic usage</h1>
+            <p class="zd-lede">
+              One call, two things that matter: where to render, and what to render. Everything else has a
+              default that works.
+            </p>
+
+            <div class="zd-demo" data-demo="basic-usage">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <span class="zd-field">Exactly the code below, running.</span>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const cal = Zarvan.create({
+  selector: "#calendar",
+  view: "month",
+  events: [
+    { id: 1, title: "جلسه طراحی", start: "1405-06-02T09:00", end: "1405-06-02T10:30", type: "meeting" },
+    { id: 2, title: "اسپرینت",    start: "1405-06-03", end: "1405-06-05", allDay: true, type: "sprint" },
+  ],
+});</code></pre>
+            </div>
+
+            <h2 id="selector">selector</h2>
+            <p>
+              A CSS selector string or an element. The element you pass is the one the calendar renders into —
+              it gets the <code>zc-calendar</code> class, a <code>dir="rtl"</code> attribute and a
+              <code>data-zc-id</code> stamp. If it cannot be found, <code>create()</code> throws rather than
+              failing quietly.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({ selector: "#calendar" });                         // a selector
+Zarvan.create({ selector: document.getElementById("calendar") }); // an element</code></pre>
+            </div>
+
+            <h2 id="render-timing">When it renders</h2>
+            <p>
+              <code>create()</code> renders <strong>synchronously</strong> — the calendar is in the DOM by the
+              time it returns. Every change after that is batched into one animation frame, so you can set
+              several things in a row and pay for a single render.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.setView("week");
+cal.gotoDate({ jy: 1405, jm: 6, jd: 2 });
+cal.setTypeStyles({ meeting: { bg: "#2563eb" } });
+// …still one render, on the next frame.
+
+cal.refresh();   // or: render whatever is pending, right now</code></pre>
+            </div>
+
+            <p>
+              If you would rather every change render immediately — in a test, say, where waiting for a frame
+              is awkward — pass <code>renderMode: "sync"</code>.
+            </p>
+
+            <h2 id="teardown">Tearing it down</h2>
+            <p>
+              <code>destroy()</code> releases every listener, interval, node and injected style tag, and hands
+              the element back as it was found: the <code>zc-calendar</code> class, <code>data-zc-id</code>,
+              <code>dir</code>/<code>lang</code> and every inline <code>--zc-*</code> property the instance
+              wrote are all removed. Custom properties the <em>host</em> set on that element are left alone.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const cal = Zarvan.create({ selector: "#calendar", events });
+
+// …later, when the view unmounts
+cal.destroy();</code></pre>
+            </div>
+
+            <div class="zd-callout is-tip">
+              <span class="zd-callout-label">In a framework</span>
+              <p>
+                Create in the mount hook, destroy in the unmount hook, and keep the instance in a ref rather
+                than in reactive state — it is a long-lived object, not a value to diff. The repository's
+                <code>examples/</code> folder has working React and Vue wrappers that do exactly this.
+              </p>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ configuration -->
+          <section id="section-configuration" class="zd-section" data-title="Configuration"
+            data-group="Getting started"
+            data-keywords="options features flags sidebar minicalendar search filters export toggle setOption hot validation">
+
+            <p class="zd-eyebrow">Getting started</p>
+            <h1>Configuration</h1>
+            <p class="zd-lede">
+              Options decide what the calendar <em>is</em>; feature flags decide which parts of it exist. Every
+              flag defaults to <code>true</code> except <code>autoScrollToNow</code>, so you configure mostly by
+              turning things off.
+            </p>
+
+            <div class="zd-demo" data-demo="configuration">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <label class="zd-switch"><input type="checkbox" data-feature="sidebar" /><span class="zd-switch-track"></span> sidebar</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="miniCalendar" /><span class="zd-switch-track"></span> miniCalendar</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="search" /><span class="zd-switch-track"></span> search</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="typeFilter" /><span class="zd-switch-track"></span> typeFilter</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="exportExcel" /><span class="zd-switch-track"></span> exportExcel</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="viewDropdown" /><span class="zd-switch-track"></span> viewDropdown</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="prevNext" /><span class="zd-switch-track"></span> prevNext</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="todayButton" /><span class="zd-switch-track"></span> todayButton</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="nowLine" /><span class="zd-switch-track"></span> nowLine</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="moreEventsModal" /><span class="zd-switch-track"></span> moreEventsModal</label>
+                  <label class="zd-switch"><input type="checkbox" data-feature="allDayRow" /><span class="zd-switch-track"></span> allDayRow</label>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-demo-note">
+                Feature flags are <strong>hot</strong>: every toggle above is a live
+                <code>setOption("features.…", value)</code> call on the running calendar, not a rebuild.
+              </div>
+            </div>
+
+            <div class="zd-code has-head" data-echo data-lang="js">
+              <div class="zd-code-head"><span>Your current configuration</span><span class="zd-code-lang">js</span></div>
+              <pre><code></code></pre>
+            </div>
+
+            <h2 id="core-options">Core options</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Option</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>selector</code></td><td>string | Element</td><td>—</td><td>Required.</td></tr>
+                  <tr><td><code>events</code></td><td>array | function</td><td><code>[]</code></td><td>An array, or a function asked for one range at a time.</td></tr>
+                  <tr><td><code>eventCacheLimit</code></td><td>number</td><td><code>12</code></td><td>How many fetched ranges to remember. Lazy sources only.</td></tr>
+                  <tr><td><code>view</code></td><td>string</td><td><code>"month"</code></td><td><code>day</code> <code>week</code> <code>month</code> <code>year</code> <code>list</code>, or a registered view. Falls back if disabled.</td></tr>
+                  <tr><td><code>locale</code></td><td>string | object</td><td><code>"fa"</code></td><td>Persian is the only bundled locale. Pass a partial one to retune its wording.</td></tr>
+                  <tr><td><code>colorScheme</code></td><td>"light" | "dark" | "auto"</td><td><code>"light"</code></td><td><code>"auto"</code> follows the system and keeps following it.</td></tr>
+                  <tr><td><code>renderMode</code></td><td>"batched" | "sync"</td><td><code>"batched"</code></td><td><code>"sync"</code> renders on every change.</td></tr>
+                  <tr><td><code>shadow</code></td><td>boolean</td><td><code>false</code></td><td>Render inside a shadow root.</td></tr>
+                  <tr><td><code>styles</code></td><td>string | CSSStyleSheet | array</td><td>—</td><td>Shadow mode only; CSS to adopt.</td></tr>
+                  <tr><td><code>plugins</code></td><td>array</td><td>registered set</td><td><code>[]</code> installs none.</td></tr>
+                  <tr><td><code>deps</code></td><td>object</td><td><code>{}</code></td><td><code>{ xlsx }</code> for the export plugin.</td></tr>
+                  <tr><td><code>handlers</code></td><td>object</td><td><code>{}</code></td><td>Callbacks by name; the same set as <code>.on()</code>.</td></tr>
+                  <tr><td><code>typeLabels</code></td><td>object</td><td><code>{}</code></td><td><code>{ meeting: "پیگیری" }</code> — display names per event type.</td></tr>
+                  <tr><td><code>typeStyles</code></td><td>object</td><td><code>{}</code></td><td><code>{ meeting: { bg, color } }</code>. Types without an entry get a stable auto-colour.</td></tr>
+                  <tr><td><code>highlights</code></td><td>array</td><td><code>[]</code></td><td>Day backgrounds and time bands.</td></tr>
+                  <tr><td><code>validation</code></td><td>object</td><td>see below</td><td><code>{ enabled, requireNumericId, onInvalid, autoFix }</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="feature-flags">Feature flags</h2>
+            <p>The whole set, with every default:</p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>features: {
+  // chrome
+  sidebar: true, miniCalendar: true, menuButton: true,
+  viewDropdown: true, navigation: true, prevNext: true, todayButton: true,
+
+  // sidebar tools
+  filters: true, typeFilter: true, search: true, autocomplete: true, exportExcel: true,
+
+  // which views exist at all
+  views: { month: true, week: true, day: true, year: true, list: true },
+
+  // grid decoration
+  dayHighlights: true, timeHighlights: true, nowLine: true, autoScrollToNow: false,
+  allDayRow: true, allDayBar: true, moreEventsModal: true,
+
+  // which DOM events reach the bus
+  interactions: { click: true, dblClick: true, hover: true, contextMenu: true, focus: true },
+
+  typeStyleInjection: true,   // inject one CSS rule per event type
+  events: true,               // the callback bus itself; false silences everything
+  overlapFocus: true,         // dim the others when you hover one of a colliding pair
+
+  timeGridLayout: "overlap",  // "overlap" | "columns"
+}</code></pre>
+            </div>
+
+            <h2 id="hot-options">Which options are hot</h2>
+            <p>
+              <code>setOption(key, value)</code> is deliberately narrow. Feature flags are hot, and so are
+              <code>view</code>, <code>locale</code>, <code>colorScheme</code>, <code>typeLabels</code>,
+              <code>typeStyles</code>, <code>highlights</code> and <code>events</code>. Anything structural was
+              consumed while the instance was being built, so it warns with <code>warn.optionNotHot</code>
+              rather than pretending to have worked.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.setOption("features.nowLine", false);          // dotted paths work
+cal.setOption("features.views.year", false);      // …to any depth
+cal.setOption("features", { sidebar: false });    // or a patch object
+
+cal.setOption("shadow", true);                    // warns: not hot, returns null</code></pre>
+            </div>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">Merged, not replaced</span>
+              <p>
+                A feature patch is merged <em>into</em> the existing object rather than swapping it out.
+                Plugins and view contexts hold a reference to that object from construction, and replacing it
+                would leave every one of them reading a stale copy.
+              </p>
+            </div>
+
+            <h2 id="validation">Validation</h2>
+            <p>
+              Events are validated as they arrive. A malformed one is reported through <code>onWarn</code> with
+              a stable <code>code</code>, and either dropped or kept and flagged.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>validation: {
+  enabled: true,             // false skips the whole pass
+  requireNumericId: false,   // reject events whose id is not a number
+  onInvalid: "drop",         // "drop" (default) | "keep" — kept events get _invalid
+  autoFix: true,             // repair an end that falls strictly before start
+}</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ views -->
+          <section id="section-views" class="zd-section" data-title="The five views" data-group="Views"
+            data-keywords="views month week day year list switcher setView getViews registry order label">
+
+            <p class="zd-eyebrow">Views</p>
+            <h1>The five views</h1>
+            <p class="zd-lede">
+              Month, week, day, year and list. Each one knows the date range it covers, which date anchors it,
+              how to step forward and back, and how to draw itself — which is exactly the contract a view you
+              write yourself has to meet.
+            </p>
+
+            <div class="zd-demo" data-demo="views">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls" data-role="views">
+                  <div class="zd-btn-group">
+                    <button class="zd-btn" type="button" data-view="month">Month</button>
+                    <button class="zd-btn" type="button" data-view="week">Week</button>
+                    <button class="zd-btn" type="button" data-view="day">Day</button>
+                    <button class="zd-btn" type="button" data-view="year">Year</button>
+                    <button class="zd-btn" type="button" data-view="list">List</button>
+                  </div>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                The buttons call <code>cal.setView(name)</code>. The calendar's own switcher in its header does
+                the same thing — either way <code>onViewChange</code> fires, which is what you see logged.
+              </div>
+            </div>
+
+            <h2 id="each-view">What each one is for</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>View</th><th>Covers</th><th>Steps by</th><th>Good for</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>month</code></td><td>One Jalali month</td><td>One month</td>
+                    <td>The default. A seven-column grid; each cell holds as many events as fit and collapses the rest into “+N more”.</td>
+                  </tr>
+                  <tr>
+                    <td><code>week</code></td><td>Saturday → Friday</td><td>One week</td>
+                    <td>A 24-hour time grid across seven columns, with an all-day row above it and the now indicator on today's column.</td>
+                  </tr>
+                  <tr>
+                    <td><code>day</code></td><td>One day</td><td>One day</td>
+                    <td>The same time grid, one column wide. The most room per event, so the natural target for a “+N more” click.</td>
+                  </tr>
+                  <tr>
+                    <td><code>year</code></td><td>Twelve months</td><td>One year</td>
+                    <td>Twelve mini grids. Events are drawn as coloured dots plus a <code>+N</code> badge, not as pills.</td>
+                  </tr>
+                  <tr>
+                    <td><code>list</code></td><td>One Jalali month</td><td>One month</td>
+                    <td>The same range as month view, rendered as a chronological list. Best on narrow screens and for screen readers.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="choosing">Choosing and switching</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const cal = Zarvan.create({ selector: "#calendar", view: "week" });
+
+cal.getView();            // "week"
+cal.setView("month");     // switch; emits onViewChange
+cal.getViews();           // ["day","week","month","year","list"] — enabled ones, in switcher order</code></pre>
+            </div>
+
+            <p>
+              Week and day keep an anchor date of their own, so switching between them does not lose the day
+              you were looking at. Month, year and list share one. <code>gotoDate()</code> moves
+              <strong>every</strong> view's anchor, which is what makes “jump to this date, then switch view”
+              land where you expect.
+            </p>
+
+            <h2 id="disabling">Removing a view</h2>
+            <p>
+              A view that is turned off disappears from the switcher and from <code>getViews()</code>, and
+              <code>setView()</code> on it warns with <code>warn.viewDisabled</code>. If the
+              <em>current</em> view is disabled at construction, the calendar falls back — to month when it is
+              available, otherwise to the first enabled view in registry order.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  view: "week",
+  features: {
+    views: { year: false, list: false },   // a three-view calendar
+  },
+});</code></pre>
+            </div>
+
+            <h2 id="more-events">The “+N more” affordance</h2>
+            <p>
+              Month view measures how many events fit in a day cell and collapses the remainder. Clicking the
+              remainder emits <code>onMoreEventsClick</code> and — unless
+              <code>features.moreEventsModal</code> is off — opens a modal listing that day's events. The modal
+              is a real dialog: focus moves into it, <kbd class="zd-kbd">Tab</kbd> cycles inside it,
+              <kbd class="zd-kbd">Esc</kbd> closes it and focus returns to the opener.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  features: { moreEventsModal: false },     // suppress the built-in modal
+  handlers: {
+    onMoreEventsClick: (p) =&gt; {
+      // p.date = { gdate, jdate }, p.events = the full list, p.view = "month"
+      openMyOwnPanel(p.events);
+    },
+  },
+});</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ time-grid layout -->
+          <section id="section-views-timegrid" class="zd-section" data-title="Time-grid layout" data-group="Views"
+            data-keywords="overlap columns timeGridLayout collision week day grid hour height overlapFocus allday">
+
+            <p class="zd-eyebrow">Views</p>
+            <h1>Time-grid layout</h1>
+            <p class="zd-lede">
+              Week and day share one engine. What differs between them is the DOM shell; what they have in
+              common is the hour gutter, the now indicator, and the hard part — deciding where two events that
+              collide should go.
+            </p>
+
+            <div class="zd-demo" data-demo="views-timegrid">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <span class="zd-field">Layout</span>
+                  <div class="zd-btn-group" data-role="layout">
+                    <button class="zd-btn" type="button" data-layout="overlap">overlap</button>
+                    <button class="zd-btn" type="button" data-layout="columns">columns</button>
+                  </div>
+                  <span class="zd-field">overlapFocus</span>
+                  <div class="zd-btn-group" data-role="focus">
+                    <button class="zd-btn" type="button" data-overlap-focus="on">on</button>
+                    <button class="zd-btn" type="button" data-overlap-focus="off">off</button>
+                  </div>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-demo-note">
+                Five events, four of them colliding. Switch the layout, then hover one of the overlapping pills
+                with <code>overlapFocus</code> on.
+              </div>
+            </div>
+
+            <h2 id="two-layouts">Two answers to the same question</h2>
+
+            <div class="zd-split">
+              <div class="zd-callout">
+                <span class="zd-callout-label">overlap — the default</span>
+                <p>
+                  Colliding events cascade with a visible offset, each one slightly narrower and inset from the
+                  one behind it. Nothing is ever reduced to a sliver, so a day with eight overlapping events is
+                  still readable; the cost is that the later ones are partly covered.
+                </p>
+              </div>
+              <div class="zd-callout">
+                <span class="zd-callout-label">columns</span>
+                <p>
+                  Colliding events are packed side by side, the way Google Calendar does it. Every event is
+                  fully visible; the cost is that a busy hour divides into narrow columns.
+                </p>
+              </div>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  view: "week",
+  features: { timeGridLayout: "columns" },   // "overlap" (default) | "columns"
+});
+
+cal.setOption("features.timeGridLayout", "overlap");   // hot</code></pre>
+            </div>
+
+            <h2 id="overlap-focus">overlapFocus</h2>
+            <p>
+              With <code>overlap</code>, the pill underneath is partly hidden. <code>overlapFocus</code> is the
+              answer: hovering or focusing one event of a colliding group dims the others and lifts the one you
+              are pointing at. It is on by default and costs nothing when nothing collides.
+            </p>
+            <p>
+              The animation and dim values are written by the renderer as custom properties, so the effect can
+              be retuned or switched off without a second stylesheet:
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>.zc-calendar {
+  --zc-ov-duration: .18s;
+  --zc-ov-easing: ease;
+  --zc-ov-delay: 0s;
+  --zc-ov-dim-opacity: .07;   /* how far the others fade */
+}</code></pre>
+            </div>
+
+            <h2 id="hour-height">The vertical scale</h2>
+            <p>
+              One token drives the whole grid: <code>--zc-hour-height</code>, 60px by default, meaning one
+              pixel per minute. Everything positioned on the grid — events, the hour lines, the now indicator —
+              is derived from it, so changing it rescales the day rather than breaking it.
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>.zc-calendar { --zc-hour-height: 44px; }   /* a denser day */</code></pre>
+            </div>
+
+            <h2 id="allday">The all-day row</h2>
+            <p>
+              An event is all-day if <code>allDay</code> is set, if <code>start</code> has no time component,
+              or if it spans more than one day. All-day events are drawn in a row above the time grid rather
+              than inside it, because a bar that runs the full height of the day is not information.
+            </p>
+            <p>
+              A multi-day event that <em>should</em> sit on the grid — an overnight shift, say — opts back in
+              with <code>forceTimed: true</code>.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>{ title: "اسپرینت", start: "1405-06-03", end: "1405-06-07", allDay: true }
+{ title: "شیفت شب", start: "1405-06-03T22:00", end: "1405-06-04T06:00", forceTimed: true }</code></pre>
+            </div>
+
+            <p>
+              <code>features.allDayRow: false</code> removes the row; <code>features.allDayBar: false</code>
+              keeps the row but stops drawing the continuous bar across the days an event spans.
+            </p>
+
+            <h2 id="now-line">The now indicator</h2>
+            <p>
+              A red line at the current time on today's column, updating on a 30-second tick. It is a plugin —
+              <code>now-indicator</code> — not core, and it can be removed entirely by leaving it out of
+              <code>options.plugins</code>. <code>features.autoScrollToNow</code> (off by default) additionally
+              scrolls the grid to it when the view renders.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  view: "day",
+  features: { nowLine: true, autoScrollToNow: true },
+});</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ event object -->
+          <section id="section-events-data" class="zd-section" data-title="The event object" data-group="Events"
+            data-keywords="event object properties id title start end type allDay forceTimed multi-day dates format">
+
+            <p class="zd-eyebrow">Events</p>
+            <h1>The event object</h1>
+            <p class="zd-lede">
+              A plain object with Jalali date strings. No Date instances, no timezone arithmetic, no wrapper
+              class to construct.
+            </p>
+
+            <div class="zd-demo" data-demo="events-data">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <span class="zd-field">One of each kind, in week view.</span>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-demo-note">
+                Timed on the grid, all-day and multi-day in the row above it, and one multi-day event forced
+                back onto the grid with <code>forceTimed</code>.
+              </div>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>{
+  id: 1,                                 // any comparable value; needed for updateEvent/removeEvent
+  title: "جلسه طراحی",
+  start: "1405-06-02T09:00",             // "YYYY-M-D" or "YYYY-M-DTHH:MM", padding optional
+  end: "1405-06-02T10:30",               // defaults to start
+  type: "meeting",                       // drives colour and filtering
+  allDay: false,
+  forceTimed: false,                     // keep a multi-day event on the time grid
+  repeat: { freq, interval, until, count, byWeekday },
+}</code></pre>
+            </div>
+
+            <h2 id="dates">Dates are Jalali strings</h2>
+            <p>
+              <code>"YYYY-M-D"</code> for an all-day event, <code>"YYYY-M-DTHH:MM"</code> for a timed one.
+              Zero-padding is optional — <code>"1405-6-2"</code> and <code>"1405-06-02"</code> are the same
+              date.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>{ id: 1, title: "استندآپ", start: "1405-06-02T09:00", end: "1405-06-02T09:15" }
+{ id: 2, title: "تعطیل",   start: "1405-06-05", allDay: true }
+{ id: 3, title: "اسپرینت", start: "1405-06-02", end: "1405-06-05" }        // multi-day ⇒ all-day</code></pre>
+            </div>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">Gregorian dates in, Jalali strings out</span>
+              <p>
+                Gregorian <code>Date</code> objects appear only where you talk to something outside the
+                calendar: in callback payloads, in <code>getVisibleRange()</code>, and in the range handed to a
+                lazy loader. Everything you <em>pass in</em> is a Jalali string. See
+                <a href="#jalali">Jalali dates</a> for converting between the two.
+              </p>
+            </div>
+
+            <h2 id="all-day-rules">When an event counts as all-day</h2>
+            <p>Three ways, and any one of them is enough:</p>
+            <ol>
+              <li><code>allDay: true</code> is set explicitly.</li>
+              <li><code>start</code> has no time component — <code>"1405-06-05"</code> rather than <code>"1405-06-05T09:00"</code>.</li>
+              <li>It spans more than one day and <code>forceTimed</code> is not set.</li>
+            </ol>
+
+            <h2 id="event-ids">Ids</h2>
+            <p>
+              An <code>id</code> can be any comparable value — a number, a string, a UUID. It is what
+              <code>getEventById()</code>, <code>updateEvent()</code> and <code>removeEvent()</code> match on,
+              so an event without one is display-only. Set <code>validation.requireNumericId</code> if your
+              backend guarantees numeric ids and you would rather catch a string early.
+            </p>
+
+            <h2 id="types">Types</h2>
+            <p>
+              <code>type</code> is a free string. It drives the colour of the pill, the entry in the type
+              filter, and the label shown for it. A type with no entry in <code>typeStyles</code> gets a stable
+              auto-colour derived from the name itself, so a new type is never invisible. See
+              <a href="#events-types">Types and colours</a>.
+            </p>
+
+            <h2 id="invalid">What happens to a bad event</h2>
+            <p>
+              It is reported through <code>onWarn</code> with a stable code and dropped — the calendar does not
+              throw, and it does not render half an event. <code>validation.onInvalid: "keep"</code> keeps it
+              instead and flags it <code>_invalid</code>; <code>validation.autoFix</code> repairs an
+              <code>end</code> that falls strictly before <code>start</code> rather than rejecting it.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  events: [{ id: 1, title: "خراب", start: "not-a-date" }],
+  handlers: {
+    onWarn: (p) =&gt; console.warn(p.code, p.extra),   // "warn.invalidStart", { reason: "bad_date" }
+  },
+});</code></pre>
+            </div>
+
+            <p>
+              Switch on <code>p.code</code>, never on <code>p.message</code> — the message is localised and
+              will change with the locale.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ recurring -->
+          <section id="section-events-recurring" class="zd-section" data-title="Recurring events" data-group="Events"
+            data-keywords="repeat recurrence recurring daily weekly monthly interval until count byWeekday expand">
+
+            <p class="zd-eyebrow">Events</p>
+            <h1>Recurring events</h1>
+            <p class="zd-lede">
+              One event, one <code>repeat</code> rule. Occurrences are expanded for the visible range only —
+              a daily event running for ten years costs one object in memory, not 3,650.
+            </p>
+
+            <div class="zd-demo" data-demo="events-recurring">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <span class="zd-field">freq</span>
+                  <div class="zd-btn-group" data-role="freq">
+                    <button class="zd-btn" type="button" data-freq="daily">daily</button>
+                    <button class="zd-btn" type="button" data-freq="weekly">weekly</button>
+                    <button class="zd-btn" type="button" data-freq="monthly">monthly</button>
+                  </div>
+                  <span class="zd-field">interval
+                    <input class="zd-input" type="number" min="1" max="6" value="1" data-role="interval" style="width:64px" />
+                  </span>
+                </div>
+              </div>
+              <div class="zd-demo-bar" data-role="weekdays">
+                <span class="zd-field">byWeekday</span>
+                <div class="zd-btn-group">
+                  <button class="zd-btn zd-fa" type="button" data-weekday="0">شنبه</button>
+                  <button class="zd-btn zd-fa" type="button" data-weekday="1">یک‌شنبه</button>
+                  <button class="zd-btn zd-fa" type="button" data-weekday="2">دوشنبه</button>
+                  <button class="zd-btn zd-fa" type="button" data-weekday="3">سه‌شنبه</button>
+                  <button class="zd-btn zd-fa" type="button" data-weekday="4">چهارشنبه</button>
+                  <button class="zd-btn zd-fa" type="button" data-weekday="5">پنج‌شنبه</button>
+                  <button class="zd-btn zd-fa" type="button" data-weekday="6">جمعه</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+            </div>
+
+            <div class="zd-code has-head" data-echo data-lang="js">
+              <div class="zd-code-head"><span>The single event behind that whole month</span><span class="zd-code-lang">js</span></div>
+              <pre><code></code></pre>
+            </div>
+
+            <h2 id="the-rule">The rule</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>freq</code></td><td>"daily" | "weekly" | "monthly"</td><td>Required.</td></tr>
+                  <tr><td><code>interval</code></td><td>number</td><td>Defaults to <code>1</code>. <code>2</code> with <code>weekly</code> is every other week.</td></tr>
+                  <tr><td><code>byWeekday</code></td><td>number[]</td><td>Weekly only. Counts from <strong>Saturday = 0</strong>.</td></tr>
+                  <tr><td><code>until</code></td><td>Jalali date string</td><td>Inclusive.</td></tr>
+                  <tr><td><code>count</code></td><td>number</td><td>Caps occurrences within the queried range.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>// Every Saturday, Monday and Wednesday until the end of the year
+{
+  id: 1,
+  title: "استندآپ روزانه",
+  start: "1405-06-02T09:00",
+  end: "1405-06-02T09:15",
+  type: "meeting",
+  repeat: { freq: "weekly", interval: 1, byWeekday: [0, 2, 4], until: "1405-12-29" },
+}
+
+// Every other day, twenty times
+{ …, repeat: { freq: "daily", interval: 2, count: 20 } }
+
+// The same date each month
+{ …, repeat: { freq: "monthly", interval: 1 } }</code></pre>
+            </div>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Saturday is zero</span>
+              <p>
+                <code>byWeekday</code> follows the Jalali week, which starts on Saturday. It is
+                <strong>not</strong> the JavaScript <code>Date.getDay()</code> numbering, where Sunday is zero.
+                <code>[5, 6]</code> is the Persian weekend — Thursday and Friday.
+              </p>
+            </div>
+
+            <h2 id="expansion">How expansion works</h2>
+            <p>
+              The stored list keeps one object per recurring event. On every render the calendar expands the
+              rule across the visible range only, so <code>getEvents()</code> returns your original list while
+              the grid shows the occurrences. Each occurrence carries the parent's <code>id</code> and
+              <code>title</code>, so <code>onEventClick</code> hands you an event you can look up.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.getEvents().length;      // 1 — the rule
+
+// What the current view is actually drawing:
+const r = cal.getVisibleRange();
+// (the same expansion a plugin gets through ctx.expandRecurring)</code></pre>
+            </div>
+
+            <p>
+              Editing one occurrence of a series is not something the rule can express — change the rule and
+              add a one-off event, which is what a calendar server does under the covers anyway.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ types and colours -->
+          <section id="section-events-types" class="zd-section" data-title="Types and colours" data-group="Events"
+            data-keywords="type typeStyles typeLabels colour color auto hash css custom property event pill dot">
+
+            <p class="zd-eyebrow">Events</p>
+            <h1>Types and colours</h1>
+            <p class="zd-lede">
+              <code>type</code> is a free string that does three jobs at once: it colours the event, it fills
+              the type filter, and it is what the exported spreadsheet groups by.
+            </p>
+
+            <div class="zd-demo" data-demo="events-types">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <span class="zd-field">meeting <input class="zd-color" type="color" data-type-color="meeting" /></span>
+                  <span class="zd-field">task <input class="zd-color" type="color" data-type-color="task" /></span>
+                  <span class="zd-field">sprint <input class="zd-color" type="color" data-type-color="sprint" /></span>
+                  <span class="zd-field">holiday <input class="zd-color" type="color" data-type-color="holiday" /></span>
+                  <span class="zd-field">release <input class="zd-color" type="color" data-type-color="release" /></span>
+                  <button class="zd-btn" type="button" data-role="auto-colors">Use auto-colours</button>
+                  <button class="zd-btn" type="button" data-role="reset-colors">Reset</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+            </div>
+
+            <div class="zd-code has-head" data-echo data-lang="js">
+              <div class="zd-code-head"><span>Live call</span><span class="zd-code-lang">js</span></div>
+              <pre><code></code></pre>
+            </div>
+
+            <h2 id="type-styles">typeStyles</h2>
+            <p>
+              A map from type name to <code>{ bg, color }</code>. Both are plain CSS colour values, so
+              <code>rgb()</code>, <code>hsl()</code> and <code>var(--your-token)</code> all work.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  events,
+  typeStyles: {
+    meeting: { bg: "#2563eb", color: "#fff" },
+    task:    { bg: "#0d9488", color: "#fff" },
+    holiday: { bg: "#dc2626", color: "#fff" },
+  },
+});
+
+cal.setTypeStyles({ meeting: { bg: "#e11d48" } });   // replaces the whole map</code></pre>
+            </div>
+
+            <h2 id="auto-colours">Types you did not style</h2>
+            <p>
+              A type with no entry is not left grey. The library hashes the type name into a hue and produces
+              <code>hsl(hue, 70%, 45%)</code> with white ink — deterministic, so the same type is the same
+              colour on every page load and in every instance, and a type your backend invents this morning is
+              still legible this afternoon.
+            </p>
+
+            <div class="zd-callout is-tip">
+              <span class="zd-callout-label">Worth knowing</span>
+              <p>
+                This is why you can ship without <code>typeStyles</code> at all. Add entries only for the types
+                whose colour is part of your product's language; let the rest auto-colour.
+              </p>
+            </div>
+
+            <h2 id="how-injected">How the colours get in</h2>
+            <p>
+              The calendar injects <strong>one CSS rule per type</strong>, scoped to its instance, setting two
+              custom properties. The stylesheet decides which elements consume them — the pill background, the
+              month dot, the year dot, the list dot — so a new event-coloured element is a CSS change, not a
+              JavaScript one.
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>/* what the injector writes, per instance */
+[data-zc-id="zc4f2a1b"] .zc-type-meeting {
+  --zc-event-bg: #2563eb;
+  --zc-event-fg: #fff;
+}</code></pre>
+            </div>
+
+            <p>
+              <code>features.typeStyleInjection: false</code> stops the injection entirely, which is what you
+              want if you would rather write the type rules in your own stylesheet.
+            </p>
+
+            <h2 id="type-labels">typeLabels</h2>
+            <p>
+              The type is a key, not a caption. <code>typeLabels</code> maps it to what the reader sees, in the
+              type filter dropdown and in the exported spreadsheet. A type with no label shows its raw key.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  typeLabels: { meeting: "جلسه", task: "کار", holiday: "تعطیل" },
+});
+
+cal.setOption("typeLabels", { meeting: "پیگیری" });   // hot</code></pre>
+            </div>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">Dark mode leaves these alone</span>
+              <p>
+                <code>typeStyles</code> colours do not follow the colour scheme — a brand colour is not the
+                library's to reinterpret. If one of yours does not survive on a dark ground, set a different
+                map from an <code>onColorSchemeChange</code> listener. See <a href="#dark-mode">Dark mode</a>.
+              </p>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ interaction -->
+          <section id="section-events-interaction" class="zd-section" data-title="Clicks and callbacks"
+            data-group="Events"
+            data-keywords="onEventClick callbacks handlers bus on off emit meta element dblclick hover contextmenu focus interactions">
+
+            <p class="zd-eyebrow">Events</p>
+            <h1>Clicks and callbacks</h1>
+            <p class="zd-lede">
+              Every callback has the same signature: <code>(payload, meta, ctx)</code>. Click an event below
+              and watch what actually arrives.
+            </p>
+
+            <div class="zd-demo" data-demo="events-interaction">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <label class="zd-switch"><input type="checkbox" data-role="hover" /><span class="zd-switch-track"></span> log onEventHover</label>
+                  <button class="zd-btn" type="button" data-role="clear-log">Clear log</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                Click a pill, double-click it, right-click it, tab to it, click a day number, open the sidebar,
+                navigate. Every one of those is a callback.
+              </div>
+            </div>
+
+            <h2 id="signature">One signature</h2>
+            <p>
+              Every callback receives three arguments, always in the same order and always present.
+              <code>meta</code> is <code>null</code> rather than absent for callbacks that have none, so
+              destructuring is safe.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  handlers: {
+    onEventClick: (event, meta, ctx) =&gt; {
+      event.title;        // the event object
+      meta.view;          // "month" | "week" | …
+      meta.jdate;         // { jy, jm, jd } — the day it was clicked on
+      meta.gdate;         // the same day as a Gregorian Date
+      meta.isAllDay;      // whether it was drawn as an all-day event
+      meta.element;       // the DOM node it was drawn as
+      meta.domEvent;      // the original DOM event
+      ctx.instanceId;     // which calendar, when you run more than one
+    },
+  },
+});</code></pre>
+            </div>
+
+            <h2 id="two-ways">Two ways to subscribe</h2>
+            <p>
+              <code>handlers</code> at construction, or <code>.on()</code> at any time. They are the same bus
+              and the same set of names; <code>.on()</code> returns its own unsubscribe function.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const off = cal.on("onEventClick", (ev) =&gt; console.log(ev.title));
+off();                                  // unsubscribe
+
+cal.off("onEventClick", myHandler);     // or by reference
+cal.emit("myOwnEvent", { … });          // the bus is yours too</code></pre>
+            </div>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">A thrown handler cannot break the calendar</span>
+              <p>
+                Each subscriber is called in isolation. One that throws is reported to the console and the rest
+                still run — a bug in your click handler does not stop the calendar from rendering.
+              </p>
+            </div>
+
+            <h2 id="meta-element">meta.element</h2>
+            <p>
+              The node the event was drawn as. This is the right anchor for a popover, and it is better than
+              the two things you might otherwise reach for: <code>domEvent.currentTarget</code> is the same
+              node but only <em>while</em> the event is being dispatched, and <code>domEvent.target</code> is a
+              <em>child</em> in some views — a list row's title, a month timed row's title span.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>onEventClick: (ev, meta) =&gt; {
+  const box = meta.element.getBoundingClientRect();
+  showPopover(box, ev);
+}</code></pre>
+            </div>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Do not hold on to it</span>
+              <p>
+                Any re-render replaces the node. Do not keep <code>meta.element</code> across navigation, a view
+                change, a filter change or a data change — read it, use it, drop it.
+              </p>
+            </div>
+
+            <h2 id="finding-nodes">Finding event nodes yourself</h2>
+            <p>
+              Every node that stands for an event carries <code>zc-event-node</code>, whichever view drew it.
+              <code>.zc-event</code> cannot serve that purpose — it carries the pill's colours, and three of
+              the six event nodes never have it (month timed rows, list rows and modal rows).
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>document.addEventListener("click", (e) =&gt; {
+  const node = e.target.closest(".zc-event-node");   // works in every view
+  if (node) { /* … */ }
+});</code></pre>
+            </div>
+
+            <p>
+              <code>zc-event-node</code> is a marker only: no rule in the stylesheet targets it, so it is safe
+              to key your own CSS off it.
+            </p>
+
+            <h2 id="turning-off">Turning interactions off</h2>
+            <p>
+              <code>features.interactions</code> decides which DOM events reach the bus at all. Turning one off
+              means the listener is never attached, not that the callback is filtered afterwards.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>features: {
+  interactions: { click: true, dblClick: false, hover: false, contextMenu: false, focus: true },
+}
+
+// or the whole bus at once — no callback fires, for anything
+features: { events: false }</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ CRUD -->
+          <section id="section-events-crud" class="zd-section" data-title="Add, update, remove" data-group="Events"
+            data-keywords="addEvent updateEvent removeEvent setEvents getEvents getEventById mutate crud normalise">
+
+            <p class="zd-eyebrow">Events</p>
+            <h1>Add, update, remove</h1>
+            <p class="zd-lede">
+              Four methods, all of which return the <em>normalised</em> stored event rather than what you
+              handed in — so you can see what the calendar actually kept.
+            </p>
+
+            <div class="zd-demo" data-demo="events-crud">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn is-primary" type="button" data-role="add">addEvent</button>
+                  <button class="zd-btn" type="button" data-role="update">updateEvent</button>
+                  <button class="zd-btn" type="button" data-role="remove">removeEvent</button>
+                  <button class="zd-btn" type="button" data-role="count">getEvents</button>
+                  <button class="zd-btn" type="button" data-role="invalid">Add an invalid one</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                “Add an invalid one” passes <code>start: "not-a-date"</code>. It is rejected, reported through
+                <code>onWarn</code>, and nothing renders — which is the whole point of the validation pass.
+              </div>
+            </div>
+
+            <h2 id="crud-methods">The methods</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Method</th><th>Returns</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>getEvents()</code></td><td>array</td><td>A copy, so you cannot reorder or splice the live list behind the calendar's back. The event objects themselves are shared — treat them as read-only.</td></tr>
+                  <tr><td><code>getEventById(id)</code></td><td>object | null</td><td></td></tr>
+                  <tr><td><code>setEvents(list)</code></td><td>array</td><td>Replaces everything. Pass a <strong>function</strong> to switch to loading on demand; pass an array to switch back.</td></tr>
+                  <tr><td><code>addEvent(ev)</code></td><td>object | null</td><td>The normalised stored event, or <code>null</code> if validation rejected it.</td></tr>
+                  <tr><td><code>updateEvent(id, patch)</code></td><td>object | null</td><td>Merges and re-validates. A rejected patch changes nothing at all.</td></tr>
+                  <tr><td><code>removeEvent(id)</code></td><td>object | null</td><td>Returns what was removed.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const stored = cal.addEvent({
+  id: 42,
+  title: "رویداد جدید",
+  start: "1405-06-04T14:00",
+  end: "1405-06-04T15:00",
+  type: "task",
+});
+if (!stored) { /* validation rejected it — onWarn has the reason */ }
+
+cal.updateEvent(42, { title: "عنوان تازه", type: "meeting" });   // partial patch
+cal.removeEvent(42);
+
+cal.setEvents(nextList);      // replace the lot
+cal.getEventById(42);         // null now</code></pre>
+            </div>
+
+            <h2 id="onEventsChange">Watching for changes</h2>
+            <p>
+              Every mutation emits <code>onEventsChange</code> with what kind it was, which event it concerned
+              and the full list afterwards.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.on("onEventsChange", (p) =&gt; {
+  p.type;      // "add" | "update" | "remove" | "set" | "load"
+  p.event;     // the event concerned, or null for "set" and "load"
+  p.events;    // the whole list afterwards
+});</code></pre>
+            </div>
+
+            <p>
+              <code>"load"</code> only appears when <code>events</code> is a function — see
+              <a href="#events-lazy">Loading on demand</a>.
+            </p>
+
+            <h2 id="rerender">Mutations and rendering</h2>
+            <p>
+              A mutation schedules a render rather than performing one, so a loop of a hundred
+              <code>addEvent()</code> calls costs one render, not a hundred. Call <code>refresh()</code> if you
+              need the DOM updated before the next line runs.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>incoming.forEach((ev) =&gt; cal.addEvent(ev));   // still one render
+cal.refresh();                                // …unless you ask for it now
+
+expect(root.querySelectorAll(".zc-event-node")).toHaveLength(incoming.length);</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ lazy loading -->
+          <section id="section-events-lazy" class="zd-section" data-title="Loading on demand" data-group="Events"
+            data-keywords="lazy async loader function fetch server range refetchEvents isLoading isLazy cache generation">
+
+            <p class="zd-eyebrow">Events</p>
+            <h1>Loading events on demand</h1>
+            <p class="zd-lede">
+              An array keeps every event in memory for the life of the page — fine for hundreds, hopeless for
+              years of history. Pass a <strong>function</strong> instead and the calendar asks for one visible
+              range at a time.
+            </p>
+
+            <div class="zd-demo" data-demo="events-lazy">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn" type="button" data-role="prev">← prev month</button>
+                  <button class="zd-btn" type="button" data-role="next">next month →</button>
+                  <button class="zd-btn" type="button" data-role="refetch">refetchEvents()</button>
+                  <button class="zd-btn" type="button" data-role="state">isLazy / isLoading</button>
+                  <span class="zd-field">latency
+                    <input class="zd-input" type="range" min="0" max="2500" step="50" value="550"
+                      data-role="latency" style="width:110px" />
+                    <span data-role="latency-out">550 ms</span>
+                  </span>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                A simulated backend. Page forward and back and watch the log: the second visit to a month does
+                not call the loader again, because that range is cached. Turn the latency up and you will see
+                the hairline progress bar across the top of the grid.
+              </div>
+            </div>
+
+            <h2 id="the-loader">The loader</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  events: async ({ startG, endG, startJ, endJ, view }) =&gt; {
+    const res = await fetch(`/api/events?from=${startG.toISOString()}&amp;to=${endG.toISOString()}`);
+    return res.json();     // an array of events, or a promise of one
+  },
+});</code></pre>
+            </div>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Field</th><th>Type</th><th>What it is</th></tr></thead>
+                <tbody>
+                  <tr><td><code>startG</code> / <code>endG</code></td><td><code>Date</code></td><td>Gregorian, inclusive — what a backend speaks.</td></tr>
+                  <tr><td><code>startJ</code> / <code>endJ</code></td><td><code>{ jy, jm, jd }</code></td><td>The same bounds in Jalali.</td></tr>
+                  <tr><td><code>view</code></td><td>string</td><td>The view being drawn.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="guarantees">What it handles for you</h2>
+
+            <h3 id="when-it-asks">When it asks</h3>
+            <p>
+              On the visible range changing: navigation, and switching view. A re-render that leaves the range
+              where it is — filtering, searching, a local edit — does <strong>not</strong> re-request.
+            </p>
+
+            <h3 id="ordering">Out-of-order answers</h3>
+            <p>
+              Every request carries a generation, and a result whose generation is no longer current is
+              discarded. Paging forward twice quickly cannot leave the slower request's events on screen —
+              which is the bug this design exists to prevent.
+            </p>
+
+            <h3 id="dedup">De-duplication and caching</h3>
+            <p>
+              Two asks for one range share a single call. Fetched ranges are remembered in a capped cache
+              (<code>eventCacheLimit</code>, default 12), so paging back and forth does not re-request.
+            </p>
+
+            <h3 id="replace">Replace, not merge</h3>
+            <p>
+              What comes back <strong>replaces</strong> what was loaded. The source is the authority for the
+              range it was asked about; merging would quietly accumulate events from months the reader has long
+              since navigated away from — in memory, in <code>getEvents()</code>, and in the Excel export.
+            </p>
+
+            <h3 id="failures">Failures</h3>
+            <p>
+              A rejected load leaves what is on screen alone rather than blanking the calendar, reports through
+              <code>onEventsLoadError</code> and <code>onError</code>, and is <em>not</em> cached — so simply
+              returning to that range tries again. A load still in flight when <code>destroy()</code> runs is
+              ignored rather than resolving into a torn-down calendar.
+            </p>
+
+            <h2 id="local-edits">Local edits against a lazy source</h2>
+            <p>
+              <code>addEvent</code> / <code>updateEvent</code> / <code>removeEvent</code> show immediately and
+              are <strong>not</strong> overwritten on the visible range. They drop the cache, so navigating
+              away and back reloads from the source. Persist them through your own API; call
+              <code>refetchEvents()</code> when you want the source's version now.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>await api.save(draft);
+cal.addEvent(draft);        // optimistic — shows at once
+cal.refetchEvents();        // …or take the server's word for it</code></pre>
+            </div>
+
+            <h2 id="loading-state">Showing that it is working</h2>
+            <p>
+              While any load is outstanding the container carries <code>zc-is-loading</code>, which draws a
+              hairline progress bar across the top of the grid — suppressed under
+              <code>prefers-reduced-motion</code>. Style that class for anything heavier.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.isLazy();      // true — events is a function
+cal.isLoading();   // true while a fetch is outstanding
+
+cal.on("onEventsLoadStart", () =&gt; spinner.show());
+cal.on("onEventsLoadEnd",   () =&gt; spinner.hide());
+cal.on("onEventsLoadError", (p) =&gt; toast(p.error.message));</code></pre>
+            </div>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>.zc-calendar.zc-is-loading .zc-body { opacity: .6; }</code></pre>
+            </div>
+
+            <h2 id="switching">Switching sources</h2>
+            <p><code>setEvents()</code> takes either kind, so you can move between them at runtime.</p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.setEvents(myLoaderFunction);   // become lazy
+cal.setEvents([...]);              // go back to an array; refetchEvents() now returns false</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ navigation -->
+          <section id="section-navigation" class="zd-section" data-title="Navigation" data-group="Interaction"
+            data-keywords="next prev today gotoDate getDate getJDate getVisibleRange anchor onDateChange onRangeChange mini calendar">
+
+            <p class="zd-eyebrow">Interaction</p>
+            <h1>Navigation</h1>
+            <p class="zd-lede">
+              Step, jump, and ask where you are. Each view knows how far one step is, so
+              <code>next()</code> means a month in month view and a day in day view without you having to
+              check which.
+            </p>
+
+            <div class="zd-demo" data-demo="navigation">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn" type="button" data-role="prev">prev()</button>
+                  <button class="zd-btn" type="button" data-role="today">today()</button>
+                  <button class="zd-btn" type="button" data-role="next">next()</button>
+                  <span class="zd-field">
+                    <input class="zd-input" type="text" data-role="goto-input" placeholder="1405-06-02" />
+                    <button class="zd-btn is-primary" type="button" data-role="goto">gotoDate()</button>
+                  </span>
+                  <button class="zd-btn" type="button" data-role="range">getVisibleRange()</button>
+                  <button class="zd-btn" type="button" data-role="jdate">getJDate()</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+            </div>
+
+            <h2 id="stepping">Stepping</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.next();     // one step forward, in whatever unit this view steps by
+cal.prev();     // one step back
+cal.today();    // back to today — emits onToday, then onDateChange
+
+// The older names still work:
+cal.goNext(); cal.goPrev(); cal.goToday();</code></pre>
+            </div>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>View</th><th>One step is</th></tr></thead>
+                <tbody>
+                  <tr><td><code>day</code></td><td>One day</td></tr>
+                  <tr><td><code>week</code></td><td>One week</td></tr>
+                  <tr><td><code>month</code> · <code>list</code></td><td>One Jalali month</td></tr>
+                  <tr><td><code>year</code></td><td>One Jalali year</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="jumping">Jumping to a date</h2>
+            <p>
+              <code>gotoDate()</code> takes either a Gregorian <code>Date</code> or a Jalali
+              <code>{ jy, jm, jd }</code>. It returns the resulting <code>Date</code>, or <code>null</code> if
+              what you passed was not a date — in which case nothing moves.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.gotoDate({ jy: 1405, jm: 6, jd: 2 });   // Jalali
+cal.gotoDate(new Date());                   // Gregorian
+cal.gotoDate({ jy: 1405, jm: 13, jd: 1 });  // null — nothing changed</code></pre>
+            </div>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">It moves every view</span>
+              <p>
+                Week and day keep their own anchor so that switching between them does not lose your place —
+                but <code>gotoDate()</code> deliberately moves <em>all</em> of them. That is what makes
+                “jump to this date, then switch to week view” land on the week you asked for.
+              </p>
+            </div>
+
+            <h2 id="where-am-i">Asking where you are</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.getDate();           // Date — the active view's anchor
+cal.getJDate();          // { jy, jm, jd } — the same, in Jalali
+cal.getVisibleRange();   // { startG, endG } — Gregorian Dates, copies, inclusive</code></pre>
+            </div>
+
+            <p>
+              <code>getVisibleRange()</code> is the range the current view <em>covers</em>, which is what you
+              would send to a backend. It is also exactly what a lazy loader is asked for, and what the Excel
+              export writes out.
+            </p>
+
+            <h2 id="nav-callbacks">Knowing when it moved</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.on("onDateChange", (p) =&gt; {
+  p.from;      // Date — where the anchor was
+  p.to;        // Date — where it is now
+  p.source;    // "next" | "prev" | "today" | "gotoDate" | "mini" | "api" | "internal"
+});
+
+cal.on("onRangeChange", (p) =&gt; {
+  p.startG; p.endG; p.view;    // fires when the covered range moves — the lazy-load trigger
+});</code></pre>
+            </div>
+
+            <p>
+              <code>onDateChange</code> fires only when the anchor day actually changes, so a re-render in
+              place does not emit one. <code>onRangeChange</code> is the coarser signal: it fires when the
+              covered range moves, which is also what triggers a fetch from a lazy source.
+            </p>
+
+            <h2 id="chrome">The navigation chrome</h2>
+            <p>
+              The header's prev/next arrows and “today” button call the same methods you just used. Remove them
+              and drive the calendar entirely from your own UI:
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>features: {
+  navigation: false,    // the whole nav cluster
+  prevNext: false,      // just the arrows
+  todayButton: false,   // just "today"
+  menuButton: false,    // the sidebar toggle
+}</code></pre>
+            </div>
+
+            <p>
+              The mini calendar in the sidebar browses independently of the main view — it tracks its own month
+              — and clicking one of its days emits <code>onDayNumberClick</code> with
+              <code>view: "mini"</code>, then moves the calendar.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ filters -->
+          <section id="section-filters" class="zd-section" data-title="Search and filters" data-group="Interaction"
+            data-keywords="search filter type autocomplete suggestions onFiltersChange sidebar query q allTypes">
+
+            <p class="zd-eyebrow">Interaction</p>
+            <h1>Search and filters</h1>
+            <p class="zd-lede">
+              Two filters, both in the sidebar, both applied to every view at once: a type dropdown and a
+              title search with suggestions.
+            </p>
+
+            <div class="zd-demo" data-demo="filters">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn is-primary" type="button" data-role="open-sidebar">Open the sidebar</button>
+                  <span class="zd-field">…then use the type dropdown and the search box inside it.</span>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                Start typing in the search box: suggestions come from the titles in the current range, and
+                <kbd class="zd-kbd">↑</kbd> <kbd class="zd-kbd">↓</kbd> <kbd class="zd-kbd">Enter</kbd> work
+                without the list ever taking focus away from the input.
+              </div>
+            </div>
+
+            <h2 id="filter-state">The filter state</h2>
+            <p>
+              One object, two fields, and it survives navigation and view switches — filtering is a property of
+              the calendar, not of the view you happen to be looking at.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.on("onFiltersChange", (p) =&gt; {
+  p.type;     // the selected type, or "__all__"
+  p.q;        // the search string
+  p.source;   // "type" | "search" | "autocomplete" | "clear"
+});</code></pre>
+            </div>
+
+            <h2 id="what-search-does">What the search matches</h2>
+            <p>
+              Event <strong>titles</strong>, case-insensitively, with Persian and Arabic character forms
+              normalised so that <span class="zd-fa">ي</span>/<span class="zd-fa">ی</span> and
+              <span class="zd-fa">ك</span>/<span class="zd-fa">ک</span> match each other — which they must, or
+              half of what users type finds nothing. Numerals are normalised the same way, so typing Latin
+              digits finds events whose titles use Persian ones.
+            </p>
+
+            <h2 id="autocomplete">The suggestion list</h2>
+            <p>
+              Suggestions are drawn from the titles in the currently loaded range, after the type filter but
+              before the search filter — so narrowing by type narrows the suggestions, and typing does not
+              make the list you are choosing from disappear underneath you.
+            </p>
+            <p>
+              The list never takes focus. The input keeps it and points at the highlighted row with
+              <code>aria-activedescendant</code>, which is what lets
+              <kbd class="zd-kbd">↑</kbd> <kbd class="zd-kbd">↓</kbd> work while you are still typing.
+              Choosing one emits <code>onAutocompleteSelect</code> with the chosen title, and then
+              <code>onFiltersChange</code> with <code>source: "autocomplete"</code>.
+            </p>
+
+            <h2 id="filter-flags">Turning parts off</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>features: {
+  filters: false,        // the whole panel
+  typeFilter: false,     // just the type dropdown
+  search: false,         // just the search box
+  autocomplete: false,   // keep the search box, drop the suggestions
+}</code></pre>
+            </div>
+
+            <h2 id="own-filters">Filtering from your own UI</h2>
+            <p>
+              There is no <code>setFilters()</code>: the filter state belongs to the sidebar UI. To filter from
+              your own controls, filter the data instead — which is also more honest about what is happening,
+              because the calendar then reports the true number of events it holds.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const all = await loadEvents();
+
+function applyMyFilter(type) {
+  cal.setEvents(type === "all" ? all : all.filter((e) =&gt; e.type === type));
+}
+
+// …and hide the built-in panel so there are not two sources of truth
+Zarvan.create({ selector: "#calendar", features: { filters: false } });</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ highlights -->
+          <section id="section-highlights" class="zd-section" data-title="Highlights and holidays"
+            data-group="Interaction"
+            data-keywords="highlights holidays weekend working hours day bg time band rules when weekday jDates jRange className">
+
+            <p class="zd-eyebrow">Interaction</p>
+            <h1>Highlights and holidays</h1>
+            <p class="zd-lede">
+              Declarative background rules for days and for bands of time. This is how you draw a weekend, a
+              set of public holidays, or working hours — without touching a single event.
+            </p>
+
+            <div class="zd-demo" data-demo="highlights">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <label class="zd-switch"><input type="checkbox" data-highlight="weekend" /><span class="zd-switch-track"></span> Persian weekend (Thu + Fri)</label>
+                  <label class="zd-switch"><input type="checkbox" data-highlight="hours" /><span class="zd-switch-track"></span> Working hours 09:00–17:00</label>
+                  <label class="zd-switch"><input type="checkbox" data-highlight="today" /><span class="zd-switch-track"></span> A specific date</label>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-demo-note">
+                Time bands only exist where there is a time axis, so “working hours” shows in week and day view
+                and is ignored in month, year and list. Switch views and watch.
+              </div>
+            </div>
+
+            <div class="zd-code has-head" data-echo data-lang="js">
+              <div class="zd-code-head"><span>Live call</span><span class="zd-code-lang">js</span></div>
+              <pre><code></code></pre>
+            </div>
+
+            <h2 id="rule-shape">The rule</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>{
+  views: ["month", "week"],              // optional; all views when omitted
+  when: {
+    weekday: [5, 6],                     // Saturday = 0, so this is Thursday + Friday
+    jDates: ["1405-06-02"],              // specific Jalali dates
+    jRange: { start: "1405-06-01", end: "1405-06-31" },
+  },
+  day:  { bg: "#fff3f3", className: "is-holiday" },
+  time: { start: "09:00", end: "17:00", bg: "rgba(0,128,0,.1)" },   // week/day only
+}</code></pre>
+            </div>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">Two rules to remember</span>
+              <p>
+                All <code>when</code> clauses must match — they are ANDed, not ORed. And later rules override
+                earlier ones, so put the general rule first and the exception after it. <code>when</code> may
+                be omitted entirely and its keys written at the top level.
+              </p>
+            </div>
+
+            <h2 id="holidays">A holiday calendar</h2>
+            <p>
+              Zarvan does not ship a holiday list — public holidays are a policy question that changes by
+              country, year and employer, and a stale list baked into a UI library is worse than none. Supply
+              your own, and get colouring plus a class you can hang anything else off:
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const PUBLIC_HOLIDAYS = ["1405-01-01", "1405-01-02", "1405-01-12", "1405-03-14"];
+
+Zarvan.create({
+  selector: "#calendar",
+  highlights: [
+    // the recurring weekend, first
+    { when: { weekday: [5, 6] }, day: { bg: "rgba(220,38,38,.08)" } },
+
+    // then named holidays, which win where they overlap it
+    { when: { jDates: PUBLIC_HOLIDAYS }, day: { bg: "rgba(220,38,38,.20)", className: "is-holiday" } },
+  ],
+});</code></pre>
+            </div>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>/* className gives you a hook for anything a background cannot express */
+.zc-calendar .zc-day-cell.is-holiday .zc-day-num { color: #dc2626; font-weight: 800; }</code></pre>
+            </div>
+
+            <h2 id="working-hours">Working hours</h2>
+            <p>
+              A <code>time</code> band shades part of the day on the time grid. It is ignored in views with no
+              time axis rather than failing, so one rule set can cover every view.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>{
+  views: ["week", "day"],
+  when: { weekday: [0, 1, 2, 3, 4] },          // Saturday…Wednesday
+  time: { start: "09:00", end: "17:00", bg: "rgba(16,185,129,.10)" },
+}</code></pre>
+            </div>
+
+            <h2 id="highlights-api">Changing them at runtime</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.getHighlights();          // a copy of the current rules
+cal.setHighlights(rules);     // replace them all
+cal.setOption("highlights", rules);   // the same thing through setOption</code></pre>
+            </div>
+
+            <p>
+              <code>features.dayHighlights</code> and <code>features.timeHighlights</code> switch the two kinds
+              off independently. Highlighting is itself a plugin, so leaving it out of
+              <code>options.plugins</code> removes the feature and its cost together.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ theming -->
+          <section id="section-theming" class="zd-section" data-title="Theming with tokens" data-group="Appearance"
+            data-keywords="theme tokens custom properties css variables setTheme accent radius specificity override class map">
+
+            <p class="zd-eyebrow">Appearance</p>
+            <h1>Theming with tokens</h1>
+            <p class="zd-lede">
+              85 CSS custom properties cover colour, spacing, radius, typography, elevation, structure and the
+              z-index scale. You retheme by setting variables, not by winning specificity fights — and there is
+              not one <code>!important</code> in the stylesheet.
+            </p>
+
+            <div class="zd-demo" data-demo="theming">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls" data-role="presets">
+                  <button class="zd-btn" type="button" data-preset="rose">Rose</button>
+                  <button class="zd-btn" type="button" data-preset="forest">Forest</button>
+                  <button class="zd-btn" type="button" data-preset="slate">Slate</button>
+                  <button class="zd-btn" type="button" data-role="reset-theme">Reset</button>
+                </div>
+              </div>
+              <div class="zd-demo-bar">
+                <div class="zd-token-grid">
+                  <div class="zd-token-row">
+                    <label>--zc-color-accent</label>
+                    <input class="zd-color" type="color" value="#1a73e8" data-token="color-accent" />
+                  </div>
+                  <div class="zd-token-row">
+                    <label>--zc-color-surface</label>
+                    <input class="zd-color" type="color" value="#ffffff" data-token="color-surface" />
+                  </div>
+                  <div class="zd-token-row">
+                    <label>--zc-color-border</label>
+                    <input class="zd-color" type="color" value="#dddddd" data-token="color-border" />
+                  </div>
+                  <div class="zd-token-row">
+                    <label>--zc-radius-lg <span data-token-out></span></label>
+                    <input type="range" min="0" max="24" value="10" data-token="radius-lg" data-unit="px" />
+                  </div>
+                  <div class="zd-token-row">
+                    <label>--zc-month-row-height <span data-token-out></span></label>
+                    <input type="range" min="80" max="220" value="140" data-token="month-row-height" data-unit="px" />
+                  </div>
+                  <div class="zd-token-row">
+                    <label>--zc-font-size-xl <span data-token-out></span></label>
+                    <input type="range" min="11" max="20" value="14" data-token="font-size-xl" data-unit="px" />
+                  </div>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+            </div>
+
+            <div class="zd-code has-head" data-echo data-lang="js">
+              <div class="zd-code-head"><span>Live call</span><span class="zd-code-lang">js</span></div>
+              <pre><code></code></pre>
+            </div>
+
+            <h2 id="in-css">In CSS</h2>
+            <p>The supported path, and the one you will use most: set the tokens on the container.</p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>.zc-calendar {
+  --zc-color-accent: #e11d48;
+  --zc-color-surface: #fff;
+  --zc-font-family: inherit;
+  --zc-month-row-height: 160px;
+  --zc-radius-lg: 4px;
+}</code></pre>
+            </div>
+
+            <p>
+              Custom properties pierce a shadow boundary, so this keeps working in
+              <code>shadow: true</code> mode — which no other override technique does.
+            </p>
+
+            <h2 id="at-runtime">At runtime</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.setTheme({ "color-accent": "#e11d48" });      // bare names are namespaced
+cal.setTheme({ "--zc-color-accent": "#e11d48" }); // …so these two are identical
+
+cal.setTheme({ "color-accent": null });           // null clears the override</code></pre>
+            </div>
+
+            <p>
+              <code>setTheme()</code> writes inline custom properties on the container. The instance remembers
+              which ones it wrote, so <code>destroy()</code> removes its own and only its own — tokens the
+              <em>host</em> set on that element before <code>create()</code> ran are left alone.
+            </p>
+
+            <h2 id="fonts">Fonts</h2>
+            <p>
+              The core stylesheet forces no font. It sets <code>font-family: var(--zc-font-family)</code> and
+              defaults that token to <code>inherit</code>, so the calendar takes your application's typeface by
+              default. Load the optional theme file to use the bundled Vazir face instead, or set the token.
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>.zc-calendar { --zc-font-family: "IRANSans", system-ui, sans-serif; }</code></pre>
+            </div>
+
+            <h2 id="specificity">When tokens are not enough</h2>
+            <p>
+              The stylesheet is deliberately <strong>not</strong> wrapped in an <code>@layer</code>. Layers were
+              tried and rejected: unlayered host CSS beats layered CSS at any specificity, which is fine for a
+              host that deliberately targets <code>.zc-*</code> classes but also waves through collateral damage
+              — a global reset in your app would win over the library's reset and break the layout.
+            </p>
+            <p>What ships instead is a specificity contract:</p>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Rules</th><th>Selector shape</th><th>Specificity</th><th>Beats</th></tr></thead>
+                <tbody>
+                  <tr><td>reset</td><td><code>.zc-calendar *</code></td><td>(0,1,0)</td><td>host <code>*</code>, <code>button</code>, <code>div</code>, <code>img</code></td></tr>
+                  <tr><td>components / views</td><td><code>.zc-calendar .zc-x</code></td><td>(0,2,0)</td><td>the reset</td></tr>
+                  <tr><td>state</td><td><code>.zc-calendar .zc-x.zc-is-y</code></td><td>(0,3,0)</td><td>the view rules</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>To restyle beyond tokens, write a selector at (0,2,0) or higher:</p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>.zc-calendar .zc-day-cell { background: #fafafa; }     /* (0,2,0) — beats the view rule */
+#app .zc-title { letter-spacing: 0; }                  /* (1,1,0) — wins outright */</code></pre>
+            </div>
+
+            <div class="zd-callout is-tip">
+              <span class="zd-callout-label">The class map</span>
+              <p>
+                Every class is <code>zc-</code>-prefixed and scoped under <code>.zc-calendar</code>. The full
+                list, and the reasoning behind the contract, is in <code>docs/CLASS-MAP.md</code> in the
+                repository.
+              </p>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ dark mode -->
+          <section id="section-dark-mode" class="zd-section" data-title="Dark mode" data-group="Appearance"
+            data-keywords="dark mode colorScheme auto light setColorScheme prefers-color-scheme onColorSchemeChange canvas">
+
+            <p class="zd-eyebrow">Appearance</p>
+            <h1>Dark mode</h1>
+            <p class="zd-lede">
+              The same tokens, re-valued under one class. Not a second stylesheet — so a calendar you have
+              already themed goes dark with everything else.
+            </p>
+
+            <div class="zd-demo" data-demo="dark-mode">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls" data-role="scheme">
+                  <button class="zd-btn" type="button" data-scheme="light">light</button>
+                  <button class="zd-btn" type="button" data-scheme="dark">dark</button>
+                  <button class="zd-btn" type="button" data-scheme="auto">auto</button>
+                  <span class="zd-field">resolved: <code data-role="resolved">—</code></span>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                This calendar keeps its own scheme, so you can set it against the page. Choose
+                <strong>auto</strong> and then change your operating system's appearance — it follows, with no
+                reload. (Every other demo on this site follows the site's theme toggle instead.)
+              </div>
+            </div>
+
+            <h2 id="setting-it">Setting it</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({ selector: "#calendar", colorScheme: "auto" });   // "light" | "dark" | "auto"
+
+cal.setColorScheme("dark");
+cal.getColorScheme();          // "dark" — the setting, which may be "auto"
+cal.getResolvedColorScheme();  // "dark" — what is on screen, never "auto"
+
+cal.setOption("colorScheme", "light");   // it is a hot option too</code></pre>
+            </div>
+
+            <p>
+              The default is <code>"light"</code>, so adding the library to an existing page changes nothing
+              about how it looks. Changing the scheme does <strong>not</strong> re-render — the DOM is the same
+              either way; only which custom properties apply changes.
+            </p>
+
+            <h2 id="auto">How "auto" works</h2>
+            <p>
+              <code>"auto"</code> is resolved in JavaScript rather than by a
+              <code>@media (prefers-color-scheme: dark)</code> block. Either would work; this way the dark
+              palette is written once instead of duplicated into a media block that then has to be kept in step
+              with the class it duplicates.
+            </p>
+            <p>
+              The practical difference is that <code>"auto"</code> keeps <em>following</em> the system rather
+              than being sampled at construction. The <code>matchMedia</code> listener is attached only while
+              <code>"auto"</code> is in force and is registered on the instance store, so
+              <code>destroy()</code> takes it along with everything else.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.on("onColorSchemeChange", (p) =&gt; {
+  p.scheme;     // "light" | "dark" | "auto" — the setting
+  p.resolved;   // "light" | "dark" — what is on screen
+  p.source;     // "api" when you changed it, "system" when the OS did
+
+  document.body.classList.toggle("dark", p.resolved === "dark");
+});</code></pre>
+            </div>
+
+            <h2 id="how-it-works">How it works</h2>
+            <p>
+              A <code>zc-scheme-dark</code> class is stamped on the <code>.zc-calendar</code> element and —
+              separately — on the modal overlay, which is appended to <code>&lt;body&gt;</code> rather than to
+              the calendar and so inherits none of its custom properties. The class carries nothing but
+              re-valued colour tokens at (0,2,0) specificity, which beats the (0,1,0) defaults and loses to
+              your inline <code>setTheme()</code> overrides.
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>/* what the class does, in outline */
+.zc-calendar.zc-scheme-dark {
+  color-scheme: dark;
+  --zc-color-accent: #8ab4f8;
+  --zc-color-surface: #1b1c1f;
+  --zc-color-text: #e3e3e6;
+  --zc-color-on-accent: #10223d;   /* ink inverts: dark text on a light accent */
+  /* …and the rest of the colour scale */
+}</code></pre>
+            </div>
+
+            <p>
+              You can set that class yourself if you would rather not go through the API — but then
+              <code>"auto"</code> is yours to track.
+            </p>
+
+            <h2 id="not-following">Two things that do not follow</h2>
+            <p>Both deliberately:</p>
+            <ul>
+              <li>
+                <strong><code>typeStyles</code> colours.</strong> They are yours, and a brand colour is not the
+                library's to reinterpret. Types with no entry take the accent, which does follow.
+              </li>
+              <li>
+                <strong>Tokens written by <code>setTheme()</code>.</strong> Those land as inline custom
+                properties, so they win in both schemes.
+              </li>
+            </ul>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>// Give each scheme its own palette
+cal.on("onColorSchemeChange", ({ resolved }) =&gt; {
+  cal.setTypeStyles(resolved === "dark" ? DARK_TYPES : LIGHT_TYPES);
+  cal.setTheme(resolved === "dark" ? { "color-accent": "#a5b4fc" } : { "color-accent": "#4f46e5" });
+});</code></pre>
+            </div>
+
+            <h2 id="canvas">The background</h2>
+            <p>
+              In dark mode the calendar paints its own ground, because a dark widget cannot leave its padding
+              to a light host page. That is <code>--zc-color-canvas</code>, and in light mode it is
+              <code>transparent</code> — so a light calendar still shows whatever your page put behind it,
+              exactly as before dark mode existed.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ localization -->
+          <section id="section-localization" class="zd-section" data-title="Wording and numerals"
+            data-group="Persian by design"
+            data-keywords="locale localization strings digits numerals setLocale registerLocale rtl direction persian fa">
+
+            <p class="zd-eyebrow">Persian by design</p>
+            <h1>Wording and numerals</h1>
+            <p class="zd-lede">
+              Zarvan is a Persian calendar, and that is a decision rather than a default. What a locale
+              <em>does</em> control is wording and numerals — and everything you do not name is inherited.
+            </p>
+
+            <div class="zd-demo" data-demo="localization">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls" data-role="locale">
+                  <button class="zd-btn" type="button" data-locale="default">Default wording</button>
+                  <button class="zd-btn" type="button" data-locale="custom">Custom wording</button>
+                  <button class="zd-btn" type="button" data-locale="latin">Latin numerals</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-demo-note">
+                Open the sidebar after switching, so you can see the search label and placeholder change too.
+                <code>setLocale()</code> rebuilds the header, so the switcher and the “today” button relabel
+                as well.
+              </div>
+            </div>
+
+            <div class="zd-code has-head" data-echo data-lang="js">
+              <div class="zd-code-head"><span>Live call</span><span class="zd-code-lang">js</span></div>
+              <pre><code></code></pre>
+            </div>
+
+            <h2 id="three-fixed">Three things you cannot change</h2>
+            <ul>
+              <li>
+                <strong>The calendar system is Jalali.</strong> There is no Gregorian mode. Gregorian
+                <code>Date</code> objects appear only in callback payloads and <code>getVisibleRange()</code>,
+                where they exist so you can talk to a backend.
+              </li>
+              <li>
+                <strong>The layout is right-to-left, always.</strong> The stylesheet is written that way
+                throughout; there is no <code>direction</code> option and a locale cannot carry one. The
+                container is stamped <code>dir="rtl"</code>.
+              </li>
+              <li>
+                <strong>Persian is the only bundled locale.</strong> There is no English locale.
+              </li>
+            </ul>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">Why</span>
+              <p>
+                Decided once, so none of it is a runtime branch that can be got wrong. A calendar that is
+                sometimes RTL and sometimes not has two layouts to test, two sets of bugs, and a direction
+                token somebody will eventually set incorrectly.
+              </p>
+            </div>
+
+            <h2 id="partial-locale">A partial locale</h2>
+            <p>The common case: override some wording, inherit the rest.</p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  locale: {
+    code: "fa",
+    strings: { today: "همین امروز", viewLabel: "نما" },
+  },
+});
+
+cal.setLocale({ code: "fa", strings: { today: "امروز" } });   // rebuilds the header
+cal.getLocale();                                              // "fa"</code></pre>
+            </div>
+
+            <h2 id="strings">The string table</h2>
+            <p>Every user-facing string, by key. None of them is written in render code.</p>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Group</th><th>Keys</th></tr></thead>
+                <tbody>
+                  <tr><td>Header</td><td><code>today</code> <code>menu</code> <code>prev</code> <code>next</code> <code>viewLabel</code></td></tr>
+                  <tr><td>View names</td><td><code>view.day</code> <code>view.week</code> <code>view.month</code> <code>view.year</code> <code>view.list</code></td></tr>
+                  <tr><td>Sidebar</td><td><code>typeLabel</code> <code>allTypes</code> <code>noType</code> <code>searchLabel</code> <code>searchPlaceholder</code> <code>exportExcel</code></td></tr>
+                  <tr><td>Grid</td><td><code>allDayRow</code> <code>allDayEvent</code> <code>moreEvents</code> <code>listEmpty</code></td></tr>
+                  <tr><td>Modal</td><td><code>modalTitle</code> <code>close</code></td></tr>
+                  <tr><td>Excel export</td><td><code>export.sheet</code> <code>export.fileName</code> <code>export.row</code> <code>export.title</code> <code>export.type</code> <code>export.startDate</code> <code>export.startTime</code> <code>export.endDate</code> <code>export.endTime</code> <code>export.allDay</code> <code>export.view</code> <code>export.yes</code> <code>export.no</code></td></tr>
+                  <tr><td>Warnings</td><td><code>warn.viewDisabled</code> <code>warn.unknownView</code> <code>warn.unknownColorScheme</code> <code>warn.exportDisabled</code> <code>warn.xlsxMissing</code> <code>warn.optionNotHot</code> <code>warn.invalidStart</code> <code>warn.invalidEnd</code> <code>warn.endFixed</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>
+              A few take placeholders: <code>moreEvents</code> takes <code>{count}</code>,
+              <code>modalTitle</code> takes <code>{date}</code>, and <code>export.fileName</code> takes
+              <code>{view}</code> and <code>{title}</code>.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>locale: {
+  code: "fa",
+  strings: {
+    moreEvents: "+{count} مورد دیگر",
+    modalTitle: "رویدادهای {date}",
+  },
+}</code></pre>
+            </div>
+
+            <h2 id="numerals">Numerals</h2>
+            <p>
+              <code>digits</code> shapes every number the calendar prints — day numbers, hour labels, event
+              times, the year in the header. Set it to <code>null</code> for Persian text with Latin numerals,
+              which some products prefer.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({ selector: "#calendar", locale: { code: "fa", digits: null } });</code></pre>
+            </div>
+
+            <h2 id="whole-locale">A whole locale</h2>
+            <p>
+              For consumers who need different vocabulary altogether. Missing keys fall back to Persian, so a
+              partial definition is usable. Register before <code>create()</code>; instances pick it up by
+              code.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.registerLocale({
+  code: "fa-formal",
+  weekdays: ["شنبه", "یک‌شنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"],
+  weekdaysShort: ["ش", "ی", "د", "س", "چ", "پ", "ج"],
+  months: ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+           "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"],
+  digits: ["۰","۱","۲","۳","۴","۵","۶","۷","۸","۹"],
+  strings: { today: "امروز" },
+});
+
+Zarvan.locales();                                          // ["fa", "fa-formal"]
+Zarvan.create({ selector: "#calendar", locale: "fa-formal" });</code></pre>
+            </div>
+
+            <p>
+              A locale has no <code>direction</code> field. Right-to-left is a property of the stylesheet, not
+              of the language.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ jalali -->
+          <section id="section-jalali" class="zd-section" data-title="Jalali dates" data-group="Persian by design"
+            data-keywords="jalali shamsi persian date conversion jalaali gregorian leap year month length converter">
+
+            <p class="zd-eyebrow">Persian by design</p>
+            <h1>Jalali dates</h1>
+            <p class="zd-lede">
+              The date arithmetic ships inside <code>zarvan.js</code>. You get the <code>jalaali</code> global
+              along with <code>Zarvan</code> — one script tag, no second dependency and no load order to get
+              wrong.
+            </p>
+
+            <div class="zd-demo" data-demo="jalali">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live converter</span>
+                <div class="zd-controls">
+                  <span class="zd-field">Gregorian
+                    <input class="zd-input" type="text" data-role="g-in" placeholder="2026-08-27" />
+                  </span>
+                  <span class="zd-field">→ <code data-role="j-out">—</code></span>
+                </div>
+              </div>
+              <div class="zd-demo-bar">
+                <div class="zd-controls">
+                  <span class="zd-field">Jalali
+                    <input class="zd-input" type="text" data-role="j-in" placeholder="1405-06-05" />
+                  </span>
+                  <span class="zd-field">→ <code data-role="g-out">—</code></span>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-demo-note">
+                Both boxes are wired to the <code>jalaali</code> global that came with the library. Below them,
+                year view — twelve Jalali months, each with its own length.
+              </div>
+            </div>
+
+            <h2 id="the-format">The format the calendar takes</h2>
+            <p>
+              <code>"YYYY-M-D"</code> for a date, <code>"YYYY-M-DTHH:MM"</code> for a moment. Zero-padding is
+              optional. This is deliberately <em>not</em> ISO 8601: an ISO string means a Gregorian date, and
+              accepting one here would be ambiguous about which calendar the numbers belong to.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>"1405-06-02"         // 2 Shahrivar 1405
+"1405-6-2"           // the same date
+"1405-06-02T09:00"   // 09:00 on that day</code></pre>
+            </div>
+
+            <h2 id="converting">Converting</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>jalaali.toJalaali(2026, 8, 27);        // { jy: 1405, jm: 6, jd: 5 }
+jalaali.toJalaali(new Date());         // a Date works too
+
+jalaali.toGregorian(1405, 6, 5);       // { gy: 2026, gm: 8, gd: 27 }
+jalaali.jalaaliToDateObject(1405, 6, 5);   // a real Date
+
+jalaali.isValidJalaaliDate(1405, 12, 30);  // false — 1405 is not a leap year
+jalaali.isLeapJalaaliYear(1403);           // true
+jalaali.jalaaliMonthLength(1405, 12);      // 29
+jalaali.jalaaliWeek(1405, 6, 5);           // { saturday, friday } — the week it falls in</code></pre>
+            </div>
+
+            <h2 id="talking-to-a-backend">Talking to a backend</h2>
+            <p>
+              Most servers speak Gregorian. The calendar hands you Gregorian <code>Date</code> objects
+              everywhere a backend is the likely next stop — callback payloads,
+              <code>getVisibleRange()</code>, and the range given to a lazy loader — so the conversion usually
+              is not yours to do at all.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>// Loading: the range arrives Gregorian, ready to send
+events: async ({ startG, endG }) =&gt; {
+  const res = await fetch(`/api/events?from=${startG.toISOString()}&amp;to=${endG.toISOString()}`);
+  const rows = await res.json();
+
+  // Coming back the other way, convert once, at the boundary
+  return rows.map((row) =&gt; {
+    const d = new Date(row.starts_at);
+    const j = jalaali.toJalaali(d);
+    const pad = (n) =&gt; String(n).padStart(2, "0");
+    return {
+      id: row.id,
+      title: row.title,
+      type: row.kind,
+      start: `${j.jy}-${pad(j.jm)}-${pad(j.jd)}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    };
+  });
+}</code></pre>
+            </div>
+
+            <div class="zd-callout is-tip">
+              <span class="zd-callout-label">Convert at the edge</span>
+              <p>
+                Do the conversion where data enters and leaves your application, not in the middle of it. One
+                function in, one function out — then everything between them speaks a single calendar and
+                there is no “which kind of date is this?” to get wrong.
+              </p>
+            </div>
+
+            <h2 id="the-week">The week</h2>
+            <p>
+              The Jalali week runs <strong>Saturday to Friday</strong>, and Saturday is index <code>0</code>
+              everywhere the library counts weekdays — in <code>repeat.byWeekday</code>, in a highlight rule's
+              <code>when.weekday</code>, and in the order of a locale's <code>weekdays</code> array. Thursday
+              and Friday, <code>[5, 6]</code>, are the Persian weekend.
+            </p>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Not Date.getDay()</span>
+              <p>
+                JavaScript numbers Sunday as <code>0</code>. Converting between the two is
+                <code>(date.getDay() + 1) % 7</code>.
+              </p>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ export -->
+          <section id="section-export" class="zd-section" data-title="Excel export" data-group="Extending"
+            data-keywords="export excel xlsx sheetjs exportToExcel deps columns onExportStart onExportEnd filename">
+
+            <p class="zd-eyebrow">Extending</p>
+            <h1>Excel export</h1>
+            <p class="zd-lede">
+              A button in the sidebar and a method on the instance, both of which write the visible range —
+              recurrences expanded, current filters applied — into a spreadsheet.
+            </p>
+
+            <div class="zd-demo" data-demo="export">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn is-primary" type="button" data-role="export">cal.exportToExcel()</button>
+                  <button class="zd-btn" type="button" data-role="export-off">Turn the feature off</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                <strong>This documentation site loads no CDN</strong>, so SheetJS is not present and the export
+                reports <code>warn.xlsxMissing</code> instead of producing a file. That is not a broken demo —
+                it is precisely the documented behaviour when the optional dependency is absent, and it is
+                worth seeing.
+              </div>
+            </div>
+
+            <h2 id="supplying-sheetjs">Supplying SheetJS</h2>
+            <p>
+              SheetJS is not a dependency of this library. It is looked up <em>when the button is pressed</em>,
+              not when the page loads, and it can be supplied two ways:
+            </p>
+
+            <div class="zd-code" data-lang="html">
+              <pre><code>&lt;!-- 1. the global, for the script-tag case --&gt;
+&lt;script src="/vendor/xlsx/xlsx.full.min.js"&gt;&lt;/script&gt;</code></pre>
+            </div>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>// 2. an explicit reference, which is what a bundler user should pass
+import * as XLSX from "xlsx";
+
+Zarvan.create({ selector: "#calendar", deps: { xlsx: XLSX } });</code></pre>
+            </div>
+
+            <p>
+              With neither, the button reports through <code>onWarn</code> with code
+              <code>warn.xlsxMissing</code> and nothing else changes. Nothing throws, and nothing else about
+              the calendar stops working.
+            </p>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">Why it is a plugin</span>
+              <p>
+                An 881 KB dependency for one optional button should not be something every consumer pays for.
+                Dropping the plugin removes the button, the API method and the dependency together.
+              </p>
+            </div>
+
+            <h2 id="what-it-writes">What it writes</h2>
+            <p>
+              Events intersecting the <strong>visible range</strong>, with recurrences expanded and the current
+              filters applied, in the order a reader would expect: chronological, then by title. Nine columns:
+            </p>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>#</th><th>Column</th><th>String key</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>Row number</td><td><code>export.row</code></td></tr>
+                  <tr><td>2</td><td>Title</td><td><code>export.title</code></td></tr>
+                  <tr><td>3</td><td>Type</td><td><code>export.type</code></td></tr>
+                  <tr><td>4</td><td>Start date</td><td><code>export.startDate</code></td></tr>
+                  <tr><td>5</td><td>Start time</td><td><code>export.startTime</code></td></tr>
+                  <tr><td>6</td><td>End date</td><td><code>export.endDate</code></td></tr>
+                  <tr><td>7</td><td>End time</td><td><code>export.endTime</code></td></tr>
+                  <tr><td>8</td><td>All-day</td><td><code>export.allDay</code></td></tr>
+                  <tr><td>9</td><td>View</td><td><code>export.view</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>
+              Every heading, the sheet name and the file name come from the locale, so retuning the wording
+              retunes the spreadsheet too.
+            </p>
+
+            <h2 id="export-api">Driving it yourself</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.exportToExcel();     // added to the instance by the plugin
+
+cal.on("onExportStart", (p) =&gt; console.log(p.view, p.fileName));
+cal.on("onExportEnd",   (p) =&gt; console.log(p.count, "rows"));
+cal.on("onExportError", (err) =&gt; console.error(err));</code></pre>
+            </div>
+
+            <p>
+              <code>features.exportExcel: false</code> removes the button; the method then reports
+              <code>warn.exportDisabled</code> rather than exporting. To keep the export but hide the built-in
+              button — because it belongs in your own toolbar — turn the feature off and call the method.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ plugins -->
+          <section id="section-plugins" class="zd-section" data-title="Plugins" data-group="Extending"
+            data-keywords="plugin use unuse install uninstall hooks dayElement timeColumn sidebar viewRendered context api store">
+
+            <p class="zd-eyebrow">Extending</p>
+            <h1>Plugins</h1>
+            <p class="zd-lede">
+              Three of the library's own features are plugins: highlighting, the now indicator and the Excel
+              export. Yours attaches the same way, to the same hooks, with the same context.
+            </p>
+
+            <div class="zd-demo" data-demo="plugins">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn is-primary" type="button" data-role="open-sidebar">Open the sidebar</button>
+                  <button class="zd-btn" type="button" data-role="count">cal.countVisibleEvents()</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                The badge at the bottom of the sidebar is drawn by the plugin below — a real one, registered
+                when you opened this page and unregistered when you leave it. Navigate the calendar and watch
+                the count follow.
+              </div>
+            </div>
+
+            <h2 id="plugin-shape">The shape</h2>
+            <p>
+              A name, an <code>install</code> function, and an uninstall function returned from it. That
+              returned function is not optional bookkeeping — it is what makes <code>destroy()</code> complete.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>const eventCounter = {
+  name: "event-counter",
+
+  install(cal) {
+    let badge = null;
+
+    // A hook fires when the calendar builds the thing it names.
+    const offSidebar = cal.hooks.on("sidebar", (p) =&gt; {
+      badge = document.createElement("div");
+      p.el.appendChild(badge);
+      update();
+    });
+
+    const offRender = cal.on("onRenderEnd", update);
+
+    function update() {
+      if (!badge) return;
+      const range = cal.getVisibleRange();
+      const list = cal.applyFilters(cal.expandRecurring(cal.getEvents(), range.startG, range.endG));
+      badge.textContent = cal.num(list.length) + " رویداد در این بازه";
+    }
+
+    // A plugin may add public methods to the instance.
+    cal.api.countVisibleEvents = () =&gt; { /* … */ };
+
+    return function uninstall() {
+      offSidebar();
+      offRender();
+      if (badge) badge.remove();
+      delete cal.api.countVisibleEvents;
+    };
+  },
+};
+
+Zarvan.use(eventCounter);                                  // before create()
+const cal = Zarvan.create({ selector: "#calendar" });
+cal.countVisibleEvents();                                  // the method it added</code></pre>
+            </div>
+
+            <h2 id="hooks">The hooks</h2>
+            <p>
+              Four, each firing when the calendar builds the thing it names. This is the extension surface that
+              lets a plugin decorate rendering without knowing how rendering works.
+            </p>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Hook</th><th>Payload</th><th>Fires for</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>dayElement</code></td>
+                    <td><code>{ el, gdate, jdate, view }</code></td>
+                    <td>Any element standing for a single day — a month cell, a week column head, a year day, a mini-calendar day.</td>
+                  </tr>
+                  <tr>
+                    <td><code>timeColumn</code></td>
+                    <td><code>{ el, gdate, jdate, view, store, metrics }</code></td>
+                    <td>A 24-hour column in week or day view. <code>store</code> is the <strong>render</strong> store; <code>metrics</code> carries <code>hourHeight</code>, <code>pxPerMin</code> and <code>dayHeight</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>sidebar</code></td>
+                    <td><code>{ el, ctx }</code></td>
+                    <td>The sidebar filter panel, once built.</td>
+                  </tr>
+                  <tr>
+                    <td><code>viewRendered</code></td>
+                    <td><code>{ view, body, days, metrics }</code></td>
+                    <td>After a view has finished drawing.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Two stores, and the difference matters</span>
+              <p>
+                <code>cal.store</code> lives until <code>destroy()</code>. The <code>store</code> on the
+                <code>timeColumn</code> payload is the <em>render</em> store, released at the top of every
+                render. Anything you set up per column — an interval, a listener — belongs on the render store,
+                or you leak one of them per column per render.
+              </p>
+            </div>
+
+            <h2 id="plugin-context">The plugin context</h2>
+            <p>
+              A curated surface rather than the whole closure: the hooks to attach to, the configuration to
+              respect, and a few narrow operations.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>install(cal) {
+  cal.hooks           // on(name, fn) — the four hooks above
+  cal.api             // the object create() returns; add public methods here
+  cal.store           // the instance disposable store, released by destroy()
+  cal.options         // what create() was given
+  cal.features        // respect these rather than assuming you should draw
+  cal.state           // the live render state
+
+  cal.emit / cal.on / cal.off
+  cal.warn(code, extra) / cal.error(err)
+
+  cal.t(key, params)          // the translator
+  cal.num(value)              // shape a number into the locale's digits
+  cal.typeLabel(type)
+  cal.viewLabel() / cal.headerTitle()
+
+  cal.getContainer()          // the .zc-calendar element
+  cal.getColorScheme()        // "light" | "dark", resolved
+  cal.getEvents() / cal.getHighlights() / cal.getVisibleRange()
+  cal.expandRecurring(events, startG, endG)
+  cal.applyFilters(events)
+  cal.requestRender() / cal.refresh()
+}</code></pre>
+            </div>
+
+            <h2 id="registering">Registering and removing</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.use(plugin);         // every calendar created afterwards gets it
+Zarvan.unuse("name");       // stop giving it to new calendars
+Zarvan.plugins();           // ["highlights", "now-indicator", "excel-export", …]
+
+cal.plugins();              // what this instance actually has</code></pre>
+            </div>
+
+            <p>
+              Registering a name that already exists <strong>replaces</strong> it, which is how you substitute
+              a bundled plugin for your own. To install a specific set instead of the registered one, pass
+              <code>options.plugins</code> — it replaces the set entirely, and <code>[]</code> installs none.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({ selector: "#calendar", plugins: [] });            // no highlights, no now line, no export
+Zarvan.create({ selector: "#calendar", plugins: [myPlugin] });   // only mine</code></pre>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ custom views -->
+          <section id="section-custom-views" class="zd-section" data-title="Custom views" data-group="Extending"
+            data-keywords="registerView custom view timeline resource agenda view context bindEventItem decorateDay range anchor step">
+
+            <p class="zd-eyebrow">Extending</p>
+            <h1>Custom views</h1>
+            <p class="zd-lede">
+              A view is one object that knows the dates it covers, how to step through them, and how to draw
+              itself. Register one and it joins the switcher, participates in next/prev, drives the mini
+              calendar and receives the same event bus as a built-in view.
+            </p>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Read this first</span>
+              <p>
+                Zarvan bundles <strong>five</strong> views: month, week, day, year and list. The resource
+                timeline below is <em>not</em> a sixth — there is no timeline or resource view in the library.
+                It is roughly 60 lines of application code written against the public
+                <code>registerView()</code> contract, included here because it is the clearest demonstration of
+                what that contract lets you do. Copy it and it is yours; it will not arrive with an upgrade.
+              </p>
+            </div>
+
+            <div class="zd-demo" data-demo="custom-views">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn" type="button" data-role="to-timeline">setView("timeline")</button>
+                  <button class="zd-btn" type="button" data-role="to-week">setView("week")</button>
+                  <span class="zd-field">…or use the calendar's own switcher — the custom view is in it.</span>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                Four rooms, one day, events laid out by resource. Click a bar: <code>onEventClick</code> fires
+                with <code>view: "timeline"</code>, because the bars were bound with
+                <code>ctx.bindEventItem()</code>. The prev/next arrows step it by one day, and the mini
+                calendar follows it.
+              </div>
+            </div>
+
+            <h2 id="view-contract">The contract</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.registerView("timeline", {
+  label: "خط زمانی",            // a string, or a function so setLocale() can relabel it
+  order: 60,                    // position in the view switcher
+
+  range()         { return { startG, endG }; },   // which dates this view covers
+  anchor()        { return aDate; },              // "did navigation actually move?"
+  step(dir)       { /* dir is +1 or -1 */ },      // how far one prev/next goes
+  focusDate()     { return aDate; },              // which month the mini calendar shows
+  selectedJDate() { return aJDate; },             // which day it marks selected
+  title(ctx)      { return "…"; },                // header text, or null to set it yourself
+  render(ctx)     { /* draw */ },
+});</code></pre>
+            </div>
+
+            <p>
+              <code>range()</code> is the one that matters most: it is what decides which events are loaded,
+              which range a lazy source is asked for, and what the Excel export writes.
+            </p>
+
+            <h2 id="the-render">Rendering</h2>
+            <p>
+              <code>render(ctx)</code> is handed a <strong>view context</strong> rather than the DOM —
+              everything a renderer needs, passed explicitly instead of reached for through the enclosing
+              scope. Find the body through the instance id the container is stamped with:
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>render(ctx) {
+  const root = document.querySelector(`[data-zc-id="${ctx.instanceId}"]`);
+  const body = root &amp;&amp; root.querySelector(".zc-body");
+  if (!body) return;
+  body.innerHTML = "";
+
+  const events = ctx.eventsFor({ jy, jm, jd });     // already filtered and expanded
+
+  for (const ev of events) {
+    const pill = document.createElement("div");
+    pill.className = "zc-event";
+    pill.textContent = ev.title;
+
+    // The one call that matters: the event bus, keyboard activation,
+    // the ARIA role and the zc-event-node marker, all at once.
+    ctx.bindEventItem(pill, ev, { jdate, isAllDay: false });
+
+    lane.appendChild(pill);
+  }
+
+  // Lets highlight rules and the dayElement hook reach your view too.
+  ctx.decorateDay(lane, gdate, jdate, "timeline");
+
+  body.appendChild(wrap);
+}</code></pre>
+            </div>
+
+            <h2 id="view-context">The view context</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Member</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td><code>bindEventItem(el, ev, meta)</code></td><td>Makes a node stand for an event: the bus, <kbd class="zd-kbd">Enter</kbd>/<kbd class="zd-kbd">Space</kbd>, <code>role="button"</code>, a tab stop, and <code>zc-event-node</code>.</td></tr>
+                  <tr><td><code>decorateDay(el, gdate, jdate, view)</code></td><td>Marks a node as standing for a day, so highlight rules and the <code>dayElement</code> hook apply to it.</td></tr>
+                  <tr><td><code>eventsFor(jdate)</code></td><td>That day's events — filters applied and recurrences already expanded.</td></tr>
+                  <tr><td><code>onActivate(el, label, fn)</code></td><td>Wires click plus <kbd class="zd-kbd">Enter</kbd>/<kbd class="zd-kbd">Space</kbd>, with a role and a tab stop.</td></tr>
+                  <tr><td><code>showEventsModal(events, label, date)</code></td><td>The same “+N more” dialog the built-in views use.</td></tr>
+                  <tr><td><code>goToDayViewByGDate(gdate)</code></td><td>Switch to day view on that date.</td></tr>
+                  <tr><td><code>moreLabel(n)</code> · <code>dayLabel(jdate)</code></td><td>Localised strings, so your view speaks the same language.</td></tr>
+                  <tr><td><code>store</code></td><td>The <strong>render</strong> store — released at the top of every render.</td></tr>
+                  <tr><td><code>features</code> · <code>state</code> · <code>hooks</code> · <code>emit</code> · <code>instanceId</code></td><td>The rest of what a renderer needs.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="zd-callout is-tip">
+              <span class="zd-callout-label">Always use bindEventItem</span>
+              <p>
+                It is the difference between a coloured <code>&lt;div&gt;</code> and an event. Skip it and your
+                view's events are invisible to <code>onEventClick</code>, unreachable from the keyboard, and
+                missing from <code>closest(".zc-event-node")</code> — three bugs that all look like one
+                “sometimes clicks do not work”.
+              </p>
+            </div>
+
+            <h2 id="lifecycle">Registering and removing</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.registerView("timeline", definition);   // BEFORE create()
+Zarvan.registeredViews();                     // ["timeline"]
+Zarvan.unregisterView("timeline");            // built-in views are per-instance and unaffected
+
+Zarvan.create({ selector: "#calendar", view: "timeline" });</code></pre>
+            </div>
+
+            <p>
+              Registration is global and read at construction, so it must happen before <code>create()</code>.
+              A custom view needs no feature flag — unknown keys in <code>features.views</code> default to
+              enabled — but it honours one if you set it.
+            </p>
+
+            <h2 id="why-registry">Why views are a registry</h2>
+            <p>
+              This replaced 27 <code>state.view === "…"</code> comparisons spread across nine functions: the
+              render dispatcher, the range calculation, the active-date calculation, <code>goNext</code>,
+              <code>goPrev</code>, the feature map, the label lookup, the fallback-view search, and the
+              switcher's item list. Adding a view used to mean finding all nine. There are now zero such
+              comparisons in the codebase, which is the reason your view can join without touching any of it.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ shadow dom -->
+          <section id="section-shadow-dom" class="zd-section" data-title="Shadow DOM" data-group="Extending"
+            data-keywords="shadow dom isolation styles adoptedStyleSheets getShadowRoot host hostile css encapsulation">
+
+            <p class="zd-eyebrow">Extending</p>
+            <h1>Shadow DOM</h1>
+            <p class="zd-lede">
+              The calendar defends itself with a scoped reset and a specificity contract. For hosts that fight
+              dirty, <code>shadow: true</code> closes the last gap.
+            </p>
+
+            <div class="zd-demo" data-demo="shadow-dom">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live · shadow: true</span>
+                <div class="zd-controls">
+                  <button class="zd-btn" type="button" data-role="hostile">Inject hostile CSS into the page</button>
+                  <span class="zd-field">…the rest of this page will suffer; the calendar will not.</span>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+              <div class="zd-demo-note">
+                The hostile stylesheet sets <code>border</code>, <code>text-transform</code> and
+                <code>letter-spacing</code> on every <code>div</code>, <code>span</code> and
+                <code>button</code> with <code>!important</code>. Nothing crosses the shadow boundary. Press
+                the button again to remove it.
+              </div>
+            </div>
+
+            <h2 id="turning-on">Turning it on</h2>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>Zarvan.create({
+  selector: "#calendar",
+  shadow: true,
+  styles: zarvanCssText,     // see below
+});</code></pre>
+            </div>
+
+            <h2 id="styles-option">Why `styles` exists</h2>
+            <p>
+              A <code>&lt;link&gt;</code> in the light DOM does not cross a shadow boundary, so the calendar has
+              to put the stylesheet <em>inside</em> the shadow tree. It tries to read it from
+              <code>document.styleSheets</code> on its own, which works when the sheet is same-origin — as it
+              is on this page. A stylesheet served from a cross-origin CDN cannot be read that way, and that is
+              what <code>options.styles</code> is for.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>// a string of CSS
+const css = await fetch("/vendor/zarvan/zarvan.css").then((r) =&gt; r.text());
+Zarvan.create({ selector: "#calendar", shadow: true, styles: css });
+
+// a constructed stylesheet, or an array of either
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+Zarvan.create({ selector: "#calendar", shadow: true, styles: [sheet, myOverrides] });</code></pre>
+            </div>
+
+            <p>
+              If shadow mode finds no stylesheet to adopt, it warns clearly rather than rendering an unstyled
+              calendar in silence. If the browser has no Shadow DOM at all, it warns and renders in the light
+              DOM instead.
+            </p>
+
+            <h2 id="three-elements">Three elements, not one</h2>
+            <p>
+              In shadow mode the calendar renders into a <code>div</code> inside a shadow root rather than into
+              the host itself, so the host keeps whatever layout role your page gave it.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>cal.getContainer();    // the element you passed to create()
+cal.getRoot();         // the .zc-calendar element inside the shadow root
+cal.getShadowRoot();   // the shadow root, or null in the light DOM</code></pre>
+            </div>
+
+            <p>
+              Outside shadow mode, <code>getContainer()</code> and <code>getRoot()</code> are the same element.
+              A shadow root cannot be detached once attached, so <code>destroy()</code> removes the rendering
+              div instead.
+            </p>
+
+            <h2 id="what-changes">What changes in shadow mode</h2>
+            <ul>
+              <li>
+                <strong>Design tokens still work.</strong> Custom properties inherit through a shadow boundary,
+                so <code>.zc-calendar { --zc-color-accent: … }</code> on the host still themes the calendar.
+                This is the only override technique that survives, which is the argument for theming through
+                tokens in the first place.
+              </li>
+              <li>
+                <strong>Plain CSS overrides do not.</strong> A host rule targeting <code>.zc-day-cell</code>
+                never reaches inside. Pass your overrides through <code>options.styles</code> instead.
+              </li>
+              <li>
+                <strong>The modal moves.</strong> It is appended to the shadow root rather than to
+                <code>&lt;body&gt;</code>, because a node in the light DOM would not be reached by the adopted
+                stylesheet.
+              </li>
+              <li>
+                <strong><code>document.activeElement</code> reports the host.</strong> Anything of yours that
+                cares where focus actually is must ask <code>getShadowRoot().activeElement</code>.
+              </li>
+            </ul>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">You probably do not need it</span>
+              <p>
+                The scoped reset handles ordinary hostility — a global <code>* { box-sizing }</code>, an
+                aggressive <code>button</code> rule, a CSS framework's base layer. The repository's
+                <code>test/host-hostile.html</code> asserts that every structural property is byte-identical
+                with a deliberately hostile stylesheet toggled on and off. Reach for shadow mode when you are
+                embedding into a page you do not control at all.
+              </p>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ accessibility -->
+          <section id="section-accessibility" class="zd-section" data-title="Accessibility" data-group="Extending"
+            data-keywords="accessibility keyboard aria focus ring roving tabindex inert screen reader modal dialog">
+
+            <p class="zd-eyebrow">Extending</p>
+            <h1>Accessibility</h1>
+            <p class="zd-lede">
+              Everything clickable is operable from the keyboard, and everything focusable has a visible focus
+              ring. Put the demo below in focus and drive it without touching the mouse.
+            </p>
+
+            <div class="zd-demo" data-demo="accessibility">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <span class="zd-field">
+                  Click once inside, then use <kbd class="zd-kbd">Tab</kbd>, the arrow keys and
+                  <kbd class="zd-kbd">Enter</kbd>.
+                </span>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+            </div>
+
+            <h2 id="keyboard">The keyboard map</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Control</th><th>Keys</th></tr></thead>
+                <tbody>
+                  <tr><td>Event pill</td><td><kbd class="zd-kbd">Enter</kbd> / <kbd class="zd-kbd">Space</kbd> fire <code>onEventClick</code></td></tr>
+                  <tr><td>View switcher, type filter</td><td><kbd class="zd-kbd">Enter</kbd> / <kbd class="zd-kbd">Space</kbd> / <kbd class="zd-kbd">↓</kbd> open · <kbd class="zd-kbd">↑</kbd> <kbd class="zd-kbd">↓</kbd> move · <kbd class="zd-kbd">Enter</kbd> select · <kbd class="zd-kbd">Esc</kbd> close</td></tr>
+                  <tr><td>Search suggestions</td><td><kbd class="zd-kbd">↑</kbd> <kbd class="zd-kbd">↓</kbd> highlight · <kbd class="zd-kbd">Enter</kbd> accept · <kbd class="zd-kbd">Esc</kbd> dismiss</td></tr>
+                  <tr><td>Month, year and mini-calendar grids</td><td>One tab stop each; <kbd class="zd-kbd">←</kbd> <kbd class="zd-kbd">→</kbd> <kbd class="zd-kbd">↑</kbd> <kbd class="zd-kbd">↓</kbd> <kbd class="zd-kbd">Home</kbd> <kbd class="zd-kbd">End</kbd> move within the grid, <kbd class="zd-kbd">Enter</kbd> / <kbd class="zd-kbd">Space</kbd> open the day</td></tr>
+                  <tr><td>“+N more”</td><td><kbd class="zd-kbd">Enter</kbd> / <kbd class="zd-kbd">Space</kbd></td></tr>
+                  <tr><td>Modal</td><td><kbd class="zd-kbd">Esc</kbd> closes · <kbd class="zd-kbd">Tab</kbd> cycles inside it · focus enters on open and returns to the opener on close</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="roving">Roving tab stops</h2>
+            <p>
+              The day grids use the roving-tabindex pattern: the grid is one tab stop and the arrow keys move
+              within it. A year view is therefore <strong>12 tab stops rather than 372</strong> — the
+              difference between a calendar a keyboard user can pass through and one they must escape.
+            </p>
+
+            <h2 id="inert">The collapsed sidebar</h2>
+            <p>
+              <code>width: 0</code> plus <code>overflow: hidden</code> hides the sidebar to the eye only. Its
+              search box, dropdown, mini calendar and export button would stay focusable and stay in the
+              accessibility tree, so tabbing through a collapsed calendar walked into a panel nobody could see.
+            </p>
+            <p>
+              It is marked <code>inert</code> while collapsed, with <code>aria-hidden</code> alongside it as
+              the fallback for browsers without <code>inert</code> — which hides it from assistive technology
+              but not from <kbd class="zd-kbd">Tab</kbd>, hence both. Focus is moved out <em>before</em> the
+              panel is inerted, because inerting an ancestor of the focused element drops focus to
+              <code>&lt;body&gt;</code> in some engines and loses the reader's place in the page entirely.
+            </p>
+
+            <h2 id="focus-ring">The focus ring</h2>
+            <p>
+              The reset clears <code>outline</code> so the host's focus styling cannot leak in, and
+              <code>--zc-focus-ring</code> is what replaces it.
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>.zc-calendar {
+  --zc-focus-ring: 2px solid var(--zc-color-accent);
+  --zc-focus-ring-offset: 2px;
+}
+
+/* Suppressing it entirely is possible, and is a decision to make deliberately. */
+.zc-calendar { --zc-focus-ring: none; }</code></pre>
+            </div>
+
+            <h2 id="motion">Reduced motion</h2>
+            <p>
+              The loading progress bar's animation is suppressed under
+              <code>prefers-reduced-motion</code>. Transitions elsewhere are short and driven by
+              <code>--zc-transition-fast</code> and <code>--zc-transition-base</code>, so you can flatten them:
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>@media (prefers-reduced-motion: reduce) {
+  .zc-calendar { --zc-transition-fast: 0s; --zc-transition-base: 0s; }
+}</code></pre>
+            </div>
+
+            <h2 id="announcing">What is announced</h2>
+            <p>
+              Event pills carry <code>role="button"</code> and an <code>aria-label</code> of the event title.
+              The modal is a real dialog — <code>role="dialog"</code> with <code>aria-modal</code> and an
+              <code>aria-labelledby</code> pointing at its own title, unique per instance so two calendars on
+              one page do not both claim the same target. The suggestion list is an
+              <code>aria-activedescendant</code> relationship, so the input keeps focus while you arrow
+              through it.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ api: options -->
+          <section id="section-api-options" class="zd-section" data-title="Options" data-group="API reference"
+            data-keywords="api reference options create static registerView use registerLocale version internal">
+
+            <p class="zd-eyebrow">API reference</p>
+            <h1>Options</h1>
+            <p class="zd-lede">
+              Everything <code>Zarvan.create()</code> accepts, and everything on the <code>Zarvan</code> global
+              itself.
+            </p>
+
+            <h2 id="ref-core">Core</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Option</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>selector</code></td><td>string | Element</td><td>—</td><td>Required. Throws if it cannot be found.</td></tr>
+                  <tr><td><code>events</code></td><td>array | function</td><td><code>[]</code></td><td>An array, or a <a href="#events-lazy">loader</a> asked for one range at a time.</td></tr>
+                  <tr><td><code>eventCacheLimit</code></td><td>number</td><td><code>12</code></td><td>How many fetched ranges to remember. Lazy sources only.</td></tr>
+                  <tr><td><code>view</code></td><td>string</td><td><code>"month"</code></td><td>Falls back to an enabled view if this one is disabled.</td></tr>
+                  <tr><td><code>locale</code></td><td>string | object</td><td><code>"fa"</code></td><td>A code, a full locale, or a partial one.</td></tr>
+                  <tr><td><code>colorScheme</code></td><td>"light" | "dark" | "auto"</td><td><code>"light"</code></td><td><a href="#dark-mode">Dark mode</a>.</td></tr>
+                  <tr><td><code>renderMode</code></td><td>"batched" | "sync"</td><td><code>"batched"</code></td><td><code>"sync"</code> renders on every change.</td></tr>
+                  <tr><td><code>features</code></td><td>object</td><td>all on</td><td>See <a href="#configuration">Configuration</a>.</td></tr>
+                  <tr><td><code>handlers</code></td><td>object</td><td><code>{}</code></td><td>Callbacks by name; the same set as <code>.on()</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="ref-presentation">Presentation</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Option</th><th>Type</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>typeLabels</code></td><td>object</td><td><code>{ meeting: "پیگیری" }</code> — display names per event type.</td></tr>
+                  <tr><td><code>typeStyles</code></td><td>object</td><td><code>{ meeting: { bg, color } }</code>. Types without an entry get a stable auto-colour.</td></tr>
+                  <tr><td><code>highlights</code></td><td>array</td><td>Day backgrounds and time bands. See <a href="#highlights">Highlights</a>.</td></tr>
+                  <tr><td><code>validation</code></td><td>object</td><td><code>{ enabled, requireNumericId, onInvalid, autoFix }</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="ref-integration">Integration</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Option</th><th>Type</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>shadow</code></td><td>boolean</td><td>Render inside a shadow root. See <a href="#shadow-dom">Shadow DOM</a>.</td></tr>
+                  <tr><td><code>styles</code></td><td>string | CSSStyleSheet | array</td><td>Shadow mode only; CSS to adopt.</td></tr>
+                  <tr><td><code>plugins</code></td><td>array</td><td>Replaces the registered set entirely. <code>[]</code> installs none.</td></tr>
+                  <tr><td><code>deps</code></td><td>object</td><td><code>{ xlsx }</code> for the export plugin.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="ref-static">Static methods</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Member</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>Zarvan.version</code></td><td>The build this file came from. A property, not a function.</td></tr>
+                  <tr><td><code>Zarvan.create(options)</code></td><td>Returns an instance. Renders synchronously.</td></tr>
+                  <tr><td><code>Zarvan.registerView(key, def)</code></td><td>Call before <code>create()</code>. See <a href="#custom-views">Custom views</a>.</td></tr>
+                  <tr><td><code>Zarvan.unregisterView(key)</code></td><td>Returns whether there was one. Built-in views are per-instance and unaffected.</td></tr>
+                  <tr><td><code>Zarvan.registeredViews()</code></td><td>Keys registered through <code>registerView</code>.</td></tr>
+                  <tr><td><code>Zarvan.use(plugin)</code></td><td>Every calendar created afterwards gets it. A duplicate name replaces.</td></tr>
+                  <tr><td><code>Zarvan.unuse(name)</code></td><td></td></tr>
+                  <tr><td><code>Zarvan.plugins()</code></td><td>Registered plugin names.</td></tr>
+                  <tr><td><code>Zarvan.registerLocale(def)</code></td><td>Missing keys fall back to Persian.</td></tr>
+                  <tr><td><code>Zarvan.locales()</code></td><td>Registered locale codes.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Not part of the API</span>
+              <p>
+                <code>Zarvan._internal</code> exposes the module registry. It is unstable, exists so the test
+                suite can exercise the pure layers directly, and will change without notice. Do not depend on
+                it.
+              </p>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ api: methods -->
+          <section id="section-api-methods" class="zd-section" data-title="Methods" data-group="API reference"
+            data-keywords="api methods instance getEvents setView gotoDate setTheme destroy refresh getRoot playground">
+
+            <p class="zd-eyebrow">API reference</p>
+            <h1>Instance methods</h1>
+            <p class="zd-lede">
+              Everything <code>Zarvan.create()</code> returns. Press a button to call it against the live
+              calendar below and see what comes back.
+            </p>
+
+            <div class="zd-demo" data-demo="api-methods">
+              <div class="zd-demo-bar">
+                <span class="zd-demo-label">Live</span>
+                <div class="zd-controls">
+                  <button class="zd-btn" type="button" data-call="getView">getView</button>
+                  <button class="zd-btn" type="button" data-call="getViews">getViews</button>
+                  <button class="zd-btn" type="button" data-call="getDate">getDate</button>
+                  <button class="zd-btn" type="button" data-call="getJDate">getJDate</button>
+                  <button class="zd-btn" type="button" data-call="getVisibleRange">getVisibleRange</button>
+                  <button class="zd-btn" type="button" data-call="getEvents">getEvents</button>
+                  <button class="zd-btn" type="button" data-call="getEventById">getEventById</button>
+                  <button class="zd-btn" type="button" data-call="getLocale">getLocale</button>
+                  <button class="zd-btn" type="button" data-call="getColorScheme">getColorScheme</button>
+                  <button class="zd-btn" type="button" data-call="getResolvedColorScheme">getResolvedColorScheme</button>
+                  <button class="zd-btn" type="button" data-call="getHighlights">getHighlights</button>
+                  <button class="zd-btn" type="button" data-call="isLazy">isLazy</button>
+                  <button class="zd-btn" type="button" data-call="isLoading">isLoading</button>
+                  <button class="zd-btn" type="button" data-call="plugins">plugins</button>
+                  <button class="zd-btn" type="button" data-call="prev">prev</button>
+                  <button class="zd-btn" type="button" data-call="today">today</button>
+                  <button class="zd-btn" type="button" data-call="next">next</button>
+                  <button class="zd-btn" type="button" data-call="refresh">refresh</button>
+                </div>
+              </div>
+              <div class="zd-demo-stage"><div data-mount></div></div>
+              <div class="zd-log" data-log></div>
+            </div>
+
+            <h2 id="m-data">Data</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Method</th><th>Returns</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>getEvents()</code></td><td>array</td><td>A copy. The event objects are shared — treat them as read-only.</td></tr>
+                  <tr><td><code>getEventById(id)</code></td><td>object | null</td><td></td></tr>
+                  <tr><td><code>setEvents(list)</code></td><td>array</td><td>Replaces everything. A function switches to loading on demand.</td></tr>
+                  <tr><td><code>addEvent(ev)</code></td><td>object | null</td><td>The <strong>normalised</strong> stored event; <code>null</code> if rejected.</td></tr>
+                  <tr><td><code>updateEvent(id, patch)</code></td><td>object | null</td><td>Merges and re-validates. A rejected patch changes nothing.</td></tr>
+                  <tr><td><code>removeEvent(id)</code></td><td>object | null</td><td>Returns what was removed.</td></tr>
+                  <tr><td><code>refetchEvents()</code></td><td>boolean</td><td>Reloads the visible range, ignoring the cache. <code>false</code> when <code>events</code> is an array.</td></tr>
+                  <tr><td><code>isLazy()</code></td><td>boolean</td><td>Whether events come from a function.</td></tr>
+                  <tr><td><code>isLoading()</code></td><td>boolean</td><td>Whether a load is outstanding.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="m-navigation">Navigation</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Method</th><th>Returns</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>getView()</code> / <code>setView(v)</code></td><td>string</td><td>Warns on an unknown or disabled view.</td></tr>
+                  <tr><td><code>getViews()</code></td><td>array</td><td>Enabled views, in switcher order.</td></tr>
+                  <tr><td><code>getDate()</code></td><td>Date</td><td>The active view's anchor date.</td></tr>
+                  <tr><td><code>getJDate()</code></td><td><code>{jy,jm,jd}</code></td><td></td></tr>
+                  <tr><td><code>gotoDate(date)</code></td><td>Date | null</td><td>A <code>Date</code> or <code>{jy,jm,jd}</code>. Moves <strong>every</strong> view's anchor.</td></tr>
+                  <tr><td><code>getVisibleRange()</code></td><td><code>{startG,endG}</code></td><td>Copies, inclusive.</td></tr>
+                  <tr><td><code>next()</code> / <code>prev()</code> / <code>today()</code></td><td>—</td><td><code>goNext</code> / <code>goPrev</code> / <code>goToday</code> are the older names.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="m-config">Configuration</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Method</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>setOption(key, value)</code></td><td>Feature flags (dotted paths work) plus <code>view</code>, <code>locale</code>, <code>colorScheme</code>, <code>typeLabels</code>, <code>typeStyles</code>, <code>highlights</code>, <code>events</code>. Anything else warns and returns <code>null</code>.</td></tr>
+                  <tr><td><code>setTheme(tokens)</code></td><td>Bare names are namespaced; <code>null</code> clears an override.</td></tr>
+                  <tr><td><code>setTypeStyles(map)</code></td><td>Replaces the whole map.</td></tr>
+                  <tr><td><code>getHighlights()</code> / <code>setHighlights(list)</code></td><td></td></tr>
+                  <tr><td><code>getLocale()</code> / <code>setLocale(l)</code></td><td>Rebuilds the header, emits <code>onLocaleChange</code>.</td></tr>
+                  <tr><td><code>getColorScheme()</code></td><td>The setting, which may be <code>"auto"</code>.</td></tr>
+                  <tr><td><code>getResolvedColorScheme()</code></td><td><code>"light"</code> or <code>"dark"</code> — what is on screen.</td></tr>
+                  <tr><td><code>setColorScheme(scheme)</code></td><td>Returns the scheme in force. No re-render is needed.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="m-bus">Bus</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Method</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>on(name, fn)</code></td><td>Returns an unsubscribe function.</td></tr>
+                  <tr><td><code>off(name, fn)</code></td><td>By reference.</td></tr>
+                  <tr><td><code>emit(name, payload)</code></td><td>The bus is yours too — emit your own names through it.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="m-dom">DOM and lifecycle</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Method</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>getContainer()</code></td><td>The element you passed to <code>create()</code>.</td></tr>
+                  <tr><td><code>getRoot()</code></td><td>The <code>.zc-calendar</code> element. The same as above outside shadow mode.</td></tr>
+                  <tr><td><code>getShadowRoot()</code></td><td>The shadow root, or <code>null</code>.</td></tr>
+                  <tr><td><code>refresh()</code></td><td>Render any pending change immediately.</td></tr>
+                  <tr><td><code>destroy()</code></td><td>Releases every listener, interval, node and style tag, and hands the element back as it was found.</td></tr>
+                  <tr><td><code>plugins()</code></td><td>Names installed into this instance.</td></tr>
+                  <tr><td><code>exportToExcel()</code></td><td>Added by the bundled export plugin.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ api: callbacks -->
+          <section id="section-api-callbacks" class="zd-section" data-title="Callbacks" data-group="API reference"
+            data-keywords="callbacks events bus onEventClick onViewChange onWarn onError payload meta ctx hooks">
+
+            <p class="zd-eyebrow">API reference</p>
+            <h1>Callbacks</h1>
+            <p class="zd-lede">
+              Every name the bus emits. Subscribe through <code>handlers</code> at construction or
+              <code>.on()</code> at any time — they are the same set.
+            </p>
+
+            <div class="zd-code" data-lang="js">
+              <pre><code>// Every callback, one signature:
+(payload, meta, ctx) =&gt; { … }</code></pre>
+            </div>
+
+            <p>
+              <code>meta</code> is <code>null</code> rather than absent for callbacks that have none.
+              <code>ctx</code> carries <code>instanceId</code>, <code>container</code>, <code>view</code>,
+              <code>filterState</code> and the current anchor dates.
+            </p>
+
+            <h2 id="c-lifecycle">Lifecycle and rendering</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Name</th><th>Payload</th></tr></thead>
+                <tbody>
+                  <tr><td><code>onInit</code></td><td><code>null</code> — after the first render</td></tr>
+                  <tr><td><code>onDestroy</code></td><td><code>{ phase: "before" | "after" }</code></td></tr>
+                  <tr><td><code>onRenderStart</code> / <code>onRenderEnd</code></td><td><code>{ view }</code></td></tr>
+                  <tr><td><code>onViewRender</code></td><td><code>{ view }</code> — after the view's own renderer ran</td></tr>
+                  <tr><td><code>onViewChange</code></td><td><code>{ from, to, source }</code></td></tr>
+                  <tr><td><code>onDateChange</code></td><td><code>{ from, to, source }</code> — Dates</td></tr>
+                  <tr><td><code>onRangeChange</code></td><td><code>{ startG, endG, view }</code></td></tr>
+                  <tr><td><code>onToday</code></td><td><code>null</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="c-events">Events</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Name</th><th>Payload</th><th>meta</th></tr></thead>
+                <tbody>
+                  <tr><td><code>onEventClick</code></td><td>the event</td><td><code>{ view, gdate, jdate, isAllDay, element, domEvent }</code></td></tr>
+                  <tr><td><code>onEventDblClick</code></td><td>the event</td><td>the same</td></tr>
+                  <tr><td><code>onEventHover</code> / <code>onEventLeave</code></td><td>the event</td><td>the same</td></tr>
+                  <tr><td><code>onEventContextMenu</code></td><td>the event</td><td>the same — call <code>meta.domEvent.preventDefault()</code> to suppress the browser menu</td></tr>
+                  <tr><td><code>onEventFocus</code> / <code>onEventBlur</code></td><td>the event</td><td>the same</td></tr>
+                  <tr><td><code>onEventsChange</code></td><td><code>{ type, event, events }</code> — <code>type</code> is <code>"add"</code>, <code>"update"</code>, <code>"remove"</code>, <code>"set"</code> or <code>"load"</code></td><td>—</td></tr>
+                  <tr><td><code>onEventsSet</code></td><td>the new list</td><td>—</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="c-loading">Loading</h2>
+            <p>These fire only when <code>events</code> is a function.</p>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Name</th><th>Payload</th></tr></thead>
+                <tbody>
+                  <tr><td><code>onEventsLoadStart</code></td><td><code>{ startG, endG, view }</code></td></tr>
+                  <tr><td><code>onEventsLoadEnd</code></td><td><code>{ events, startG, endG, view }</code></td></tr>
+                  <tr><td><code>onEventsLoadError</code></td><td><code>{ error, startG, endG, view }</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="c-interaction">Interaction</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Name</th><th>Payload</th></tr></thead>
+                <tbody>
+                  <tr><td><code>onDayNumberClick</code></td><td><code>{ gdate, jdate, view }</code> — <code>view</code> is <code>"mini"</code> from the mini calendar</td></tr>
+                  <tr><td><code>onWeekHeaderDayClick</code></td><td><code>{ gdate, jdate }</code></td></tr>
+                  <tr><td><code>onMoreEventsClick</code></td><td><code>{ date: { gdate, jdate }, events, view }</code></td></tr>
+                  <tr><td><code>onModalOpen</code> / <code>onModalClose</code></td><td><code>{ reason }</code> on close — <code>"button"</code>, <code>"backdrop"</code>, <code>"escape"</code> or <code>"api"</code></td></tr>
+                  <tr><td><code>onSidebarToggle</code></td><td><strong>a boolean</strong> — <code>true</code> when opening</td></tr>
+                  <tr><td><code>onFiltersChange</code></td><td><code>{ type, q, source }</code></td></tr>
+                  <tr><td><code>onAutocompleteSelect</code></td><td><code>{ value }</code></td></tr>
+                  <tr><td><code>onViewDropdownOpen</code> / <code>onViewDropdownClose</code></td><td><code>{ reason }</code> on close</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="c-export">Export</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Name</th><th>Payload</th></tr></thead>
+                <tbody>
+                  <tr><td><code>onExportStart</code></td><td><code>{ view, fileName }</code></td></tr>
+                  <tr><td><code>onExportEnd</code></td><td><code>{ view, fileName, count }</code></td></tr>
+                  <tr><td><code>onExportError</code></td><td>an <code>Error</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="c-diagnostics">Diagnostics</h2>
+
+            <div class="zd-table-wrap">
+              <table class="zd-table">
+                <thead><tr><th>Name</th><th>Payload</th></tr></thead>
+                <tbody>
+                  <tr><td><code>onWarn</code></td><td><code>{ code, message, extra }</code></td></tr>
+                  <tr><td><code>onError</code></td><td>an <code>Error</code></td></tr>
+                  <tr><td><code>onLocaleChange</code></td><td><code>{ code }</code></td></tr>
+                  <tr><td><code>onColorSchemeChange</code></td><td><code>{ scheme, resolved, source }</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="zd-callout is-warn">
+              <span class="zd-callout-label">Switch on code, never on message</span>
+              <p>
+                <code>p.message</code> is localised and will change with the locale — and with any partial
+                locale a consumer passes. <code>p.code</code> is stable:
+                <code>warn.viewDisabled</code>, <code>warn.unknownView</code>,
+                <code>warn.unknownColorScheme</code>, <code>warn.exportDisabled</code>,
+                <code>warn.xlsxMissing</code>, <code>warn.optionNotHot</code>,
+                <code>warn.invalidStart</code>, <code>warn.invalidEnd</code>, <code>warn.endFixed</code>.
+              </p>
+            </div>
+
+            <h2 id="c-hooks">Hooks are not callbacks</h2>
+            <p>
+              The bus reports what happened; <strong>hooks</strong> let a plugin decorate what is being built.
+              They are a separate surface, reached through the plugin context rather than through
+              <code>.on()</code>: <code>dayElement</code>, <code>timeColumn</code>, <code>sidebar</code> and
+              <code>viewRendered</code>. See <a href="#plugins">Plugins</a>.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+
+          <!-- ============================================================ api: tokens -->
+          <section id="section-api-tokens" class="zd-section" data-title="Design tokens" data-group="API reference"
+            data-keywords="tokens custom properties css variables colour spacing radius z-index structure reference">
+
+            <p class="zd-eyebrow">API reference</p>
+            <h1>Design tokens</h1>
+            <p class="zd-lede">
+              The complete theming surface — 85 custom properties, with their light-scheme defaults. Override
+              any of them on <code>.zc-calendar</code> (or a parent) to retheme.
+            </p>
+
+            <div class="zd-callout is-note">
+              <span class="zd-callout-label">These pierce a shadow boundary</span>
+              <p>
+                Custom properties inherit through shadow DOM, which is why tokens keep working in
+                <code>shadow: true</code> mode when no other override technique does. Set them in CSS, or at
+                runtime with <a href="#theming"><code>setTheme()</code></a>.
+              </p>
+            </div>
+
+            <h2 id="t-colour">Colour</h2>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>/* brand */
+--zc-color-accent: #1a73e8;
+--zc-color-accent-weak: #e8f0fe;
+--zc-color-accent-tint: #f1f5ff;
+--zc-color-accent-tint-alt: #f3f6ff;
+--zc-color-accent-ring: rgba(26, 115, 232, .15);
+--zc-color-accent-border: #cfd8ff;
+
+/* surfaces */
+--zc-color-canvas: transparent;      /* the ground the calendar paints behind itself */
+--zc-color-surface: #fff;
+--zc-color-surface-alt: #fafafa;
+--zc-color-surface-sunken: #f7f7f7;
+--zc-color-surface-gutter: #f0f0f0;
+--zc-color-surface-header: #f6f7f9;
+
+/* text */
+--zc-color-text: #202124;
+--zc-color-text-strong: #111827;
+--zc-color-text-muted: #5f6368;
+--zc-color-text-subtle: #6b7280;
+--zc-color-text-faint: #666;
+--zc-color-text-icon: #444;
+
+/* lines */
+--zc-color-border: #ddd;
+--zc-color-border-soft: #eee;
+--zc-color-border-softer: #e5e7eb;
+--zc-color-border-menu: #e6e6e6;
+--zc-color-border-faint: #f0f2f5;
+--zc-color-border-strong: rgba(0, 0, 0, .22);
+--zc-color-border-stronger: rgba(0, 0, 0, .30);
+
+/* semantic */
+--zc-color-now: #ea4335;             /* the now indicator */
+--zc-color-on-accent: #fff;          /* ink for anything sitting ON the accent */
+--zc-color-hover-veil: rgba(0, 0, 0, .06);
+--zc-color-active-veil: rgba(0, 0, 0, .10);
+--zc-color-scrim: rgba(0, 0, 0, .35);
+--zc-color-conflict-border: #000;
+--zc-color-scrollbar: rgba(0, 0, 0, .22);
+--zc-color-scrollbar-hover: rgba(0, 0, 0, .32);
+--zc-color-scrollbar-gutter: rgba(255, 255, 255, .85);</code></pre>
+            </div>
+
+            <h2 id="t-event">Event chrome and focus</h2>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>--zc-event-bg: var(--zc-color-accent);
+--zc-event-fg: #fff;
+--zc-event-border: rgba(0, 0, 0, .08);
+
+/* Written per element by the highlight rules. */
+--zc-hl-bg: transparent;
+
+/* The reset clears `outline` so the host's focus styling cannot leak in;
+   this is what replaces it. Set it to `none` to suppress the ring entirely. */
+--zc-focus-ring: 2px solid var(--zc-color-accent);
+--zc-focus-ring-offset: 2px;</code></pre>
+            </div>
+
+            <h2 id="t-type">Typography</h2>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>/* Defers to the host application by default — the core stylesheet forces no font. */
+--zc-font-family: inherit;
+
+--zc-font-size-xs: 10px;
+--zc-font-size-sm: 11px;
+--zc-font-size-md: 12px;
+--zc-font-size-lg: 13px;
+--zc-font-size-xl: 14px;
+--zc-font-size-2xl: 18px;
+--zc-line-height: 1.5;</code></pre>
+            </div>
+
+            <h2 id="t-space">Spacing, radius and elevation</h2>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>--zc-space-1: 4px;   --zc-space-2: 6px;   --zc-space-3: 8px;
+--zc-space-4: 10px;  --zc-space-5: 12px;  --zc-space-6: 15px;
+
+--zc-radius-xs: 4px;  --zc-radius-sm: 6px;   --zc-radius-md: 8px;
+--zc-radius-lg: 10px; --zc-radius-xl: 12px;  --zc-radius-pill: 999px;
+
+--zc-shadow-menu: 0 8px 24px rgba(0, 0, 0, .12);
+--zc-shadow-modal: 0 4px 16px rgba(0, 0, 0, .2);
+--zc-shadow-focus: 0 6px 18px rgba(0, 0, 0, .18);
+--zc-shadow-button: 0 1px 2px rgba(0, 0, 0, .06);
+--zc-shadow-button-focus: 0 0 0 3px rgba(0, 0, 0, .12);
+
+--zc-transition-fast: .15s ease;
+--zc-transition-base: .25s ease;</code></pre>
+            </div>
+
+            <h2 id="t-structure">Structure</h2>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>--zc-max-width: 1100px;
+--zc-week-gutter-width: 69.5px;
+--zc-day-gutter-width: 60px;
+--zc-sidebar-width: 280px;
+--zc-month-row-height: 140px;
+--zc-hour-height: 60px;        /* the whole vertical scale of the time grid */
+
+/* The month grid is seven fluid columns and needs no floor of its own until the
+   calendar gets genuinely narrow, at which point the container queries raise this
+   and the grid scrolls rather than squeezing. */
+--zc-grid-min-width: 0px;
+--zc-week-min-width: 900px;</code></pre>
+            </div>
+
+            <h2 id="t-z">The z-index scale</h2>
+            <p>
+              Every stacking decision in the library, in one place, so a host that needs to sit something
+              above or below part of the calendar has a number to aim at rather than a guess to make.
+            </p>
+
+            <div class="zd-code" data-lang="css">
+              <pre><code>--zc-z-highlight: 2;
+--zc-z-hour-line: 3;
+--zc-z-event: 10;
+--zc-z-event-focus: 18;
+--zc-z-gutter: 20;
+--zc-z-now: 25;
+--zc-z-sticky: 60;
+--zc-z-sticky-week: 70;
+--zc-z-dropdown: 200;
+--zc-z-modal: 1000;</code></pre>
+            </div>
+
+            <h2 id="t-dark">In dark mode</h2>
+            <p>
+              The colour tokens above are re-valued under <code>.zc-scheme-dark</code> — the structural,
+              typographic and spacing tokens are not, because they are the same in both schemes. See
+              <a href="#dark-mode">Dark mode</a>.
+            </p>
+
+            <div class="zd-pager"></div>
+          </section>
+        </div>
+        <aside id="zd-toc" class="zd-toc" aria-label="On this page"></aside>
+      </div>
+    </main>
+
+  </div>
+
+  <div id="zd-scrim" class="zd-scrim"></div>
+
+  <!-- jalaali is inside zarvan.js; there is no second tag and no order to get wrong. -->
+  <script src="../dist/zarvan.js"></script>
+  <script src="assets/docs.js"></script>
+  <script src="assets/demos.js"></script>
+  <script>
+    // The site reports the build it is documenting, read from the library itself.
+    document.getElementById("zd-version").textContent = "v" + Zarvan.version;
+  </script>
+
+</body>
+
+</html>
