@@ -58,6 +58,32 @@ Phase 6 (`TimeGridView`) merges both into `zc-timegrid-col`.
 If you styled the arrows through `.zc-prev img`, target `.zc-prev svg` instead. The `icons/` folder
 has been deleted — the chevron is inline SVG, and nothing in the library fetches an asset at runtime.
 
+## Finding event nodes: `zc-event-node`
+
+Every node that stands for an event carries `zc-event-node`, whichever view drew it. It is a marker
+only — no rule in the stylesheet targets it, so it is safe to key your own CSS or selectors off it.
+
+`.zc-event` is **not** the class for this. It carries the pill's colours, and three of the six event
+nodes never had it:
+
+| View | Event node | `.zc-event`? | `.zc-event-node`? |
+|---|---|---|---|
+| week / day (timed and all-day) | `.zc-event` | yes | yes |
+| month — all-day pill | `.zc-event.zc-month-allday-pill` | yes | yes |
+| month — timed row | `.zc-month-timed` | **no** | yes |
+| list | `.zc-list-item` | **no** | yes |
+| "+N more" modal row | `.zc-modal-event-item` | **no** | yes |
+
+So `closest(".zc-event")` returns null in list view and in the month grid's timed rows — a selector
+that appears to work until someone opens the list. Use `closest(".zc-event-node")`.
+
+The year view has no per-event nodes at all: it draws dots and a `+N` badge, and clicking a day emits
+`onDayNumberClick`, not `onEventClick`.
+
+Better still, do not go through the DOM: `onEventClick` and friends hand you the node as
+`meta.element`. Prefer it over `domEvent.currentTarget`, which is the same node but only while the
+event is being dispatched, and over `domEvent.target`, which is a child element in some views.
+
 ## Event type classes
 
 Event `type` values are no longer emitted as bare class names. `type: "meeting"` used to render

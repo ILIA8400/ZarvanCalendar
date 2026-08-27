@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`meta.element` on every event callback** — the node the event was drawn as, for `onEventClick`,
+  `onEventDblClick`, `onEventHover`, `onEventLeave`, `onEventContextMenu` and the focus callbacks.
+  Anchor a popover to it. It is better than the two things a consumer previously had to reach for:
+  `domEvent.currentTarget` is the same node but only while the event is being dispatched, and
+  `domEvent.target` is a *child* in some views — a list row's title, a month timed row's title span.
+  Note that any re-render replaces the node, so do not hold on to it across navigation, a view
+  change, a filter change or a data change.
+- **`zc-event-node` on every event node**, whichever view drew it. `.zc-event` could not serve as
+  that selector: it carries the pill's colours, and three of the six event nodes never had it — the
+  month grid's timed rows (`.zc-month-timed`), list rows (`.zc-list-item`) and "+N more" modal rows
+  (`.zc-modal-event-item`). So `closest(".zc-event")` returned null in list view and in the month
+  grid's timed rows, which is a selector that appears to work until someone opens the list.
+  `zc-event-node` is a marker only — no rule in the stylesheet targets it, so nothing about the
+  existing appearance changes, and it is safe to key your own CSS off it. It is applied in
+  `bindEventItem`, the one function every event node in the library passes through, so views added
+  later inherit the guarantee. Documented in `docs/CLASS-MAP.md`.
+
+  The year view still has no per-event nodes: it draws dots and a `+N` badge, and clicking a day
+  emits `onDayNumberClick`, not `onEventClick`.
+
 ## 3.0.3
 
 Overlapping events in week and day view, the focus ring on the sidebar controls, and a round of icon

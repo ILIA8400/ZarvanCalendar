@@ -4216,6 +4216,18 @@ var Zarvan = (function () {
         elm.setAttribute("aria-label", ev.title);
       }
 
+      /* The one class that means "this node stands for an event", on every one of them.
+       *
+       * `.zc-event` cannot do this job: it carries the pill's colours, so putting it on a list row, a
+       * month timed row or a modal row would restyle them. Those three are exactly the nodes that
+       * lacked a common class, which left `closest(".zc-event")` returning null in list view and in
+       * the month grid's timed rows - a selector that worked everywhere the author happened to test.
+       *
+       * This one is a marker and nothing else: no rule in the stylesheet targets it. Added here
+       * rather than at the six call sites because every event node in the library goes through this
+       * function - that is what makes the guarantee hold for views added later, too. */
+      elm.classList.add("zc-event-node");
+
       function meta(domEvent) {
         return Object.assign(
           {
@@ -4227,6 +4239,10 @@ var Zarvan = (function () {
                 ? metaBase.isAllDay
                 : isAllDayEvent(ev),
             domEvent: domEvent || null,
+            /* The element this event was drawn as. `domEvent.currentTarget` is the same node, but
+               only while the event is being dispatched - read it from a later tick and it is null.
+               This survives, which is what a consumer anchoring a popover to the event needs. */
+            element: elm,
           },
           metaBase || {}
         );

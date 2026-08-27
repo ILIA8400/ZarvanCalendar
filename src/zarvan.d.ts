@@ -194,6 +194,17 @@ declare namespace Zarvan {
     jdate: JDate | null;
     isAllDay: boolean;
     domEvent: Event | null;
+    /**
+     * The element this event was drawn as, in whichever view is showing.
+     *
+     * Prefer this over `domEvent.currentTarget` (same node, but only while the event is being
+     * dispatched) and over `domEvent.target` (a child in some views - a list row's title, for one).
+     * Anchor popovers to it. Note that any re-render replaces it, so do not hold on to it across
+     * navigation, a view change, a filter change or a data change.
+     *
+     * Every event node also carries the `zc-event-node` marker class.
+     */
+    element: HTMLElement | null;
   }
 
   interface Ctx {

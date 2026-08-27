@@ -2940,6 +2940,76 @@
         made.splice(made.indexOf(c), 1);
       });
 
+      test("every event node carries the zc-event-node marker, in every view", function () {
+        // .zc-event carries the pill's colours, so three of the six event nodes never had it: the
+        // month grid's timed rows, list rows and modal rows. closest(".zc-event") returned null for
+        // exactly those, which is a selector that works until someone opens the list view.
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var evs = [
+          { id: 1, title: "timed", start: D + "T09:00", end: D + "T10:00", type: "meeting" },
+          { id: 2, title: "all day", start: D, allDay: true, type: "task" },
+        ];
+
+        ["month", "week", "day", "list"].forEach(function (view) {
+          var c = make({ view: view, renderMode: "sync", events: evs });
+          var root = c.getRoot();
+
+          var marked = root.querySelectorAll(".zc-event-node");
+          ok(marked.length >= 2, view + ": both events are marked, got " + marked.length);
+
+          // Whatever a view calls its node, one selector reaches it.
+          Array.prototype.forEach.call(marked, function (n) {
+            eq(n.getAttribute("role"), "button", view + ": marked nodes are the bound ones");
+          });
+
+          c.destroy();
+          made.splice(made.indexOf(c), 1);
+        });
+      });
+
+      test("the marker is a marker: it paints nothing", function () {
+        // If it carried style, adding it to a list row or a month timed row would restyle them.
+        var css = Array.prototype.slice.call(document.styleSheets).filter(function (s) {
+          return (s.href || "").indexOf("zarvan.css") !== -1;
+        })[0];
+        var hits = [];
+        Array.prototype.forEach.call(css.cssRules, function (r) {
+          if (r.selectorText && r.selectorText.indexOf("zc-event-node") !== -1) hits.push(r.selectorText);
+        });
+        eq(hits.length, 0, "no rule targets it, got " + hits.join(" / "));
+      });
+
+      test("meta.element is the event's node, and outlives the dispatch", function () {
+        var tj = JAL.fromGDate(new Date());
+        var D = tj.jy + "-" + tj.jm + "-" + tj.jd;
+        var c = make({
+          view: "list",
+          renderMode: "sync",
+          events: [{ id: 1, title: "x", start: D + "T09:00", end: D + "T10:00", type: "meeting" }],
+        });
+        var root = c.getRoot();
+
+        var meta = null;
+        c.on("onEventClick", function (ev, m) { meta = m; });
+
+        // List view is the one that puts the title in a child element, so a handler reading
+        // domEvent.target gets the title rather than the row.
+        var row = root.querySelector(".zc-list-item");
+        var title = row.querySelector(".zc-list-title");
+        title.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        eq(meta.element, row, "the node, not the child that was clicked");
+        eq(meta.domEvent.target, title, "domEvent.target is still the child");
+        ok(meta.element.classList.contains("zc-event-node"), "and it carries the marker");
+        // currentTarget is nulled once dispatch finishes; element is not.
+        eq(meta.domEvent.currentTarget, null, "currentTarget has gone");
+        ok(meta.element.isConnected, "element still points at the rendered node");
+
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
       test("events opened from the +N more modal carry their date", function () {
         // The modal built its rows without a gdate/jdate, so onEventClick fired with jdate === null
         // for exactly the events a user reaches by clicking "+N more".
