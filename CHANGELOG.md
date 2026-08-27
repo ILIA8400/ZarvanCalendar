@@ -149,6 +149,16 @@
 
 ### Fixed
 
+- **The menu button jumped to the left edge on narrow calendars.** Below the 768px container query the
+  header wraps to two rows, and the two control clusters were ordered `.zc-left` then `.zc-right`. The
+  header is `direction: rtl`, so the *lower* order sits at the right edge — which put the hamburger on
+  the far left while the sidebar it opens slides in from the right: a control pointing away from the
+  thing it controls. The orders are swapped, so the cluster carrying the menu button and the view
+  switcher stays on the right at every width, exactly where it is in the wide layout.
+
+  There is a regression test for it, and it asserts the geometry rather than the declaration: the
+  button has to land in the right half of the header, against the edge the panel opens from.
+
 - **`aria-expanded` on the menu button went stale after a header rebuild.** `renderHeader()` built the
   button with a hardcoded `aria-expanded="false"`, so `setLocale()` — or any feature change — on a
   calendar with an open sidebar left the button announcing the opposite of what was on screen. It is

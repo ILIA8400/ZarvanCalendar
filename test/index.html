@@ -2387,6 +2387,35 @@
         made.splice(made.indexOf(c), 1);
       });
 
+      test("the menu button stays on the right when the header wraps", function () {
+        /* Regression: below the 768px container query the header wraps to two rows, and the two
+           control clusters were ordered .zc-left then .zc-right. The header is `direction: rtl`, so
+           the LOWER order sits at the right edge - which put the hamburger on the far left while the
+           sidebar it opens slides in from the right. */
+        var c = make({ events: [], renderMode: "sync" });
+        var root = c.getRoot();
+        root.style.width = "600px";
+
+        var header = root.querySelector(".zc-header");
+        var menu = root.querySelector(".zc-menu-btn");
+
+        // Force layout so the container query has resolved before anything is read.
+        header.getBoundingClientRect();
+
+        var orderRight = Number(getComputedStyle(root.querySelector(".zc-right")).order);
+        var orderLeft = Number(getComputedStyle(root.querySelector(".zc-left")).order);
+        ok(orderRight < orderLeft, "the right cluster is ordered first, so RTL puts it at the right");
+
+        var hb = header.getBoundingClientRect();
+        var mb = menu.getBoundingClientRect();
+        ok(mb.left > (hb.left + hb.right) / 2, "menu button is in the right half of the header");
+        ok(hb.right - mb.right < 20, "and sits against the right edge, where the sidebar opens");
+
+        root.style.width = "";
+        c.destroy();
+        made.splice(made.indexOf(c), 1);
+      });
+
       test("aria-expanded survives a header rebuild while open", function () {
         // Regression: renderHeader() built the button with a hardcoded aria-expanded="false",
         // so setLocale() on an open calendar left the button announcing the wrong state.

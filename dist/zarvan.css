@@ -2013,17 +2013,28 @@
     padding: var(--zc-space-4);
   }
 
+  /* The header wraps to two rows here: the title on its own, then the two control clusters.
+   *
+   * `order` is what pulls the title onto the first row - it is `flex: 1 1 100%`, and without an
+   * explicit order the wrap algorithm would put it on a line of its own *after* whichever cluster
+   * came first in the DOM, giving three rows instead of two.
+   *
+   * The remaining two orders are read RIGHT to LEFT, because .zc-header is `direction: rtl`: the
+   * lower order sits at the RIGHT edge. So .zc-right takes order 1 to stay on the right, where it is
+   * in the wide layout and - the part that matters - on the same side the sidebar opens from. It
+   * carries the menu button, and a hamburger on the opposite edge from the panel it opens is a
+   * pointer in the wrong direction. */
   .zc-calendar .zc-center {
     order: 0;
     flex: 1 1 100%;
     justify-content: space-between;
   }
 
-  .zc-calendar .zc-left {
+  .zc-calendar .zc-right {
     order: 1;
   }
 
-  .zc-calendar .zc-right {
+  .zc-calendar .zc-left {
     order: 2;
   }
 
