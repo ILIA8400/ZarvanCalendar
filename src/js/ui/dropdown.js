@@ -16,6 +16,14 @@
   var createEl = Z.dom.createEl;
   var eventHitsElement = Z.dom.eventHitsElement;
 
+  /* Inlined so the caret works offline and takes its colour from the stylesheet, same reasoning as
+   * the header chevron in main.js. Built as the same chevron shape rotated 90deg, so the two glyphs
+   * read as one icon family instead of a triangle next to an arrow. */
+  var CARET_SVG =
+    '<svg viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden="true" ' +
+    'focusable="false" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M6 4.6L1.4 0L0 1.4L6 7.4L12 1.4L10.6 0L6 4.6Z" fill="currentColor"/></svg>';
+
   function createDropdown(opts) {
     var prefix = opts.prefix;
     var onSelect = opts.onSelect || function () {};
@@ -35,7 +43,7 @@
     }
     var valueEl = createEl("div", prefix + "-value", opts.value || "");
     selected.appendChild(valueEl);
-    selected.appendChild(createEl("div", prefix + "-caret", opts.caret || "▾"));
+    selected.appendChild(createEl("div", prefix + "-caret", opts.caret || CARET_SVG));
 
     var menu = createEl("div", prefix + "-menu");
     menu.setAttribute("role", "listbox");

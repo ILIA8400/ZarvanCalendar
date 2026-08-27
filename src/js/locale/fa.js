@@ -57,8 +57,6 @@
       searchLabel: "جستجو",
       searchPlaceholder: "عنوان رویداد…",
       exportExcel: "خروجی اکسل",
-      miniPrev: "‹",
-      miniNext: "›",
 
       // --- grid ---
       allDayRow: "تمام روز",

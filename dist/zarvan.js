@@ -217,8 +217,6 @@
       searchLabel: "جستجو",
       searchPlaceholder: "عنوان رویداد…",
       exportExcel: "خروجی اکسل",
-      miniPrev: "‹",
-      miniNext: "›",
 
       // --- grid ---
       allDayRow: "تمام روز",
@@ -2106,6 +2104,14 @@
   var createEl = Z.dom.createEl;
   var eventHitsElement = Z.dom.eventHitsElement;
 
+  /* Inlined so the caret works offline and takes its colour from the stylesheet, same reasoning as
+   * the header chevron in main.js. Built as the same chevron shape rotated 90deg, so the two glyphs
+   * read as one icon family instead of a triangle next to an arrow. */
+  var CARET_SVG =
+    '<svg viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden="true" ' +
+    'focusable="false" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M6 4.6L1.4 0L0 1.4L6 7.4L12 1.4L10.6 0L6 4.6Z" fill="currentColor"/></svg>';
+
   function createDropdown(opts) {
     var prefix = opts.prefix;
     var onSelect = opts.onSelect || function () {};
@@ -2125,7 +2131,7 @@
     }
     var valueEl = createEl("div", prefix + "-value", opts.value || "");
     selected.appendChild(valueEl);
-    selected.appendChild(createEl("div", prefix + "-caret", opts.caret || "▾"));
+    selected.appendChild(createEl("div", prefix + "-caret", opts.caret || CARET_SVG));
 
     var menu = createEl("div", prefix + "-menu");
     menu.setAttribute("role", "listbox");
@@ -4465,10 +4471,12 @@ var Zarvan = (function () {
       var title = createEl("div", "zc-mini-title", formatTitle(jy, jm));
       var nav = createEl("div", "zc-mini-nav");
 
-      var prevBtn = createEl("button", "");
+      /* Same inlined chevron as the main header nav (ARROW_SVG), not the locale's "‹"/"›" glyphs -
+         one icon family instead of a font-rendered arrow next to a vector one. */
+      var prevBtn = createEl("button", "zc-mini-prev");
       prevBtn.type = "button";
       prevBtn.setAttribute("aria-label", t("prev"));
-      prevBtn.innerHTML = t("miniPrev");
+      prevBtn.innerHTML = ARROW_SVG;
       prevBtn.addEventListener("click", function () {
         jm--;
         if (jm < 1) {
@@ -4479,10 +4487,10 @@ var Zarvan = (function () {
         renderMiniCalendar(jy, jm);
       });
 
-      var nextBtn = createEl("button", "");
+      var nextBtn = createEl("button", "zc-mini-next");
       nextBtn.type = "button";
       nextBtn.setAttribute("aria-label", t("next"));
-      nextBtn.innerHTML = t("miniNext");
+      nextBtn.innerHTML = ARROW_SVG;
       nextBtn.addEventListener("click", function () {
         jm++;
         if (jm > 12) {

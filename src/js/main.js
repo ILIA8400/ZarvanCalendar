@@ -1465,10 +1465,12 @@ var Zarvan = (function () {
       var title = createEl("div", "zc-mini-title", formatTitle(jy, jm));
       var nav = createEl("div", "zc-mini-nav");
 
-      var prevBtn = createEl("button", "");
+      /* Same inlined chevron as the main header nav (ARROW_SVG), not the locale's "‹"/"›" glyphs -
+         one icon family instead of a font-rendered arrow next to a vector one. */
+      var prevBtn = createEl("button", "zc-mini-prev");
       prevBtn.type = "button";
       prevBtn.setAttribute("aria-label", t("prev"));
-      prevBtn.innerHTML = t("miniPrev");
+      prevBtn.innerHTML = ARROW_SVG;
       prevBtn.addEventListener("click", function () {
         jm--;
         if (jm < 1) {
@@ -1479,10 +1481,10 @@ var Zarvan = (function () {
         renderMiniCalendar(jy, jm);
       });
 
-      var nextBtn = createEl("button", "");
+      var nextBtn = createEl("button", "zc-mini-next");
       nextBtn.type = "button";
       nextBtn.setAttribute("aria-label", t("next"));
-      nextBtn.innerHTML = t("miniNext");
+      nextBtn.innerHTML = ARROW_SVG;
       nextBtn.addEventListener("click", function () {
         jm++;
         if (jm > 12) {

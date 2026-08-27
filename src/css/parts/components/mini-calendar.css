@@ -29,14 +29,34 @@
 .zc-calendar .zc-mini-nav button {
   width: 30px;
   height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--zc-color-border);
   border-radius: 7px;
   background: var(--zc-color-surface);
   cursor: pointer;
+  transition: background var(--zc-transition-fast);
 }
 
 .zc-calendar .zc-mini-nav button:hover {
   background: #f3f3f3;
+}
+
+.zc-calendar .zc-mini-nav button:active {
+  background: var(--zc-color-active-veil);
+}
+
+/* Same inlined chevron as the main header nav, so both prev/next controls read as one icon family. */
+.zc-calendar .zc-mini-prev svg,
+.zc-calendar .zc-mini-next svg {
+  width: 8px;
+  height: 11px;
+  color: var(--zc-color-text-icon);
+}
+
+.zc-calendar .zc-mini-next svg {
+  transform: rotate(180deg);
 }
 
 .zc-calendar .zc-mini-weekdays {
